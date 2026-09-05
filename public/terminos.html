@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Términos del servicio — roboRobin</title>
+<link rel="icon" href="/images/robin.png" />
+<link rel="stylesheet" href="/css/style.css" />
+<link rel="stylesheet" href="/css/landing.css" />
+</head>
+<body class="rb-page">
+
+<nav class="rb-nav" id="rbNav">
+  <div class="rb-wrap rb-nav-inner">
+    <a href="/" class="rb-logo">
+      <span data-rr-mascot data-small></span>
+      <span>Robo<b>Robin</b></span>
+    </a>
+    <div class="rb-nav-links" id="rbNavLinks">
+      <a href="/index.html#funciones">Funciones</a>
+      <a href="/index.html#como">Cómo funciona</a>
+      <a href="/index.html#precios">Precios</a>
+      <a href="/index.html#escuelas">Escuelas</a>
+    </div>
+    <div class="rb-nav-cta">
+      <a href="/login.html" class="rb-login">Iniciar sesión</a>
+      <a href="/register.html" class="rb-btn rb-btn-primary rb-btn-sm">Empezar gratis</a>
+      <button class="rb-burger" id="rbBurger" aria-label="Abrir menú"><span></span><span></span><span></span></button>
+    </div>
+  </div>
+</nav>
+
+<main class="rb-doc">
+  <div class="rb-wrap rb-doc-inner">
+    <span class="rb-tag" data-anim="up"><i class="dot"></i> Léelo antes que nada</span>
+    <h1 data-anim="up" data-delay="60">Términos del servicio</h1>
+    <p class="rb-updated" data-anim="up" data-delay="100">Última actualización: 3 de septiembre de 2026</p>
+
+    <div class="rb-warn" id="aviso" data-anim="up" data-delay="140">
+      <h3>⚠️ Todo lo que ves aquí es falso</h3>
+      <p>
+        roboRobin es un <strong>proyecto escolar hecho para una exposición</strong>. No es una empresa, no es un
+        servicio real y no hay nadie del otro lado. Las cifras, los precios, los testimonios, las escuelas aliadas,
+        los premios y las redes sociales que aparecen en la página son <strong>inventados</strong> y están puestos
+        únicamente para mostrar cómo se vería un sitio real.
+      </p>
+    </div>
+
+    <h2 data-anim="up">1. Qué es esto en realidad</h2>
+    <p data-anim="up">
+      roboRobin es una aplicación de demostración que corre <strong>completamente en la computadora donde se
+      instaló</strong>. No hay servidores en la nube, no hay una compañía detrás y no existe ningún equipo de
+      soporte. Si estás viendo esta página en una feria, una clase o una presentación, estás viendo una maqueta
+      funcional, no un producto.
+    </p>
+
+    <h2 data-anim="up">2. Datos que aparecen en la página</h2>
+    <ul data-anim="up">
+      <li><strong>«+50,000 estudiantes», «200+ escuelas», «98% de satisfacción»:</strong> inventados. Nadie los midió.</li>
+      <li><strong>Precios ($99/mes, «A medida»):</strong> inventados. <strong>No se cobra nada, nunca.</strong> No hay formularios de pago, no se piden tarjetas y no existe ninguna pasarela de cobro en este proyecto.</li>
+      <li><strong>«Disponible 24/7», «soporte prioritario»:</strong> inventados. El servicio solo funciona mientras alguien tenga el servidor encendido en su propia máquina.</li>
+      <li><strong>Redes sociales del pie de página:</strong> no llevan a ninguna cuenta real; regresan aquí.</li>
+      <li><strong>Nombres y logros de la conversación de ejemplo:</strong> escritos para la demostración.</li>
+    </ul>
+
+    <h2 data-anim="up">3. La inteligencia artificial</h2>
+    <p data-anim="up">
+      Robin funciona por defecto en <strong>modo local</strong>: entiende órdenes sencillas sobre tus pendientes
+      («recuérdame estudiar mañana») y responde con una base de consejos escrita a mano. No es un modelo de
+      lenguaje entrenado por este proyecto.
+    </p>
+    <p data-anim="up">
+      Quien instale la aplicación puede, si quiere, poner su propia clave de la API de Anthropic en
+      <code>config.json</code> para que las preguntas abiertas las responda Claude. En ese caso —y solo en ese
+      caso— el texto que escribas se envía a Anthropic para obtener la respuesta. Sin clave, nada sale de la
+      computadora. Las respuestas de una IA pueden equivocarse: <strong>no las uses como fuente única</strong>
+      para tareas, decisiones médicas, legales ni financieras.
+    </p>
+
+    <h2 id="privacidad" data-anim="up">4. Privacidad</h2>
+    <p data-anim="up">
+      Todo (cuentas, contraseñas encriptadas, escuelas, códigos, pendientes, avisos e historial del chat) se guarda
+      en un único archivo local: <code>data/db.json</code>. Quien tenga acceso a esa computadora tiene acceso al
+      archivo. Por eso:
+    </p>
+    <ul data-anim="up">
+      <li>No escribas datos personales de verdad ni información sensible dentro de la demostración.</li>
+      <li>Usa contraseñas que no uses en ningún otro sitio.</li>
+      <li>Los códigos de ingreso son de 4 caracteres para poder dictarlos en voz alta: son cómodos, no son seguridad de verdad.</li>
+    </ul>
+
+    <h2 data-anim="up">5. Cuentas y roles</h2>
+    <p data-anim="up">
+      Las cuentas de estudiante y profesor se crean con un código que reparte el director de cada escuela, y ese
+      código es el que decide el rol. Dentro del proyecto la separación funciona, pero está pensada para una
+      demostración: no la uses para administrar datos reales de menores de edad ni de una institución.
+    </p>
+
+    <h2 data-anim="up">6. Garantías</h2>
+    <p data-anim="up">
+      Ninguna. El software se entrega «tal cual», sin garantía de ningún tipo. Quien lo instala y lo corre es
+      responsable de lo que haga con él. Al ser un trabajo escolar, puede tener errores, puede perder datos y
+      puede dejar de funcionar sin aviso.
+    </p>
+
+    <h2 data-anim="up">7. Marcas y contenido de terceros</h2>
+    <p data-anim="up">
+      «Claude» y «Anthropic» son marcas de Anthropic; se mencionan solo porque la aplicación puede conectarse a su
+      API de forma opcional. Este proyecto no está afiliado, patrocinado ni respaldado por Anthropic ni por
+      ninguna otra empresa.
+    </p>
+
+    <h2 data-anim="up">8. Contacto</h2>
+    <p data-anim="up">
+      No hay un correo de soporte porque no hay soporte. Si estás viendo esto en una exposición, pregúntale
+      directamente a la persona que hizo el proyecto: para eso está ahí. 🐦
+    </p>
+
+    <div style="margin-top:48px;display:flex;gap:12px;flex-wrap:wrap" data-anim="up">
+      <a href="/" class="rb-btn rb-btn-primary">← Volver al inicio</a>
+      <a href="/register.html" class="rb-btn rb-btn-white">Probar la demostración</a>
+    </div>
+  </div>
+</main>
+
+<footer class="rb-footer">
+  <div class="rb-wrap">
+    <div class="rb-footer-legal" style="border-top:none;margin-top:0">
+      <span>© 2026 roboRobin — proyecto escolar de exposición, sin fines comerciales.</span>
+      <span class="socials"><a href="/">Inicio</a><a href="/login.html">Entrar</a></span>
+    </div>
+  </div>
+</footer>
+
+<script src="/js/mascot.js"></script>
+<script src="/js/landing.js"></script>
+</body>
+</html>

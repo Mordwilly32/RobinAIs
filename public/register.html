@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Crear cuenta — roboRobin</title>
+<link rel="icon" href="/images/robin.png" />
+<link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+<div class="rr-auth-wrap">
+  <div class="rr-auth-card wide">
+    <div class="rr-auth-head">
+      <span data-rr-mascot data-bob id="authRobin"></span>
+      <h2 id="stepTitle">Crea tu cuenta</h2>
+      <p class="text-muted mt-0" id="stepSubtitle">¿Qué tipo de cuenta necesitas?</p>
+    </div>
+
+    <div class="rr-steps" id="steps">
+      <span class="on"></span><span></span><span></span>
+    </div>
+
+    <div class="form-error" id="formError"></div>
+
+    <!-- Paso 1: tipo de cuenta -->
+    <div id="step-type" class="step-form active">
+      <div class="rr-choice-grid cols-3">
+        <button type="button" class="rr-choice" data-type="personal">
+          <span class="ic">✨</span>
+          <div class="t">Cuenta personal</div>
+          <div class="d">Para ti. Robin te ayuda a organizar tus tareas y tu día a día.</div>
+        </button>
+        <button type="button" class="rr-choice" data-type="join">
+          <span class="ic">🎟️</span>
+          <div class="t">Tengo un código</div>
+          <div class="d">Únete a tu escuela como estudiante o profesor con el código de tu director.</div>
+        </button>
+        <button type="button" class="rr-choice" data-type="school">
+          <span class="ic">🏫</span>
+          <div class="t">Inscribir mi escuela</div>
+          <div class="d">Eres director. Registra la escuela y reparte los códigos de ingreso.</div>
+        </button>
+      </div>
+      <p class="hint center">Todo se guarda en esta computadora. Nada viaja a internet.</p>
+    </div>
+
+    <!-- Paso 2: código de ingreso -->
+    <div id="step-code" class="step-form">
+      <div class="field">
+        <label for="joinCode">Código de ingreso</label>
+        <input type="text" id="joinCode" placeholder="EST-4K7Q o PRO-9XB2" style="text-transform:uppercase;font-family:var(--rr-mono);font-size:19px;letter-spacing:.1em" autocomplete="off" />
+        <div class="hint">Tu director te da un código distinto según seas estudiante o profesor. El código decide tu rol.</div>
+      </div>
+      <div id="codeResult"></div>
+      <div style="display:flex;gap:10px;margin-top:14px">
+        <button type="button" class="btn btn-ghost" data-back="type">← Atrás</button>
+        <button type="button" class="btn btn-primary" id="checkCode" style="flex:1">Verificar código</button>
+      </div>
+    </div>
+
+    <!-- Paso 2 (director): datos de la escuela -->
+    <div id="step-school" class="step-form">
+      <form id="schoolForm">
+        <div class="field">
+          <label for="schoolName">Nombre de la escuela</label>
+          <input type="text" id="schoolName" required placeholder="Centro Escolar San Rafael" />
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label for="sFullName">Tu nombre completo</label>
+            <input type="text" id="sFullName" required placeholder="Ada Lovelace" />
+          </div>
+          <div class="field">
+            <label for="sEmail">Tu correo</label>
+            <input type="email" id="sEmail" required placeholder="direccion@escuela.edu" />
+          </div>
+        </div>
+        <div class="field">
+          <label for="sPassword">Contraseña</label>
+          <input type="password" id="sPassword" required minlength="6" placeholder="Al menos 6 caracteres" />
+          <div class="hint">Con esta cuenta administras toda la escuela: cuentas, avisos y códigos.</div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:8px">
+          <button type="button" class="btn btn-ghost" data-back="type">← Atrás</button>
+          <button type="submit" class="btn btn-primary" id="schoolBtn" style="flex:1">Inscribir escuela</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Paso 3: datos de la persona (personal y unirse con código) -->
+    <div id="step-form" class="step-form">
+      <form id="registerForm">
+        <div class="form-row">
+          <div class="field">
+            <label for="fullName">Nombre completo</label>
+            <input type="text" id="fullName" required placeholder="Ada Lovelace" />
+          </div>
+          <div class="field">
+            <label for="email">Correo <span class="text-muted" id="emailOptional">(opcional)</span></label>
+            <input type="email" id="email" placeholder="tu@correo.com" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="field">
+            <label for="password">Contraseña</label>
+            <input type="password" id="password" required minlength="6" placeholder="Al menos 6 caracteres" />
+          </div>
+          <div class="field" id="gradeFieldWrap">
+            <label for="grade">Grado o sección</label>
+            <select id="grade">
+              <option value="">Elige primero tu nivel…</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field" id="levelSection">
+          <label>Tu nivel escolar</label>
+          <div class="level-grid" id="levelGrid">
+            <div class="level-card" data-level="Parvularia">
+              <div class="level-icon">🥚</div><div class="level-name">Parvularia</div>
+            </div>
+            <div class="level-card" data-level="Primaria">
+              <div class="level-icon">🐣</div><div class="level-name">Primaria</div>
+            </div>
+            <div class="level-card" data-level="Secundaria">
+              <div class="level-icon">🪶</div><div class="level-name">Secundaria</div>
+            </div>
+            <div class="level-card" data-level="Bachillerato">
+              <div class="level-icon">🕊️</div><div class="level-name">Bachillerato</div>
+            </div>
+          </div>
+          <p class="hint" id="levelHint">Elige el nivel que estás cursando.</p>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:8px">
+          <button type="button" class="btn btn-ghost" id="backFromForm">← Atrás</button>
+          <button type="submit" class="btn btn-primary" id="registerBtn" style="flex:1">Crear cuenta</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Paso final del director: sus dos códigos -->
+    <div id="step-codes" class="step-form">
+      <p class="text-muted" style="font-size:14.5px">
+        ¡Listo! <strong id="createdSchoolName"></strong> ya está inscrita. Estos son los dos códigos que reparte
+        el director. Cada persona usa el suyo al crear su cuenta, y ese código decide si entra como estudiante o
+        como profesor.
+      </p>
+      <div class="rr-code-reveal">
+        <div class="rr-code-box">
+          <div>
+            <div class="lab">Para estudiantes</div>
+            <div class="val" id="revealStudentCode">—</div>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline" data-copy="student">Copiar</button>
+        </div>
+        <div class="rr-code-box teacher">
+          <div>
+            <div class="lab">Para profesores</div>
+            <div class="val" id="revealTeacherCode">—</div>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline" data-copy="teacher">Copiar</button>
+        </div>
+      </div>
+      <p class="hint">Puedes volver a verlos y generarlos de nuevo cuando quieras desde tu panel.</p>
+      <a href="/dashboard-admin.html" class="btn btn-primary btn-block">Entrar a mi panel →</a>
+    </div>
+
+    <p class="rr-auth-switch">¿Ya tienes cuenta? <a href="/login.html">Inicia sesión</a></p>
+    <p class="rr-auth-switch" style="margin-top:6px"><a href="/index.html">← Volver al inicio</a></p>
+  </div>
+</div>
+
+<script src="/js/mascot.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/register.js"></script>
+</body>
+</html>

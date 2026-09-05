@@ -1,0 +1,19 @@
+{
+  "name": "roborobin",
+  "version": "1.0.0",
+  "description": "roboRobin - asistente 100% local con dos caminos: cuenta personal con organizador de tareas, o plataforma escolar completa (director, profesores y estudiantes) con codigos de ingreso.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "express": "^4.19.2",
+    "express-session": "^1.18.0"
+  },
+  "license": "MIT"
+}

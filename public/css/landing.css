@@ -1,0 +1,658 @@
+/* =============================================================================
+   roboRobin — portada, términos y página de error
+   Hoja aparte de style.css: aquí vive solo el sitio público. Los paneles de la
+   aplicación siguen usando style.css sin tocarse.
+   Prefijo rb- para no chocar con las clases rr- de la app.
+   ============================================================================= */
+
+:root {
+  --rb-red: #FF2E2E;
+  --rb-red-dark: #D91B1B;
+  --rb-red-ink: #B01212;
+  --rb-red-soft: #FFF0EE;
+  --rb-red-soft-2: #FFE2DD;
+  --rb-ink: #1A1A1A;
+  --rb-ink-2: #141414;
+  --rb-body: #5B6470;
+  --rb-line: #ECECEC;
+  --rb-white: #FFFFFF;
+
+  --rb-ease: cubic-bezier(.22, .61, .36, 1);
+  --rb-spring: cubic-bezier(.34, 1.42, .64, 1);
+
+  --rb-nav-h: 74px;
+}
+
+body.rb-page {
+  background: var(--rb-white);
+  color: var(--rb-body);
+  font-family: var(--rr-font);
+  overflow-x: hidden;
+}
+
+.rb-page h1, .rb-page h2, .rb-page h3, .rb-page h4 {
+  color: var(--rb-ink);
+  letter-spacing: -.035em;
+  font-weight: 800;
+  line-height: 1.06;
+}
+
+.rb-wrap { width: 100%; max-width: 1240px; margin: 0 auto; padding: 0 28px; }
+@media (max-width: 620px) { .rb-wrap { padding: 0 20px; } }
+
+.rb-red { color: var(--rb-red); }
+
+/* Pastilla de sección: "Todo lo que necesitas", "Planes y precios"… */
+.rb-tag {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--rb-red-soft); color: var(--rb-red);
+  font-size: 13.5px; font-weight: 700;
+  padding: 8px 18px; border-radius: 999px;
+}
+.rb-tag .dot {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--rb-red);
+  animation: rb-pulse 2.2s var(--rb-ease) infinite;
+}
+@keyframes rb-pulse {
+  0%, 70%, 100% { transform: scale(1); opacity: 1; }
+  85% { transform: scale(1.7); opacity: .45; }
+}
+
+.rb-section { padding: 96px 0; }
+.rb-section-head { text-align: center; max-width: 720px; margin: 0 auto 56px; }
+.rb-section-head h2 { font-size: clamp(32px, 4.4vw, 52px); margin: 18px 0 16px; }
+.rb-section-head p { font-size: 17.5px; line-height: 1.7; margin: 0; }
+
+/* =============================================================================
+   Botones
+   ============================================================================= */
+
+.rb-btn {
+  position: relative; overflow: hidden;
+  display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+  border: 2px solid transparent; border-radius: 999px;
+  padding: 15px 30px;
+  font: inherit; font-size: 15.5px; font-weight: 700;
+  cursor: pointer; white-space: nowrap;
+  transition: transform .22s var(--rb-spring), box-shadow .25s var(--rb-ease),
+              background .2s var(--rb-ease), color .2s var(--rb-ease), border-color .2s var(--rb-ease);
+}
+/* Brillo que barre el botón al pasar el mouse */
+.rb-btn::after {
+  content: ""; position: absolute; top: 0; bottom: 0; width: 45%;
+  left: -60%; transform: skewX(-20deg);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .38), transparent);
+  transition: left .55s var(--rb-ease);
+}
+.rb-btn:hover::after { left: 130%; }
+.rb-btn:active { transform: translateY(1px) scale(.98); }
+
+.rb-btn-primary { background: var(--rb-red); color: #fff; box-shadow: 0 8px 22px rgba(255, 46, 46, .32); }
+.rb-btn-primary:hover { background: var(--rb-red-dark); transform: translateY(-3px); box-shadow: 0 14px 32px rgba(255, 46, 46, .4); }
+
+.rb-btn-white { background: #fff; color: var(--rb-ink); border-color: var(--rb-line); box-shadow: 0 6px 18px rgba(20, 20, 20, .07); }
+.rb-btn-white:hover { transform: translateY(-3px); border-color: #DCDCDC; box-shadow: 0 12px 26px rgba(20, 20, 20, .12); }
+
+.rb-btn-onred { background: #fff; color: var(--rb-red); }
+.rb-btn-onred:hover { transform: translateY(-3px); box-shadow: 0 14px 30px rgba(0, 0, 0, .18); }
+.rb-btn-ghost-white { background: transparent; color: #fff; border-color: rgba(255, 255, 255, .55); }
+.rb-btn-ghost-white:hover { background: rgba(255, 255, 255, .12); border-color: #fff; transform: translateY(-3px); }
+
+.rb-btn-sm { padding: 11px 22px; font-size: 14.5px; }
+.rb-btn-block { width: 100%; }
+
+/* =============================================================================
+   Barra de navegación
+   ============================================================================= */
+
+.rb-nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 90;
+  height: var(--rb-nav-h);
+  background: rgba(255, 255, 255, .88);
+  backdrop-filter: saturate(180%) blur(14px);
+  border-bottom: 1px solid transparent;
+  transition: height .3s var(--rb-ease), box-shadow .3s var(--rb-ease), border-color .3s var(--rb-ease);
+}
+.rb-nav.scrolled { height: 62px; border-bottom-color: var(--rb-line); box-shadow: 0 6px 24px rgba(20, 20, 20, .06); }
+.rb-nav-inner { height: 100%; display: flex; align-items: center; justify-content: space-between; gap: 22px; }
+
+.rb-logo { display: flex; align-items: center; gap: 10px; font-size: 21px; font-weight: 800; letter-spacing: -.03em; color: var(--rb-ink); }
+.rb-logo .rr-mascot { width: 36px; height: 36px; }
+.rb-logo b { color: var(--rb-red); font-weight: 800; }
+
+.rb-nav-links { display: flex; align-items: center; gap: 32px; }
+.rb-nav-links a {
+  position: relative; font-size: 15.5px; font-weight: 600; color: #3F4650;
+  transition: color .2s var(--rb-ease);
+}
+.rb-nav-links a::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: -7px; height: 2px;
+  background: var(--rb-red); border-radius: 2px;
+  transform: scaleX(0); transform-origin: left;
+  transition: transform .3s var(--rb-ease);
+}
+.rb-nav-links a:hover { color: var(--rb-red); }
+.rb-nav-links a:hover::after { transform: scaleX(1); }
+
+.rb-nav-cta { display: flex; align-items: center; gap: 18px; }
+.rb-nav-cta .rb-login { font-size: 15.5px; font-weight: 600; color: var(--rb-ink); }
+.rb-nav-cta .rb-login:hover { color: var(--rb-red); }
+
+.rb-burger { display: none; background: none; border: none; cursor: pointer; padding: 8px; }
+.rb-burger span { display: block; width: 22px; height: 2.5px; background: var(--rb-ink); border-radius: 2px; transition: transform .3s var(--rb-ease), opacity .2s; }
+.rb-burger span + span { margin-top: 5px; }
+.rb-burger.open span:nth-child(1) { transform: translateY(7.5px) rotate(45deg); }
+.rb-burger.open span:nth-child(2) { opacity: 0; }
+.rb-burger.open span:nth-child(3) { transform: translateY(-7.5px) rotate(-45deg); }
+
+@media (max-width: 940px) {
+  .rb-burger { display: block; }
+  .rb-nav-links, .rb-nav-cta .rb-login { display: none; }
+  .rb-nav-links {
+    position: absolute; top: var(--rb-nav-h); left: 0; right: 0;
+    flex-direction: column; gap: 0; align-items: stretch;
+    background: #fff; border-bottom: 1px solid var(--rb-line);
+    box-shadow: 0 20px 40px rgba(20, 20, 20, .1);
+    padding: 8px 0;
+  }
+  .rb-nav-links.open { display: flex; animation: rb-drop .3s var(--rb-ease) both; }
+  .rb-nav-links a { padding: 14px 28px; font-size: 16px; }
+  .rb-nav-links a::after { display: none; }
+  @keyframes rb-drop { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: none; } }
+}
+
+/* =============================================================================
+   Héroe
+   ============================================================================= */
+
+.rb-hero {
+  position: relative; overflow: hidden;
+  padding: calc(var(--rb-nav-h) + 74px) 0 90px;
+  /* Patrón de puntos como el del diseño */
+  background-image: radial-gradient(rgba(255, 46, 46, .13) 1.4px, transparent 1.4px);
+  background-size: 26px 26px;
+}
+.rb-hero::before, .rb-hero::after {
+  content: ""; position: absolute; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(255, 46, 46, .13), transparent 68%);
+  filter: blur(10px);
+}
+.rb-hero::before { width: 520px; height: 520px; top: -140px; right: -120px; animation: rb-drift 16s ease-in-out infinite; }
+.rb-hero::after { width: 420px; height: 420px; bottom: -180px; left: -160px; animation: rb-drift 20s ease-in-out infinite reverse; }
+@keyframes rb-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(30px, 24px) scale(1.08); }
+}
+
+.rb-hero-grid { position: relative; display: grid; grid-template-columns: 1.02fr .98fr; gap: 40px; align-items: center; }
+@media (max-width: 980px) { .rb-hero-grid { grid-template-columns: 1fr; gap: 60px; } }
+
+.rb-hero h1 { font-size: clamp(42px, 6.1vw, 74px); margin: 22px 0 26px; }
+.rb-hero h1 span { display: block; }
+.rb-hero-lead { font-size: 18.5px; line-height: 1.75; max-width: 560px; margin: 0 0 34px; }
+.rb-hero-actions { display: flex; gap: 14px; flex-wrap: wrap; }
+
+.rb-social { display: flex; align-items: center; gap: 14px; margin-top: 36px; flex-wrap: wrap; }
+.rb-avatars { display: flex; }
+.rb-avatars span {
+  width: 34px; height: 34px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 13px; font-weight: 700;
+  border: 2.5px solid #fff; margin-left: -10px;
+  transition: transform .25s var(--rb-spring);
+}
+.rb-avatars span:first-child { margin-left: 0; }
+.rb-avatars span:hover { transform: translateY(-5px) scale(1.1); z-index: 2; }
+.rb-social p { margin: 0; font-size: 15px; }
+.rb-social strong { color: var(--rb-ink); }
+
+/* Escena de Robin con sus tarjetas flotantes */
+.rb-scene { position: relative; display: flex; align-items: center; justify-content: center; min-height: 440px; }
+.rb-scene-ring {
+  position: absolute; width: min(400px, 78vw); aspect-ratio: 1; border-radius: 50%;
+  background: radial-gradient(circle at 50% 45%, var(--rb-red-soft-2), var(--rb-red-soft) 62%, rgba(255, 240, 238, 0) 74%);
+  animation: rb-breath 7s var(--rb-ease) infinite;
+}
+@keyframes rb-breath { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+.rb-scene-ring::after {
+  content: ""; position: absolute; inset: 6%;
+  border-radius: 50%; border: 2px dashed rgba(255, 46, 46, .22);
+  animation: rb-spin-slow 26s linear infinite;
+}
+@keyframes rb-spin-slow { to { transform: rotate(360deg); } }
+
+.rb-scene .rr-mascot { position: relative; z-index: 2; width: min(250px, 52vw); height: min(250px, 52vw); }
+
+.rb-float {
+  position: absolute; z-index: 3;
+  background: #fff; border-radius: 16px;
+  box-shadow: 0 10px 34px rgba(20, 20, 20, .12);
+  padding: 13px 17px;
+  animation: rb-floaty 5s var(--rb-ease) infinite;
+}
+.rb-float small { display: block; font-size: 12px; color: #8A93A0; margin-bottom: 5px; }
+.rb-float strong { font-size: 15px; color: var(--rb-ink); font-weight: 700; }
+
+.rb-float-1 { top: 12%; left: -2%; animation-delay: .2s; }
+.rb-float-2 { top: 6%; right: 1%; background: var(--rb-red); box-shadow: 0 12px 34px rgba(255, 46, 46, .35); animation-delay: 1.4s; }
+.rb-float-2 small { color: rgba(255, 255, 255, .78); }
+.rb-float-2 strong { color: #fff; font-size: 19px; }
+.rb-float-3 { bottom: 12%; right: -3%; animation-delay: .8s; }
+
+/* El flotar y el parallax comparten el mismo transform, y una animación le
+   gana siempre a un estilo en línea. Por eso el parallax no escribe transform:
+   escribe estas variables, que los fotogramas leen en vivo. */
+@keyframes rb-floaty {
+  0%, 100% { transform: translate3d(var(--px, 0px), var(--py, 0px), 0) rotate(var(--pr, 0deg)); }
+  50% { transform: translate3d(var(--px, 0px), calc(var(--py, 0px) - 13px), 0) rotate(calc(var(--pr, 0deg) - 1deg)); }
+}
+
+.rb-dots { display: flex; gap: 5px; align-items: center; margin-top: 3px; }
+.rb-dots i { width: 17px; height: 17px; border-radius: 5px; background: var(--rb-line); display: block; }
+.rb-dots i.on { background: var(--rb-red); }
+.rb-dots span { font-size: 12px; color: #8A93A0; margin-left: 5px; }
+
+@media (max-width: 980px) {
+  .rb-float-1 { left: 2%; }
+  .rb-float-2 { right: 2%; }
+  .rb-float-3 { right: 4%; }
+}
+@media (max-width: 560px) {
+  .rb-scene { min-height: 360px; }
+  .rb-float { padding: 10px 13px; transform: scale(.86); }
+}
+
+/* =============================================================================
+   Cifras
+   ============================================================================= */
+
+.rb-stats { border-top: 1px solid var(--rb-line); border-bottom: 1px solid var(--rb-line); padding: 54px 0 46px; }
+.rb-stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; text-align: center; }
+@media (max-width: 720px) { .rb-stats-grid { grid-template-columns: repeat(2, 1fr); gap: 34px; } }
+.rb-stat .n { font-size: clamp(32px, 4vw, 44px); font-weight: 800; color: var(--rb-red); letter-spacing: -.04em; }
+.rb-stat .l { font-size: 15px; color: var(--rb-body); margin-top: 2px; }
+.rb-stats-note { text-align: center; font-size: 13px; color: #9AA3AE; margin: 30px 0 0; }
+.rb-stats-note a { color: var(--rb-red); font-weight: 700; text-decoration: underline; }
+
+/* =============================================================================
+   Funciones
+   ============================================================================= */
+
+.rb-features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+@media (max-width: 940px) { .rb-features-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 640px) { .rb-features-grid { grid-template-columns: 1fr; } }
+
+.rb-feature {
+  border: 1px solid var(--rb-line); border-radius: 20px;
+  padding: 30px 28px 32px; background: #fff;
+  transition: transform .32s var(--rb-ease), box-shadow .32s var(--rb-ease), border-color .32s var(--rb-ease);
+}
+.rb-feature.tinted { background: var(--rb-red-soft); border-color: transparent; }
+.rb-feature:hover { transform: translateY(-8px); box-shadow: 0 22px 46px rgba(20, 20, 20, .1); border-color: transparent; }
+.rb-feature-ic {
+  width: 50px; height: 50px; border-radius: 14px;
+  background: var(--rb-red-soft-2); color: var(--rb-red);
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 20px;
+  transition: transform .35s var(--rb-spring), background .3s var(--rb-ease);
+}
+.rb-feature.tinted .rb-feature-ic { background: #fff; }
+.rb-feature:hover .rb-feature-ic { transform: rotate(-8deg) scale(1.1); }
+.rb-feature-ic svg { width: 24px; height: 24px; }
+.rb-feature h3 { font-size: 19.5px; margin: 0 0 10px; letter-spacing: -.025em; }
+.rb-feature p { font-size: 15px; line-height: 1.65; margin: 0; }
+
+/* =============================================================================
+   ¿Cómo funciona? (sección oscura)
+   ============================================================================= */
+
+.rb-how { background: var(--rb-ink-2); color: rgba(255, 255, 255, .68); }
+.rb-how h2, .rb-how h3 { color: #fff; }
+.rb-how .rb-tag { background: rgba(255, 46, 46, .16); color: #FF6B6B; }
+.rb-how .rb-section-head p { color: rgba(255, 255, 255, .6); }
+
+.rb-steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 26px; }
+@media (max-width: 900px) { .rb-steps { grid-template-columns: repeat(2, 1fr); gap: 38px; } }
+@media (max-width: 520px) { .rb-steps { grid-template-columns: 1fr; } }
+
+.rb-step { position: relative; }
+/* Línea que une un paso con el siguiente: se dibuja al entrar en pantalla */
+.rb-step:not(:last-child)::after {
+  content: ""; position: absolute; top: 32px; left: 78px; right: -26px; height: 1px;
+  background: rgba(255, 255, 255, .18);
+  transform: scaleX(0); transform-origin: left;
+  transition: transform .8s var(--rb-ease) .35s;
+}
+.rb-step.in:not(:last-child)::after { transform: scaleX(1); }
+@media (max-width: 900px) { .rb-step::after { display: none !important; } }
+
+.rb-step-n {
+  width: 64px; height: 64px; border-radius: 18px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; font-weight: 800; letter-spacing: -.03em;
+  background: rgba(255, 46, 46, .16); color: #FF6B6B;
+  margin-bottom: 22px;
+  transition: transform .35s var(--rb-spring), background .3s var(--rb-ease), color .3s var(--rb-ease);
+}
+.rb-step:first-child .rb-step-n, .rb-step:hover .rb-step-n { background: var(--rb-red); color: #fff; box-shadow: 0 10px 26px rgba(255, 46, 46, .4); }
+.rb-step:hover .rb-step-n { transform: translateY(-5px) scale(1.05); }
+.rb-step h3 { font-size: 19px; margin: 0 0 10px; }
+.rb-step p { font-size: 15px; line-height: 1.65; margin: 0; }
+
+/* Cinta de materias que se desliza sin parar */
+.rb-marquee { overflow: hidden; margin-top: 76px; -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); }
+.rb-marquee-track { display: flex; gap: 14px; width: max-content; animation: rb-slide 34s linear infinite; }
+.rb-marquee:hover .rb-marquee-track { animation-play-state: paused; }
+@keyframes rb-slide { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.rb-marquee span {
+  border: 1px solid rgba(255, 255, 255, .16); border-radius: 999px;
+  padding: 11px 22px; font-size: 14.5px; color: rgba(255, 255, 255, .8);
+  white-space: nowrap;
+}
+
+/* =============================================================================
+   Hecho para todos (pestañas)
+   ============================================================================= */
+
+.rb-tabs { display: flex; justify-content: center; margin-bottom: 52px; }
+.rb-tabs-inner { position: relative; display: flex; background: #F4F5F7; border-radius: 999px; padding: 5px; }
+/* La píldora roja se desliza entre pestañas */
+.rb-tabs-pill {
+  position: absolute; top: 5px; bottom: 5px; left: 5px;
+  border-radius: 999px; background: var(--rb-red);
+  box-shadow: 0 6px 18px rgba(255, 46, 46, .35);
+  transition: transform .42s var(--rb-spring), width .42s var(--rb-spring);
+}
+.rb-tabs button {
+  position: relative; z-index: 1;
+  border: none; background: none; cursor: pointer;
+  font: inherit; font-size: 15.5px; font-weight: 700; color: #5B6470;
+  padding: 12px 30px; border-radius: 999px;
+  transition: color .3s var(--rb-ease);
+}
+.rb-tabs button.on { color: #fff; }
+
+.rb-panel { display: none; }
+.rb-panel.on { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center; }
+@media (max-width: 940px) { .rb-panel.on { grid-template-columns: 1fr; gap: 40px; } }
+.rb-panel h3 { font-size: clamp(26px, 3vw, 34px); margin: 0 0 18px; }
+.rb-panel > div > p { font-size: 16.5px; line-height: 1.75; }
+
+.rb-checks { list-style: none; padding: 0; margin: 26px 0 0; }
+.rb-checks li { display: flex; align-items: center; gap: 12px; margin-bottom: 15px; font-size: 16px; color: var(--rb-ink); }
+.rb-checks li i {
+  flex: 0 0 24px; width: 24px; height: 24px; border-radius: 50%;
+  background: var(--rb-red); color: #fff;
+  display: flex; align-items: center; justify-content: center; font-size: 13px; font-style: normal;
+}
+/* Entran una tras otra cuando el panel aparece */
+.rb-panel.on .rb-checks li { animation: rb-in-left .5s var(--rb-ease) both; }
+.rb-panel.on .rb-checks li:nth-child(1) { animation-delay: .05s; }
+.rb-panel.on .rb-checks li:nth-child(2) { animation-delay: .13s; }
+.rb-panel.on .rb-checks li:nth-child(3) { animation-delay: .21s; }
+.rb-panel.on .rb-checks li:nth-child(4) { animation-delay: .29s; }
+@keyframes rb-in-left { from { opacity: 0; transform: translateX(-18px); } to { opacity: 1; transform: none; } }
+
+/* Maqueta de conversación */
+.rb-chat { background: var(--rb-red-soft); border-radius: 26px; padding: 26px; }
+.rb-msg { display: flex; align-items: flex-start; gap: 11px; margin-bottom: 15px; }
+.rb-msg .rr-mascot { width: 34px; height: 34px; flex: 0 0 34px; }
+.rb-scene .rr-pose, .rb-cta-bird .rr-pose { width: auto; height: auto; }
+.rb-msg p {
+  margin: 0; background: #fff; border-radius: 16px; border-top-left-radius: 5px;
+  padding: 13px 16px; font-size: 14.5px; line-height: 1.55; color: var(--rb-ink);
+  box-shadow: 0 3px 12px rgba(20, 20, 20, .05);
+}
+.rb-msg.me { justify-content: flex-end; }
+.rb-msg.me p { background: var(--rb-red); color: #fff; border-radius: 16px; border-top-right-radius: 5px; box-shadow: 0 6px 18px rgba(255, 46, 46, .28); }
+.rb-panel.on .rb-msg { animation: rb-in-up .55s var(--rb-ease) both; }
+.rb-panel.on .rb-msg:nth-child(1) { animation-delay: .1s; }
+.rb-panel.on .rb-msg:nth-child(2) { animation-delay: .3s; }
+.rb-panel.on .rb-msg:nth-child(3) { animation-delay: .5s; }
+@keyframes rb-in-up { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+.rb-chat-bar { display: flex; gap: 10px; align-items: center; background: #fff; border-radius: 999px; padding: 7px 7px 7px 20px; margin-top: 20px; }
+.rb-chat-bar span { flex: 1; font-size: 14.5px; color: #A6AEB9; }
+.rb-chat-bar i {
+  width: 40px; height: 40px; border-radius: 50%; background: var(--rb-red); color: #fff;
+  display: flex; align-items: center; justify-content: center; font-style: normal; font-size: 17px;
+  animation: rb-nudge 2.4s var(--rb-ease) infinite;
+}
+@keyframes rb-nudge { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(4px); } }
+
+/* =============================================================================
+   Precios
+   ============================================================================= */
+
+.rb-prices { background: #FBFBFC; }
+.rb-price-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 26px; align-items: center; }
+@media (max-width: 940px) { .rb-price-grid { grid-template-columns: 1fr; max-width: 460px; margin: 0 auto; } }
+
+.rb-price {
+  background: #fff; border: 1px solid var(--rb-line); border-radius: 24px;
+  padding: 34px 30px 36px;
+  transition: transform .32s var(--rb-ease), box-shadow .32s var(--rb-ease);
+}
+.rb-price:hover { transform: translateY(-8px); box-shadow: 0 24px 50px rgba(20, 20, 20, .1); }
+.rb-price .who { font-size: 15px; color: var(--rb-body); }
+.rb-price .amount { font-size: 46px; font-weight: 800; color: var(--rb-ink); letter-spacing: -.045em; margin: 12px 0 6px; }
+.rb-price .amount em { font-size: 17px; font-weight: 600; font-style: normal; color: var(--rb-body); }
+.rb-price .for { font-size: 15px; margin: 0 0 26px; }
+.rb-price ul { list-style: none; padding: 0; margin: 0 0 30px; }
+.rb-price li { display: flex; gap: 10px; font-size: 15px; color: var(--rb-ink); margin-bottom: 13px; }
+.rb-price li::before { content: "✓"; color: var(--rb-red); font-weight: 800; }
+
+.rb-price.featured {
+  background: var(--rb-red); border-color: transparent; color: #fff;
+  transform: scale(1.045);
+  box-shadow: 0 24px 56px rgba(255, 46, 46, .34);
+}
+.rb-price.featured:hover { transform: scale(1.045) translateY(-8px); }
+.rb-price.featured .who, .rb-price.featured .for { color: rgba(255, 255, 255, .82); }
+.rb-price.featured .amount, .rb-price.featured .amount em, .rb-price.featured li { color: #fff; }
+.rb-price.featured li::before { color: #fff; }
+@media (max-width: 940px) { .rb-price.featured, .rb-price.featured:hover { transform: none; } }
+
+.rb-price-note { text-align: center; font-size: 14px; color: #9AA3AE; margin: 40px 0 0; }
+.rb-price-note a { color: var(--rb-red); font-weight: 700; text-decoration: underline; }
+
+/* =============================================================================
+   Llamada final
+   ============================================================================= */
+
+.rb-cta { padding: 30px 0 110px; }
+.rb-cta-band {
+  position: relative;
+  background: var(--rb-red); border-radius: 34px;
+  padding: 88px 40px 66px; text-align: center; color: #fff;
+  box-shadow: 0 30px 70px rgba(255, 46, 46, .3);
+}
+.rb-cta-band h2 { color: #fff; font-size: clamp(30px, 4.2vw, 48px); margin: 0 0 16px; }
+.rb-cta-band p { color: rgba(255, 255, 255, .85); font-size: 17.5px; max-width: 560px; margin: 0 auto 34px; }
+.rb-cta-actions { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+/* Robin asomándose por arriba de la banda */
+.rb-cta-bird { position: absolute; top: -58px; left: 50%; transform: translateX(-50%); }
+.rb-cta-bird .rr-mascot { width: 116px; height: 116px; filter: drop-shadow(0 10px 22px rgba(0, 0, 0, .18)); }
+
+/* =============================================================================
+   Pie
+   ============================================================================= */
+
+.rb-footer { border-top: 1px solid var(--rb-line); padding: 68px 0 34px; }
+.rb-footer-grid { display: grid; grid-template-columns: 1.6fr repeat(3, 1fr); gap: 34px; }
+@media (max-width: 860px) { .rb-footer-grid { grid-template-columns: 1fr 1fr; gap: 34px; } }
+@media (max-width: 520px) { .rb-footer-grid { grid-template-columns: 1fr; } }
+.rb-footer p { font-size: 15px; line-height: 1.7; max-width: 280px; margin: 16px 0 0; }
+.rb-footer h4 { font-size: 15.5px; margin: 0 0 18px; letter-spacing: -.02em; }
+.rb-footer ul { list-style: none; padding: 0; margin: 0; }
+.rb-footer li { margin-bottom: 12px; }
+.rb-footer li a { font-size: 15px; color: var(--rb-body); transition: color .2s var(--rb-ease), padding-left .2s var(--rb-ease); }
+.rb-footer li a:hover { color: var(--rb-red); padding-left: 4px; }
+.rb-footer-legal {
+  border-top: 1px solid var(--rb-line); margin-top: 48px; padding-top: 26px;
+  display: flex; justify-content: space-between; gap: 18px; flex-wrap: wrap;
+  font-size: 14px; color: #9AA3AE;
+}
+.rb-footer-legal a { color: #9AA3AE; }
+.rb-footer-legal a:hover { color: var(--rb-red); }
+.rb-footer-legal .socials { display: flex; gap: 20px; }
+
+/* Aviso fijo de proyecto escolar */
+.rb-help {
+  position: fixed; right: 22px; bottom: 22px; z-index: 80;
+  width: 46px; height: 46px; border-radius: 50%;
+  background: var(--rb-ink); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; font-weight: 700;
+  box-shadow: 0 10px 26px rgba(20, 20, 20, .25);
+  transition: transform .25s var(--rb-spring), background .25s var(--rb-ease);
+}
+.rb-help:hover { transform: scale(1.1) rotate(8deg); background: var(--rb-red); }
+.rb-help-tip {
+  position: fixed; right: 78px; bottom: 30px; z-index: 80;
+  background: var(--rb-ink); color: #fff; font-size: 13px; font-weight: 600;
+  padding: 8px 14px; border-radius: 10px; white-space: nowrap;
+  opacity: 0; transform: translateX(8px); pointer-events: none;
+  transition: opacity .25s var(--rb-ease), transform .25s var(--rb-ease);
+}
+.rb-help:hover + .rb-help-tip, .rb-help-tip.show { opacity: 1; transform: none; }
+
+/* =============================================================================
+   Animaciones de entrada (las activa landing.js)
+   ============================================================================= */
+
+[data-anim] { opacity: 0; will-change: transform, opacity; transition: opacity .8s var(--rb-ease), transform .8s var(--rb-ease); }
+[data-anim="up"] { transform: translateY(38px); }
+[data-anim="down"] { transform: translateY(-32px); }
+[data-anim="left"] { transform: translateX(-52px); }
+[data-anim="right"] { transform: translateX(52px); }
+[data-anim="zoom"] { transform: scale(.9); }
+[data-anim="flip"] { transform: perspective(800px) rotateX(14deg) translateY(30px); }
+[data-anim].in { opacity: 1; transform: none; }
+
+/* =============================================================================
+   Términos y página de error
+   ============================================================================= */
+
+.rb-doc { padding: calc(var(--rb-nav-h) + 70px) 0 90px; }
+.rb-doc-inner { max-width: 780px; margin: 0 auto; }
+.rb-doc h1 { font-size: clamp(34px, 5vw, 52px); margin: 20px 0 18px; }
+.rb-doc .rb-updated { font-size: 14.5px; color: #9AA3AE; margin-bottom: 40px; }
+.rb-doc h2 { font-size: 23px; margin: 44px 0 14px; }
+.rb-doc p, .rb-doc li { font-size: 16.5px; line-height: 1.78; }
+.rb-doc ul { padding-left: 22px; }
+.rb-doc li { margin-bottom: 10px; }
+.rb-doc strong { color: var(--rb-ink); }
+
+.rb-warn {
+  border: 2px solid var(--rb-red); background: var(--rb-red-soft);
+  border-radius: 20px; padding: 26px 28px; margin: 30px 0 44px;
+}
+.rb-warn h3 { margin: 0 0 10px; font-size: 20px; color: var(--rb-red-ink); }
+.rb-warn p { margin: 0; color: #7A2020; font-size: 16px; }
+
+.rb-error {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  text-align: center; padding: 100px 24px 60px;
+  background-image: radial-gradient(rgba(255, 46, 46, .13) 1.4px, transparent 1.4px);
+  background-size: 26px 26px;
+}
+.rb-error-inner { max-width: 560px; }
+.rb-error .rr-mascot { width: 150px; height: 150px; margin: 0 auto 10px; }
+/* El boceto del choque tiene mucho detalle (la pantalla rota, las chispas, el
+   404 en el aire): necesita tamano para que se entienda. */
+.rb-error .rr-pose {
+  width: auto; height: auto;
+  max-height: min(300px, 34vh);
+  margin: 0 auto 4px;
+}
+/* Robin tapa un poco el numero, como si acabara de estrellarse contra el. */
+.rb-error .rr-pose-error { margin-bottom: -26px; position: relative; z-index: 2; }
+.rb-error .code {
+  font-size: clamp(78px, 15vw, 132px); font-weight: 800; letter-spacing: -.06em;
+  color: var(--rb-red); line-height: 1; margin: 0;
+  text-shadow: 0 12px 34px rgba(255, 46, 46, .26);
+  animation: rb-glitch 5s var(--rb-ease) infinite;
+}
+@keyframes rb-glitch {
+  0%, 92%, 100% { transform: translate(0, 0); }
+  93% { transform: translate(-3px, 2px) skewX(-3deg); }
+  95% { transform: translate(3px, -2px) skewX(3deg); }
+  97% { transform: translate(-2px, 0); }
+}
+.rb-error h1 { font-size: clamp(26px, 4vw, 38px); margin: 12px 0 14px; }
+.rb-error p { font-size: 17px; line-height: 1.7; margin: 0 auto 32px; max-width: 460px; }
+.rb-error-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.rb-error-detail {
+  margin-top: 34px; font-size: 13.5px; color: #9AA3AE;
+  font-family: var(--rr-mono); word-break: break-all;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rb-page *, .rb-page *::before, .rb-page *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+  [data-anim] { opacity: 1 !important; transform: none !important; }
+}
+
+
+/* =============================================================================
+   Conoce a Robin — el elenco dibujado a mano
+   -----------------------------------------------------------------------------
+   Las tarjetas imitan una hoja de cuaderno: papel calido, borde punteado y el
+   dibujo suelto encima. La idea es que se note que esto se dibujo a mano y no
+   lo genero una maquina.
+   ============================================================================= */
+
+.rb-cast { background: linear-gradient(180deg, var(--rr-white), #FBF7F3); }
+
+/* Tres y tres: seis tarjetas en dos filas parejas, en vez de cuatro y dos. */
+.rb-cast-grid {
+  display: grid; gap: 20px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 8px;
+}
+@media (max-width: 900px) { .rb-cast-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .rb-cast-grid { grid-template-columns: 1fr; } }
+
+.rb-cast-card {
+  margin: 0; padding: 26px 22px 22px;
+  background: var(--rr-paper);
+  border: 1.5px dashed var(--rr-line-strong);
+  border-radius: var(--rr-r-lg);
+  text-align: center;
+  transition: transform var(--rr-mid) var(--rr-ease), box-shadow var(--rr-mid) var(--rr-ease), border-color var(--rr-mid) var(--rr-ease);
+}
+.rb-cast-card:hover {
+  transform: translateY(-6px);
+  border-color: var(--rr-red);
+  border-style: solid;
+  box-shadow: var(--rr-sh-md);
+}
+
+.rb-cast-card .art {
+  height: 168px;
+  display: grid; place-items: center;
+  margin-bottom: 16px;
+}
+.rb-cast-card .art .rr-pose {
+  width: auto; height: auto;
+  max-height: 168px; max-width: 100%;
+}
+
+.rb-cast-card figcaption { display: block; }
+.rb-cast-card strong {
+  display: block; font-size: 16px; font-weight: 800;
+  color: var(--rr-ink); margin-bottom: 6px;
+}
+.rb-cast-card span {
+  display: block; font-size: 13.6px; line-height: 1.55;
+  color: var(--rr-text-muted);
+}
+
+@media (max-width: 560px) {
+  .rb-cast-card .art { height: 132px; }
+  .rb-cast-card .art .rr-pose { max-height: 132px; }
+}

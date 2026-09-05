@@ -1,0 +1,35 @@
+# Dependencias
+node_modules/
+
+# Configuración local y secretos — NUNCA subir
+config.json
+.env
+.env.*
+!.env.example
+
+# Base de datos local del servidor Express (contiene hashes de contraseñas)
+data/
+*.db
+*.sqlite
+
+# Supabase CLI
+supabase/.temp/
+supabase/.branches/
+
+# Sistema operativo / editores
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# Registros
+npm-debug.log*
+logs/
+*.log
+
+# Agent skills de terceros (se restauran desde skills-lock.json)
+.agents/skills/
+.claude/skills/

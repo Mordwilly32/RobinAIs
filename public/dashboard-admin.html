@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Panel del director — roboRobin</title>
+<link rel="icon" href="/images/robin.png" />
+<link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+<div class="rr-app" id="rrApp">
+  <main class="rr-main">
+    <div class="rr-topbar">
+      <div>
+        <button class="rr-menu-btn" id="rrMenuBtn">☰</button>
+        <h1 id="welcomeTitle">Bienvenido</h1>
+        <div class="sub" id="welcomeSub">Resumen de la escuela</div>
+      </div>
+    </div>
+
+    <!-- Resumen -->
+    <section class="rr-section" id="section-overview">
+      <div class="rr-stat-cards">
+        <div class="card rr-stat-card"><div class="n" id="statTotal">0</div><div class="l">Cuentas en total</div></div>
+        <div class="card rr-stat-card"><div class="n" id="statStudents">0</div><div class="l">Estudiantes</div></div>
+        <div class="card rr-stat-card"><div class="n" id="statTeachers">0</div><div class="l">Profesores</div></div>
+        <div class="card rr-stat-card"><div class="n" id="statActive">0</div><div class="l">Cuentas activas</div></div>
+      </div>
+
+      <div id="robinSays"></div>
+
+      <div class="rr-section-title">
+        <h2>Estudiantes por nivel</h2>
+        <button class="btn btn-sm btn-soft" id="goToCodes">Ver códigos de ingreso →</button>
+      </div>
+      <div class="card" id="levelBreakdown"></div>
+    </section>
+
+    <!-- Códigos de ingreso -->
+    <section class="rr-section" id="section-codes" style="display:none">
+      <div class="rr-section-title"><h2>Códigos de ingreso</h2></div>
+      <p class="rr-section-lead">
+        Estos son los dos códigos de tu escuela. Reparte el de estudiantes a tus alumnos y el de profesores a tu
+        personal: al crear su cuenta, el código que escriban decide su rol. Si un código se filtra, genera uno
+        nuevo y el anterior deja de servir al instante.
+      </p>
+      <div id="schoolCodes"></div>
+    </section>
+
+    <!-- Cuentas -->
+    <section class="rr-section" id="section-accounts" style="display:none">
+      <div class="rr-section-title">
+        <h2>Cuentas</h2>
+        <button class="btn btn-primary btn-sm" id="newUserBtn">+ Nueva cuenta</button>
+      </div>
+      <div class="rr-toolbar">
+        <input type="search" id="searchQ" placeholder="Buscar por nombre o correo…" />
+        <select id="filterRole">
+          <option value="">Todos los roles</option>
+          <option value="admin">Director</option>
+          <option value="teacher">Profesor</option>
+          <option value="student">Estudiante</option>
+        </select>
+        <select id="filterLevel">
+          <option value="">Todos los niveles</option>
+          <option>Parvularia</option>
+          <option>Primaria</option>
+          <option>Secundaria</option>
+          <option>Bachillerato</option>
+        </select>
+        <select id="filterStatus">
+          <option value="">Cualquier estado</option>
+          <option value="active">Activa</option>
+          <option value="inactive">Inactiva</option>
+        </select>
+      </div>
+      <div class="rr-table-wrap">
+        <table class="rr-table">
+          <thead>
+            <tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Nivel</th><th>Estado</th><th>Se unió</th><th></th></tr>
+          </thead>
+          <tbody id="usersBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Avisos -->
+    <section class="rr-section" id="section-announcements" style="display:none">
+      <div class="rr-section-title">
+        <h2>Avisos</h2>
+        <button class="btn btn-primary btn-sm" id="newAnnouncementBtn">+ Nuevo aviso</button>
+      </div>
+      <div id="allAnnouncements"></div>
+    </section>
+
+    <!-- Perfil -->
+    <section class="rr-section" id="section-profile" style="display:none">
+      <div class="rr-section-title"><h2>Mi perfil</h2></div>
+      <div class="card" style="max-width:500px">
+        <div class="form-error" id="profileError"></div>
+        <form id="profileForm">
+          <div class="field"><label for="pFullName">Nombre completo</label><input type="text" id="pFullName" required /></div>
+          <div class="field"><label for="pEmail">Correo</label><input type="text" id="pEmail" disabled /></div>
+          <hr style="border:none;border-top:1px solid var(--rr-line);margin:22px 0" />
+          <div class="field"><label for="pCurrentPassword">Contraseña actual</label><input type="password" id="pCurrentPassword" /></div>
+          <div class="field"><label for="pNewPassword">Nueva contraseña</label><input type="password" id="pNewPassword" placeholder="Al menos 6 caracteres" /></div>
+          <button type="submit" class="btn btn-primary" id="profileBtn">Guardar cambios</button>
+        </form>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- Crear / editar cuenta -->
+<div class="rr-modal-backdrop" id="userModalBackdrop">
+  <div class="rr-modal">
+    <h3 id="userModalTitle">Nueva cuenta</h3>
+    <div class="form-error" id="userError"></div>
+    <form id="userForm">
+      <input type="hidden" id="uId" />
+      <div class="field"><label for="uFullName">Nombre completo</label><input type="text" id="uFullName" required /></div>
+      <div class="field"><label for="uEmail">Correo <span class="text-muted">(opcional)</span></label><input type="email" id="uEmail" /></div>
+      <div class="field">
+        <label id="uPasswordLabel" for="uPassword">Contraseña</label>
+        <input type="password" id="uPassword" placeholder="Al menos 6 caracteres" />
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label for="uRole">Rol</label>
+          <select id="uRole">
+            <option value="student">Estudiante</option>
+            <option value="teacher">Profesor</option>
+            <option value="admin">Director</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="uStatus">Estado</label>
+          <select id="uStatus">
+            <option value="active">Activa</option>
+            <option value="inactive">Inactiva</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label for="uLevel">Nivel <span class="text-muted">(estudiantes)</span></label>
+          <select id="uLevel">
+            <option value="">Ninguno</option>
+            <option>Parvularia</option>
+            <option>Primaria</option>
+            <option>Secundaria</option>
+            <option>Bachillerato</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="uGrade">Grado o sección</label>
+          <input type="text" id="uGrade" placeholder="ej. 4.º grado - A" />
+        </div>
+      </div>
+      <div class="rr-modal-actions">
+        <button type="button" class="btn btn-ghost" id="cancelUser">Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="userBtn">Guardar cuenta</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Nuevo aviso -->
+<div class="rr-modal-backdrop" id="announceModalBackdrop">
+  <div class="rr-modal">
+    <h3>Nuevo aviso</h3>
+    <div class="form-error" id="announceError"></div>
+    <form id="announceForm">
+      <div class="field"><label for="aTitle">Título</label><input type="text" id="aTitle" required placeholder="ej. Feria de ciencias el viernes" /></div>
+      <div class="field"><label for="aContent">Mensaje</label><textarea id="aContent" required placeholder="Escribe el aviso…"></textarea></div>
+      <div class="field">
+        <label for="aLevel">Enviar a</label>
+        <select id="aLevel" required>
+          <option value="">Elige un nivel</option>
+          <option>Parvularia</option>
+          <option>Primaria</option>
+          <option>Secundaria</option>
+          <option>Bachillerato</option>
+          <option>Todos los niveles</option>
+        </select>
+      </div>
+      <div class="rr-modal-actions">
+        <button type="button" class="btn btn-ghost" id="cancelAnnounce">Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="announceBtn">Publicar aviso</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="/js/mascot.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/chat.js"></script>
+<script src="/js/sidebar.js"></script>
+<script src="/js/ai-widget.js"></script>
+<script src="/js/admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Panel del profesor — roboRobin</title>
+<link rel="icon" href="/images/robin.png" />
+<link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+<div class="rr-app" id="rrApp">
+  <main class="rr-main">
+    <div class="rr-topbar">
+      <div>
+        <button class="rr-menu-btn" id="rrMenuBtn">☰</button>
+        <h1 id="welcomeTitle">Bienvenido</h1>
+        <div class="sub" id="welcomeSub">Cargando tu panel…</div>
+      </div>
+    </div>
+
+    <!-- Resumen -->
+    <section class="rr-section" id="section-overview">
+      <div class="rr-stat-cards">
+        <div class="card rr-stat-card"><div class="n" id="statLevel">—</div><div class="l">Tu nivel</div></div>
+        <div class="card rr-stat-card"><div class="n" id="statRoster">0</div><div class="l">Estudiantes de tu nivel</div></div>
+        <div class="card rr-stat-card"><div class="n" id="statClasses">0</div><div class="l">Tus clases</div></div>
+        <div class="card rr-stat-card"><div class="n" id="statAnnouncements">0</div><div class="l">Avisos que publicaste</div></div>
+      </div>
+      <div id="robinSays"></div>
+
+      <div class="rr-section-title"><h2>Tus últimos avisos</h2></div>
+      <div id="overviewAnnouncements"></div>
+    </section>
+
+    <!-- Clases -->
+    <section class="rr-section" id="section-classes" style="display:none">
+      <div class="rr-section-title"><h2>Mis clases</h2></div>
+      <p class="rr-section-lead">Una clase pública la puede encontrar cualquier estudiante de tu escuela. Una privada pide el código, o puedes invitar por ID de estudiante.</p>
+      <div class="card rr-form-card">
+        <form id="classForm">
+          <div class="form-row">
+            <div class="field">
+              <label for="className">Nombre de la clase</label>
+              <input id="className" required placeholder="ej. Club de ciencias" />
+            </div>
+            <div class="field">
+              <label for="classLevel">Nivel</label>
+              <select id="classLevel">
+                <option value="">Todos los niveles</option>
+                <option>Parvularia</option>
+                <option>Primaria</option>
+                <option>Secundaria</option>
+                <option>Bachillerato</option>
+              </select>
+            </div>
+          </div>
+          <div class="field">
+            <label for="classDescription">Descripción</label>
+            <textarea id="classDescription" placeholder="¿Qué van a aprender?"></textarea>
+          </div>
+          <div class="field">
+            <label for="classVisibility">Acceso</label>
+            <select id="classVisibility">
+              <option value="public">Pública: cualquier estudiante puede unirse</option>
+              <option value="private">Privada: hace falta el código</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" type="submit">Crear clase</button>
+        </form>
+      </div>
+      <div id="teacherClasses"></div>
+    </section>
+
+    <!-- Estudiantes -->
+    <section class="rr-section" id="section-roster" style="display:none">
+      <div class="rr-section-title"><h2>Mis estudiantes</h2></div>
+      <div class="rr-toolbar">
+        <select id="rosterLevel">
+          <option value="">Todos los niveles</option>
+          <option>Parvularia</option>
+          <option>Primaria</option>
+          <option>Secundaria</option>
+          <option>Bachillerato</option>
+        </select>
+      </div>
+      <div class="rr-table-wrap">
+        <table class="rr-table">
+          <thead><tr><th>Nombre</th><th>ID</th><th>Correo</th><th>Nivel</th><th>Grado</th></tr></thead>
+          <tbody id="rosterBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Avisos -->
+    <section class="rr-section" id="section-announcements" style="display:none">
+      <div class="rr-section-title">
+        <h2>Avisos</h2>
+        <button class="btn btn-primary btn-sm" id="newAnnouncementBtn">+ Nuevo aviso</button>
+      </div>
+      <div id="fullAnnouncements"></div>
+    </section>
+
+    <!-- Pendientes personales -->
+    <section class="rr-section" id="section-tasks" style="display:none">
+      <div class="rr-section-title"><h2>Mis pendientes</h2></div>
+      <p class="rr-section-lead">Tu lista privada: nadie más la ve. También puedes pedirle a Robin «recuérdame revisar los exámenes mañana».</p>
+      <div id="taskPanel" style="max-width:520px"></div>
+    </section>
+
+    <!-- Perfil -->
+    <section class="rr-section" id="section-profile" style="display:none">
+      <div class="rr-section-title"><h2>Mi perfil</h2></div>
+      <div class="card" style="max-width:500px">
+        <div class="form-error" id="profileError"></div>
+        <form id="profileForm">
+          <div class="field"><label for="pFullName">Nombre completo</label><input type="text" id="pFullName" required /></div>
+          <div class="field">
+            <label for="pPhoto">Foto de perfil</label>
+            <input type="file" id="pPhoto" accept="image/*" />
+            <div class="hint">JPG o PNG, hasta 1 MB.</div>
+          </div>
+          <div class="field">
+            <label for="pEmail">Correo</label>
+            <input type="text" id="pEmail" disabled />
+            <div class="hint">Pídele a tu director que lo cambie si hace falta.</div>
+          </div>
+          <hr style="border:none;border-top:1px solid var(--rr-line);margin:22px 0" />
+          <div class="field"><label for="pCurrentPassword">Contraseña actual</label><input type="password" id="pCurrentPassword" placeholder="Solo si vas a cambiarla" /></div>
+          <div class="field"><label for="pNewPassword">Nueva contraseña</label><input type="password" id="pNewPassword" placeholder="Al menos 6 caracteres" /></div>
+          <button type="submit" class="btn btn-primary" id="profileBtn">Guardar cambios</button>
+        </form>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- Nuevo aviso -->
+<div class="rr-modal-backdrop" id="announceModalBackdrop">
+  <div class="rr-modal">
+    <h3>Nuevo aviso</h3>
+    <div class="form-error" id="announceError"></div>
+    <form id="announceForm">
+      <div class="field"><label for="aTitle">Título</label><input type="text" id="aTitle" required placeholder="ej. Feria de ciencias el viernes" /></div>
+      <div class="field"><label for="aContent">Mensaje</label><textarea id="aContent" required placeholder="Escribe el aviso…"></textarea></div>
+      <div class="field">
+        <label for="aLevel">Enviar a</label>
+        <select id="aLevel" required>
+          <option value="">Elige un nivel</option>
+          <option>Parvularia</option>
+          <option>Primaria</option>
+          <option>Secundaria</option>
+          <option>Bachillerato</option>
+          <option>Todos los niveles</option>
+        </select>
+      </div>
+      <div class="rr-modal-actions">
+        <button type="button" class="btn btn-ghost" id="cancelAnnounce">Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="announceBtn">Publicar aviso</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="/js/mascot.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/chat.js"></script>
+<script src="/js/sidebar.js"></script>
+<script src="/js/tasks-panel.js"></script>
+<script src="/js/ai-widget.js"></script>
+<script src="/js/teacher.js"></script>
+</body>
+</html>
