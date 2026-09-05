@@ -1,16 +1,14 @@
 # Dependencias
 node_modules/
 
-# Configuración local y secretos — NUNCA subir
-config.json
+# Secretos — NUNCA subir. La clave service_role se salta TODAS las reglas.
 .env
 .env.*
 !.env.example
 
-# Base de datos local del servidor Express (contiene hashes de contraseñas)
+# Restos de la versión local con Express, por si alguien la vuelve a correr
 data/
-*.db
-*.sqlite
+config.json
 
 # Supabase CLI
 supabase/.temp/

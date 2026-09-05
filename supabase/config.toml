@@ -1,0 +1,43 @@
+# supabase/config.toml
+# Configuración del proyecto para la CLI de Supabase. Lo importante aquí es
+# `enable_confirmations = false`: roboRobin deja que un estudiante se registre
+# con el código de su escuela y sin correo propio, así que su cuenta usa un
+# correo interno que nadie puede abrir. Si se exige confirmar por correo, esas
+# cuentas no podrían entrar nunca.
+
+project_id = "roborobin"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 15
+
+[studio]
+enabled = true
+port = 54323
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000"]
+jwt_expiry = 28800          # 8 horas, como duraba la sesión del servidor local
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+enable_confirmations = false
+double_confirm_changes = false
+
+# Robin y la administración de cuentas comprueban la sesión por su cuenta:
+# necesitan leer el token de quien llama, no rechazarlo en la puerta.
+[functions.robin]
+verify_jwt = false
+
+[functions.admin-usuarios]
+verify_jwt = false

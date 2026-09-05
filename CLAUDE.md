@@ -1,14 +1,19 @@
 # roboRobin
 
-Asistente 100% local con dos caminos: cuenta personal con organizador de tareas, o plataforma escolar completa (director, profesores y estudiantes) con códigos de ingreso.
+Asistente con dos caminos: cuenta personal con organizador de tareas, o plataforma escolar completa (director, profesores y estudiantes) con códigos de ingreso.
 
-Node + Express (`server.js`, `routes/`, `src/`, `public/`). Arranca con `npm start`.
+Sitio estatico (`public/`) sobre Supabase: Postgres con RLS, Supabase Auth y dos Edge Functions (`supabase/`). No hay backend propio.
+
+- `npm start` levanta `scripts/servir.mjs`, un servidor estatico solo para desarrollo.
+- `public/js/api.js` es la unica puerta de salida del navegador: conserva la forma `rrApi('/api/...')` de la version con Express, pero por dentro habla con Supabase. Si agregas una ruta, agregala ahi.
+- Los permisos NO se aplican en JavaScript: viven en las politicas RLS de `supabase/migrations/`. Cualquier regla nueva de quien-ve-que va ahi.
+- `supabase db push` aplica el esquema; `npm run functions:deploy` publica las funciones.
 
 ## Agent skills
 
 ### Issue tracker
 
-Los issues viven como markdown en `.scratch/<feature-slug>/` dentro del repo (este repo no tiene remote git). Ver `docs/agents/issue-tracker.md`.
+Los issues viven como markdown en `.scratch/<feature-slug>/` dentro del repo. Ver `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 

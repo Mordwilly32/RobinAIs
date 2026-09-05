@@ -184,10 +184,11 @@ async function loadUsers() {
       })}</td></tr>`;
 
   document.querySelectorAll('[data-edit]').forEach(btn => {
-    btn.addEventListener('click', () => openUserModal(allUsersCache.find(u => u.id === Number(btn.dataset.edit))));
+    // El id de una cuenta es un UUID, no un numero: se compara tal cual.
+    btn.addEventListener('click', () => openUserModal(allUsersCache.find(u => u.id === btn.dataset.edit)));
   });
   document.querySelectorAll('[data-delete]').forEach(btn => {
-    btn.addEventListener('click', () => deleteUser(Number(btn.dataset.delete)));
+    btn.addEventListener('click', () => deleteUser(btn.dataset.delete));
   });
 }
 
