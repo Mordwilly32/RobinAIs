@@ -1,21 +1,19 @@
 {
   "name": "roborobin",
-  "version": "2.0.0",
-  "description": "roboRobin - asistente con dos caminos: cuenta personal con organizador de tareas, o plataforma escolar completa (director, profesores y estudiantes) con codigos de ingreso. Datos y funciones en Supabase.",
-  "type": "module",
+  "version": "1.0.0",
+  "description": "roboRobin - asistente 100% local con dos caminos: cuenta personal con organizador de tareas, o plataforma escolar completa (director, profesores y estudiantes) con codigos de ingreso.",
+  "main": "server.js",
   "scripts": {
-    "start": "node scripts/servir.mjs",
-    "dev": "node scripts/servir.mjs",
-    "seed": "node --env-file-if-exists=.env scripts/seed-demo.mjs",
-    "db:push": "supabase db push",
-    "db:reset": "supabase db reset",
-    "functions:deploy": "supabase functions deploy robin --no-verify-jwt && supabase functions deploy admin-usuarios --no-verify-jwt"
+    "start": "node server.js",
+    "dev": "node server.js"
   },
   "engines": {
-    "node": ">=20.6.0"
+    "node": ">=18.0.0"
   },
-  "devDependencies": {
-    "@supabase/supabase-js": "^2.45.0"
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "express": "^4.19.2",
+    "express-session": "^1.18.0"
   },
   "license": "MIT"
 }
