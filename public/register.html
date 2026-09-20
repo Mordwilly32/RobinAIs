@@ -6,16 +6,18 @@
 <title>Crear cuenta — roboRobin</title>
 <link rel="icon" href="/images/robin.png" />
 <link rel="stylesheet" href="/css/style.css" />
+<link rel="stylesheet" href="/css/consola.css" />
 </head>
 <body>
 
-<div class="rr-auth-wrap">
-  <div class="rr-auth-card wide">
-    <div class="rr-auth-head">
-      <span data-rr-mascot data-bob id="authRobin"></span>
-      <h2 id="stepTitle">Crea tu cuenta</h2>
-      <p class="text-muted mt-0" id="stepSubtitle">¿Qué tipo de cuenta necesitas?</p>
-    </div>
+<div class="rr-auth-split">
+  <div class="rr-auth-form-side">
+    <a href="/index.html" class="rr-auth-back">← Volver al inicio</a>
+
+    <div class="rr-auth-inner wide">
+      <span class="rr-auth-robin rr-galeria" data-rr-galeria data-bob id="authRobin"></span>
+      <h1 id="stepTitle">Crea tu cuenta</h1>
+      <p class="lead" id="stepSubtitle">¿Qué tipo de cuenta necesitas?</p>
 
     <div class="rr-steps" id="steps">
       <span class="on"></span><span></span><span></span>
@@ -42,7 +44,7 @@
           <div class="d">Eres director. Registra la escuela y reparte los códigos de ingreso.</div>
         </button>
       </div>
-      <p class="hint center">Todo se guarda en esta computadora. Nada viaja a internet.</p>
+      <p class="hint center">Elige el camino que te toca. Siempre lo puedes cambiar después hablando con tu escuela.</p>
     </div>
 
     <!-- Paso 2: código de ingreso -->
@@ -50,7 +52,7 @@
       <div class="field">
         <label for="joinCode">Código de ingreso</label>
         <input type="text" id="joinCode" placeholder="EST-4K7Q o PRO-9XB2" style="text-transform:uppercase;font-family:var(--rr-mono);font-size:19px;letter-spacing:.1em" autocomplete="off" />
-        <div class="hint">Tu director te da un código distinto según seas estudiante o profesor. El código decide tu rol.</div>
+        <div class="hint">El código decide tu rol: nadie elige el suyo. Los hay de dos clases y los dos se escriben aquí — el general de tu escuela, o uno personal de un solo uso emitido a tu nombre (ese ya trae puesto tu nivel).</div>
       </div>
       <div id="codeResult"></div>
       <div style="display:flex;gap:10px;margin-top:14px">
@@ -113,6 +115,15 @@
               <option value="">Elige primero tu nivel…</option>
             </select>
           </div>
+
+          <!-- La edad solo se pide en una cuenta personal. En una de escuela
+               el nivel y el grado ya dicen lo mismo y mejor, así que ahí no se
+               pregunta: es un dato menos que pedirle a un menor de edad. -->
+          <div class="field" id="ageFieldWrap" style="display:none">
+            <label for="age">Tu edad</label>
+            <input type="number" id="age" min="4" max="120" inputmode="numeric" placeholder="Por ejemplo: 15" />
+            <div class="hint">Robin la usa para ajustar cómo te explica las cosas y qué tan difíciles salen los minijuegos.</div>
+          </div>
         </div>
 
         <div class="field" id="levelSection">
@@ -129,6 +140,9 @@
             </div>
             <div class="level-card" data-level="Bachillerato">
               <div class="level-icon">🕊️</div><div class="level-name">Bachillerato</div>
+            </div>
+            <div class="level-card" data-level="Universidad">
+              <div class="level-icon">🎓</div><div class="level-name">Universidad</div>
             </div>
           </div>
           <p class="hint" id="levelHint">Elige el nivel que estás cursando.</p>
@@ -168,13 +182,18 @@
       <a href="/dashboard-admin.html" class="btn btn-primary btn-block">Entrar a mi panel →</a>
     </div>
 
-    <p class="rr-auth-switch">¿Ya tienes cuenta? <a href="/login.html">Inicia sesión</a></p>
-    <p class="rr-auth-switch" style="margin-top:6px"><a href="/index.html">← Volver al inicio</a></p>
+      <p class="rr-auth-switch">¿Ya tienes cuenta? <a href="/login.html">Inicia sesión</a></p>
+    </div>
   </div>
+
+  <!-- La ilustración cambia en cada recarga (ver js/auth-art.js). -->
+  <aside class="rr-auth-art-side" id="authArt"></aside>
 </div>
 
 <script src="/js/mascot.js"></script>
 <script src="/js/api.js"></script>
+<script src="/js/auth-art.js"></script>
 <script src="/js/register.js"></script>
+<script src="/js/consola.js"></script>
 </body>
 </html>

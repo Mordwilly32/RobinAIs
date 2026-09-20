@@ -105,6 +105,23 @@ function rrMountMascots() {
 function rrSetPose(target, pose) {
   const el = typeof target === 'string' ? document.getElementById(target) : target;
   if (!el) return;
+
+  // Si es una galería rotatoria, la pose manda: se para el reloj y se deja el
+  // boceto fijo. Con pose vacía vuelve a rotar desde cero.
+  if (el.hasAttribute('data-rr-galeria')) {
+    if (el.rrGaleriaParar) el.rrGaleriaParar();
+    el.dataset.rrGaleria = '';
+    el.innerHTML = '';
+    if (pose) {
+      const extra = el.hasAttribute('data-bob') ? 'rr-mascot-bob' : '';
+      el.innerHTML = rrRobin(pose, extra);
+      rrWireMascotLife();
+    } else {
+      rrMontarGaleria(el);
+    }
+    return;
+  }
+
   el.dataset.pose = pose || '';
   el.dataset.rrMounted = '';
   el.innerHTML = '';
@@ -176,3 +193,111 @@ function rrConfetti(originEl) {
 }
 
 document.addEventListener('DOMContentLoaded', rrMountMascots);
+
+// ---------------------------------------------------------------------------
+// Robin que escucha y Robin que habla
+// ---------------------------------------------------------------------------
+// Un elemento con [data-rr-galeria] tiene DOS dibujos y nada más: el de estar
+// tranquilo (idle) y el de estar explicando algo (talking). Empieza tranquilo
+// y, al hacerle clic, se pone a hablar; al rato se vuelve a calmar solo.
+//
+// Antes esto rotaba entre diez dibujos cada pocos segundos y Robin cambiaba de
+// cara sin que nadie lo tocara: parecía un carrusel, no una reacción. Ahora el
+// único motivo para que cambie es que alguien le haga clic, que es lo que
+// hace que se sienta vivo en vez de inquieto.
+//
+// Si el archivo de una pose no existe, se usa el de la otra y ya: la página
+// nunca se ve rota por eso.
+
+const RR_DUO = {
+  idle: '/images/robin/idle.png',
+  talking: '/images/robin/talking.png'
+};
+
+// Cuánto se queda hablando antes de volver a la calma.
+const RR_HABLA_MS = 3800;
+
+// Qué poses cargaron de verdad. Se resuelve una sola vez por página.
+let rrDuoListo = null;
+
+function rrDuoCargar() {
+  if (rrDuoListo) return rrDuoListo;
+
+  const probar = src => new Promise(listo => {
+    const img = new Image();
+    img.onload = () => listo(src);
+    img.onerror = () => listo(null);
+    img.src = src;
+  });
+
+  rrDuoListo = Promise.all([probar(RR_DUO.idle), probar(RR_DUO.talking)])
+    .then(([idle, talking]) => ({
+      idle: idle || talking,
+      talking: talking || idle
+    }));
+
+  return rrDuoListo;
+}
+
+function rrMontarGaleria(el) {
+  if (el.dataset.rrGaleria === 'lista') return;
+  el.dataset.rrGaleria = 'lista';
+
+  const clases = ['rr-mascot', 'rr-galeria-img'];
+  if (el.hasAttribute('data-small')) clases.push('rr-mascot-sm');
+  if (el.hasAttribute('data-bob')) clases.push('rr-mascot-bob');
+
+  const img = document.createElement('img');
+  img.className = clases.join(' ');
+  img.alt = el.dataset.alt || 'Robin, la mascota de roboRobin';
+  img.draggable = false;
+  img.src = RR_DUO.idle;
+  el.innerHTML = '';
+  el.appendChild(img);
+
+  rrDuoCargar().then(poses => {
+    if (!poses.idle) return;
+    let volver = null;
+
+    // El cambio con un parpadeo corto, para que no se note el corte seco.
+    const poner = src => {
+      if (!src || img.getAttribute('src') === src) return;
+      img.classList.add('rr-galeria-fade');
+      setTimeout(() => {
+        img.src = src;
+        img.classList.remove('rr-galeria-fade');
+      }, 180);
+    };
+
+    poner(poses.idle);
+
+    // Lo único que lo hace cambiar: que alguien lo toque.
+    const hablar = () => {
+      poner(poses.talking);
+      clearTimeout(volver);
+      volver = setTimeout(() => poner(poses.idle), RR_HABLA_MS);
+    };
+
+    img.addEventListener('click', hablar);
+    // Para que otras pantallas puedan hacerlo hablar sin simular un clic:
+    // por ejemplo, cuando Robin contesta una pista en un minijuego.
+    el.rrHablar = hablar;
+    el.rrGaleriaParar = () => clearTimeout(volver);
+  });
+}
+
+function rrMountGalerias() {
+  document.querySelectorAll('[data-rr-galeria]').forEach(rrMontarGaleria);
+  rrWireMascotLife();
+}
+
+// Pone a hablar a todos los Robin de la pantalla que sepan hacerlo. La usan
+// los minijuegos cuando se pide una pista y el chat cuando Robin contesta.
+function rrRobinHabla(scope) {
+  const raiz = scope || document;
+  raiz.querySelectorAll('[data-rr-galeria]').forEach(el => {
+    if (typeof el.rrHablar === 'function') el.rrHablar();
+  });
+}
+
+document.addEventListener('DOMContentLoaded', rrMountGalerias);

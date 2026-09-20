@@ -5,7 +5,8 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../src/db');
-const { requireLogin, requireRole } = require('../src/auth');
+const { requireLogin } = require('../src/auth');
+const { requirePermission, can } = require('../src/permissions');
 
 const VALID_LEVELS = [...db.LEVELS, 'Todos los niveles'];
 
@@ -20,7 +21,7 @@ router.get('/', requireLogin, (req, res) => {
   return res.json({ announcements: db.getAnnouncements(schoolId) });
 });
 
-router.post('/', requireRole('teacher', 'admin'), (req, res) => {
+router.post('/', requirePermission('announcements.create'), (req, res) => {
   const me = db.getUserById(req.session.userId);
   const { title, content, level } = req.body || {};
 
@@ -40,14 +41,15 @@ router.post('/', requireRole('teacher', 'admin'), (req, res) => {
   res.status(201).json({ announcement });
 });
 
-router.delete('/:id', requireRole('teacher', 'admin'), (req, res) => {
+router.delete('/:id', requirePermission('announcements.create'), (req, res) => {
   const me = db.getUserById(req.session.userId);
   const announcement = db.getAnnouncementById(req.params.id);
   if (!announcement) return res.status(404).json({ error: 'No encontramos ese aviso.' });
 
-  // Un profesor solo borra los suyos; el director borra los de su escuela.
+  // Un profesor (o secretaria) solo borra los suyos; direccion y subdireccion
+  // borran cualquiera de su escuela.
   const sameSchool = me.schoolId == null || Number(announcement.schoolId) === Number(me.schoolId);
-  const allowed = me.role === 'admin' ? sameSchool : announcement.authorId === me.id;
+  const allowed = can(me.role, 'announcements.deleteAny') ? sameSchool : announcement.authorId === me.id;
   if (!allowed) return res.status(403).json({ error: 'No puedes borrar ese aviso.' });
 
   db.deleteAnnouncement(req.params.id);

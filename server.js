@@ -49,8 +49,15 @@ app.use('/api/announcements', require('./routes/announcements'));
 app.use('/api/ai', require('./routes/ai'));
 app.use('/api/classes', require('./routes/classes'));
 app.use('/api/activities', require('./routes/activities'));
+app.use('/api/plans', require('./routes/plans'));
+app.use('/api/games', require('./routes/games'));
+app.use('/api/codes', require('./routes/codes'));
+app.use('/api/chats', require('./routes/chats'));
+// La consola de demostración (Ctrl + Alt + Shift + R en el navegador). Se
+// apaga entera con "devConsole": false en config.json; ver routes/dev.js.
+app.use('/api/dev', require('./routes/dev'));
 
-app.get('/health', (req, res) => res.json({ ok: true, service: 'roboRobin', local: true }));
+app.get('/health', (req, res) => res.json({ ok: true, service: 'roboRobin' }));
 
 // La misma página de error sirve para todos los casos; el motivo se le marca
 // en el <body> para que muestre el texto correcto.

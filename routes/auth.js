@@ -8,6 +8,14 @@
 //   mode: 'join'      -> unirse a una escuela existente con un código. El
 //                        código decide si la cuenta es de estudiante o de
 //                        profesor; nadie elige su propio rol.
+//
+// Los códigos de 'join' pueden ser de dos clases y las dos se resuelven en la
+// misma casilla, porque quien llega con un papelito en la mano no tiene por
+// qué saber cuál le tocó:
+//
+//   permanente  el de la escuela entera, sirve para mucha gente
+//   nominal     de un solo uso, emitido para una persona concreta, y a veces
+//               ya trae puestos el nivel y el grado
 
 const express = require('express');
 const router = express.Router();
@@ -21,18 +29,64 @@ function startSession(req, user) {
 router.get('/me', (req, res) => {
   const user = req.session.userId ? db.getUserById(req.session.userId) : null;
   if (!user) return res.status(401).json({ error: 'Primero necesitas iniciar sesión.' });
+  // El rol pudo cambiar desde otra pestaña (una invitación aceptada, por
+  // ejemplo): la sesión se pone al día sola.
+  req.session.role = user.role;
   res.json({ user: db.publicUser(user) });
 });
+
+// Resuelve un código de ingreso, sea permanente o nominal. Devuelve siempre la
+// misma forma para que la pantalla de registro no tenga que distinguirlos.
+function resolveAnyCode(raw) {
+  const permanente = db.resolveJoinCode(raw);
+  if (permanente) {
+    return {
+      ok: true,
+      kind: 'permanent',
+      school: permanente.school,
+      role: permanente.role,
+      forName: null, level: null, grade: null, classId: null, codeId: null
+    };
+  }
+
+  const nominal = db.checkJoinCode(raw);
+  if (nominal.ok) {
+    return {
+      ok: true,
+      kind: 'nominal',
+      school: nominal.school,
+      role: nominal.code.type,
+      forName: nominal.code.forName,
+      level: nominal.code.level,
+      grade: nominal.code.grade,
+      classId: nominal.code.classId,
+      codeId: nominal.code.id
+    };
+  }
+
+  const motivos = {
+    'no-existe': 'Ese código no existe. Revisa que no se te haya ido una letra.',
+    'anulado': 'Ese código fue anulado. Pídele uno nuevo a quien te lo dio.',
+    'usado': 'Ese código ya se usó. Cada código personal sirve una sola vez.'
+  };
+  return { ok: false, error: motivos[nominal.reason] || 'Ese código no sirve.' };
+}
 
 // Consulta pública: ¿este código existe y a qué escuela / rol corresponde?
 // Se usa en el registro para mostrar el nombre de la escuela antes de crear
 // la cuenta. Nunca revela ningún otro código.
 router.get('/join-code/:code', (req, res) => {
-  const match = db.resolveJoinCode(req.params.code);
-  if (!match) return res.status(404).json({ error: 'Ese código no existe. Pídele el código correcto a tu director.' });
+  const match = resolveAnyCode(req.params.code);
+  if (!match.ok) return res.status(404).json({ error: match.error });
+
   res.json({
     school: { id: match.school.id, name: match.school.name },
-    role: match.role
+    role: match.role,
+    kind: match.kind,
+    forName: match.forName,
+    level: match.level,
+    grade: match.grade,
+    className: match.classId ? (db.getClassById(match.classId) || {}).name || null : null
   });
 });
 
@@ -48,9 +102,22 @@ router.post('/register', (req, res) => {
   if (email && db.getUserByEmail(email)) return res.status(409).json({ error: 'Ese correo ya está registrado.' });
 
   // --- Cuenta personal ------------------------------------------------------
+  // Aquí sí se pide la edad. Una cuenta de escuela no la necesita porque su
+  // nivel y su grado ya dicen lo mismo con más precisión; una cuenta personal
+  // no tiene ninguna de las dos cosas, y sin ese dato Robin le explica igual a
+  // alguien de 8 años que a alguien de 40.
   if (mode === 'personal') {
     if (!email) return res.status(400).json({ error: 'El correo es necesario para una cuenta personal.' });
-    const user = db.createUser({ fullName, email, password, role: 'personal' });
+
+    const age = Number(body.age);
+    if (!Number.isFinite(age) || Math.floor(age) !== age) {
+      return res.status(400).json({ error: 'Escribe tu edad en años.' });
+    }
+    if (age < 4 || age > 120) {
+      return res.status(400).json({ error: 'Esa edad no parece real. Escríbela en años.' });
+    }
+
+    const user = db.createUser({ fullName, email, password, role: 'personal', plan: 'free', age });
     startSession(req, user);
     return res.status(201).json({ user: db.publicUser(user) });
   }
@@ -79,11 +146,14 @@ router.post('/register', (req, res) => {
 
   // --- Unirse con un código (estudiante o profesor) -------------------------
   if (mode === 'join') {
-    const match = db.resolveJoinCode(body.code);
-    if (!match) return res.status(400).json({ error: 'Ese código no existe. Pídele el código correcto a tu director.' });
+    const match = resolveAnyCode(body.code);
+    if (!match.ok) return res.status(400).json({ error: match.error });
 
     const { school, role } = match;
-    if (role === 'student' && !body.level) {
+    // El nivel puede venir ya puesto en un código nominal; si no, lo elige
+    // quien se registra.
+    const level = match.level || body.level || null;
+    if (role === 'student' && !level) {
       return res.status(400).json({ error: 'Elige tu nivel escolar.' });
     }
 
@@ -93,12 +163,25 @@ router.post('/register', (req, res) => {
       password,
       role,
       schoolId: school.id,
-      level: role === 'student' ? body.level : (body.level || null),
-      grade: body.grade || null
+      level: role === 'student' ? level : (body.level || null),
+      grade: match.grade || body.grade || null
     });
 
+    // Un código nominal se quema aquí mismo: ya cumplió su único uso.
+    if (match.kind === 'nominal') {
+      db.burnJoinCode(match.codeId, user.id);
+      // Si venía atado a una clase, la persona entra ya matriculada en ella.
+      if (match.classId && role === 'student') {
+        db.addStudentToClass(match.classId, user.id);
+      }
+    }
+
     startSession(req, user);
-    return res.status(201).json({ user: db.publicUser(user), school: { id: school.id, name: school.name } });
+    return res.status(201).json({
+      user: db.publicUser(user),
+      school: { id: school.id, name: school.name },
+      joinedClass: match.classId ? (db.getClassById(match.classId) || {}).name || null : null
+    });
   }
 
   return res.status(400).json({ error: 'Elige primero qué tipo de cuenta quieres crear.' });

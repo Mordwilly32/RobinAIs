@@ -6,20 +6,31 @@
 // peticiones sean rápidas, y cada cambio se guarda al disco de inmediato.
 //
 // Modelo de datos
-//   users        -> cuentas. role: 'personal' | 'student' | 'teacher' | 'admin'
+//   users        -> cuentas. role: 'personal' | 'student' | 'teacher' |
+//                   'secretary' | 'subdirector' | 'admin'
 //   schools      -> escuelas inscritas. Cada una tiene DOS códigos de ingreso:
 //                   uno para estudiantes y otro para profesores. Los crea el
 //                   director (admin) de esa escuela.
+//   codes        -> códigos nominales de un solo uso (profesorado) o de un
+//                   estudiante concreto. Se emiten y se queman.
 //   tasks        -> tareas/pendientes del organizador personal (cuenta personal)
 //   classes      -> clases creadas por profesores
 //   activities   -> actividades dentro de una clase
+//   submissions  -> entregas de los estudiantes a esas actividades
 //   announcements-> avisos de la escuela
-//   aiLogs       -> historial local del chat con Robin
+//   chats        -> conversaciones con Robin (varias por persona, como en un
+//                   chat de verdad: cada una con su título y sus mensajes)
+//   gameScores   -> mejores marcas de cada quien en cada minijuego
+//   gameSettings -> qué minijuegos quedan activos en una escuela o una clase
+//   aiLogs       -> historial plano heredado; se conserva por compatibilidad
 // ---------------------------------------------------------------------------
 
 const fs = require('fs');
 const path = require('path');
 const bcrypt = require('bcryptjs');
+const plans = require('./plans');
+const games = require('./games');
+const permissions = require('./permissions');
 
 const DATA_DIR = path.join(__dirname, '..', 'data');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
@@ -31,8 +42,12 @@ const DEFAULT_ADMIN = {
   role: 'admin'
 };
 
-const ROLES = ['personal', 'student', 'teacher', 'admin'];
-const LEVELS = ['Parvularia', 'Primaria', 'Secundaria', 'Bachillerato'];
+const ROLES = ['personal', 'student', 'teacher', 'secretary', 'subdirector', 'admin'];
+// Universidad es el último nivel y el único que NO lleva minijuegos: a esa
+// edad los retos de "arma la suma" no enseñan nada y sobran en pantalla. Todo
+// lo demás —clases, asignaciones, avisos, Robin— funciona igual que en los
+// otros niveles. Ver availableGamesFor().
+const LEVELS = ['Parvularia', 'Primaria', 'Secundaria', 'Bachillerato', 'Universidad'];
 
 // Alfabeto sin caracteres confusos (nada de O/0 ni I/1) para códigos que la
 // gente va a dictar en voz alta o copiar a mano.
@@ -46,17 +61,30 @@ function emptyDB() {
       nextClassId: 1,
       nextActivityId: 1,
       nextSchoolId: 1,
-      nextTaskId: 1
+      nextTaskId: 1,
+      nextCodeId: 1,
+      nextChatId: 1,
+      nextSubmissionId: 1
     },
     users: [],
     schools: [],
+    codes: [],
     tasks: [],
     announcements: [],
     classes: [],
     activities: [],
+    submissions: [],
+    chats: [],
+    gameScores: [],
+    gameSettings: [],
     aiLogs: []
   };
 }
+
+const COLLECTIONS = [
+  'users', 'schools', 'codes', 'tasks', 'announcements', 'classes',
+  'activities', 'submissions', 'chats', 'gameScores', 'gameSettings', 'aiLogs'
+];
 
 let cache = null;
 
@@ -64,9 +92,36 @@ function ensureDataDir() {
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 }
 
+// Guardar escribe el archivo entero, así que hacerlo una vez por cada dato que
+// se toca sale carísimo en una tanda grande: fabricar una escuela de
+// demostración son cientos de altas seguidas, y a archivo completo por alta la
+// espera crecía con el tamaño de la base.
+//
+// enLote() agrupa todo eso en una sola escritura al final. Fuera de un lote,
+// save() se comporta exactamente como antes: escribe y punto.
+let guardadoEnPausa = 0;
+let quedoPendiente = false;
+
 function save() {
+  if (guardadoEnPausa > 0) { quedoPendiente = true; return; }
   ensureDataDir();
   fs.writeFileSync(DB_FILE, JSON.stringify(cache, null, 2), 'utf-8');
+}
+
+// Ejecuta `trabajo` guardando una sola vez al terminar. Si algo falla a mitad,
+// se guarda igual lo que ya se hizo: lo que queda escrito es lo que de verdad
+// está en memoria, no un estado a medias inventado.
+function enLote(trabajo) {
+  guardadoEnPausa++;
+  try {
+    return trabajo();
+  } finally {
+    guardadoEnPausa--;
+    if (guardadoEnPausa === 0 && quedoPendiente) {
+      quedoPendiente = false;
+      save();
+    }
+  }
 }
 
 function load() {
@@ -96,9 +151,7 @@ function load() {
 function migrate() {
   const base = emptyDB();
   cache.meta = Object.assign({}, base.meta, cache.meta || {});
-  ['users', 'schools', 'tasks', 'announcements', 'classes', 'activities', 'aiLogs'].forEach(key => {
-    cache[key] = cache[key] || [];
-  });
+  COLLECTIONS.forEach(key => { cache[key] = cache[key] || []; });
 
   cache.users.forEach(user => {
     user.notifications = user.notifications || [];
@@ -108,6 +161,63 @@ function migrate() {
     }
     // Los niveles se guardaban en inglés en versiones anteriores.
     user.level = normalizeLevel(user.level);
+
+    // Plan de la cuenta. Solo significa algo en las cuentas personales; las de
+    // escuela lo llevan en 'free' y nunca se les cobra nada.
+    if (!plans.PLAN_IDS.includes(user.plan)) user.plan = 'free';
+    if (!user.planCycle) user.planCycle = 'monthly';
+    if (user.planSince === undefined) user.planSince = user.createdAt || new Date().toISOString();
+    if (user.planRenewsAt === undefined) user.planRenewsAt = null;
+
+    // Contador diario del uso de Robin. Se reinicia solo al cambiar el día.
+    if (!user.usage || typeof user.usage !== 'object') {
+      user.usage = { date: todayKey(), aiMessages: 0, gameHints: 0, homeworkHelp: 0 };
+    }
+  });
+
+  // El conteo de mensajes vive por día: si el archivo se guardó ayer, hoy
+  // empieza de cero sin que nadie tenga que hacer nada.
+  rollUsageDay();
+
+  // Las conversaciones antiguas eran una lista plana de pregunta/respuesta.
+  // Se recogen en una conversación por persona para que el historial nuevo no
+  // nazca vacío.
+  if (cache.aiLogs.length && !cache.chats.length) {
+    const porUsuario = new Map();
+    cache.aiLogs.forEach(log => {
+      if (!porUsuario.has(log.userId)) porUsuario.set(log.userId, []);
+      porUsuario.get(log.userId).push(log);
+    });
+    porUsuario.forEach((logs, userId) => {
+      const messages = [];
+      logs.forEach(log => {
+        messages.push({ role: 'user', text: log.message, at: log.createdAt });
+        messages.push({ role: 'robin', text: log.response, at: log.createdAt });
+      });
+      cache.chats.push({
+        id: cache.meta.nextChatId++,
+        userId: Number(userId),
+        title: 'Conversaciones anteriores',
+        context: 'general',
+        messages,
+        createdAt: logs[0].createdAt,
+        updatedAt: logs[logs.length - 1].createdAt
+      });
+    });
+    console.log(`[roboRobin] ${porUsuario.size} historial(es) de chat convertidos al formato nuevo.`);
+  }
+
+  // Las actividades ganaron materia y puntos.
+  cache.activities.forEach(item => {
+    if (item.subject === undefined) item.subject = null;
+    if (item.points === undefined) item.points = 10;
+    if (item.classId != null) item.classId = Number(item.classId);
+  });
+
+  cache.classes.forEach(item => {
+    if (!Array.isArray(item.studentIds)) item.studentIds = [];
+    if (item.subject === undefined) item.subject = null;
+    if (item.archived === undefined) item.archived = false;
   });
 
   // Versiones anteriores guardaban "schoolCodes" (un solo código por escuela).
@@ -169,7 +279,9 @@ const LEVEL_ALIASES = {
   'Preschool': 'Parvularia',
   'Elementary': 'Primaria',
   'Middle School': 'Secundaria',
-  'High School': 'Bachillerato'
+  'High School': 'Bachillerato',
+  'University': 'Universidad',
+  'College': 'Universidad'
 };
 function normalizeLevel(level) {
   if (!level) return level || null;
@@ -190,6 +302,14 @@ function seedAdmin() {
     status: 'active',
     profilePic: null,
     notifications: [],
+    plan: 'free',
+    planCycle: 'monthly',
+    planSince: now,
+    planRenewsAt: null,
+    usage: { date: todayKey(), aiMessages: 0, gameHints: 0, homeworkHelp: 0 },
+    // Su propia conexión con Claude. Vacía significa "usa la del proyecto"
+    // (la de config.json), si es que hay alguna. Ver routes/ai.js.
+    ai: { key: '', model: '', lastTest: null },
     createdAt: now
   });
 }
@@ -302,20 +422,41 @@ function getUserByStudentCode(code) {
   return cache.users.find(u => u.studentCode === clean) || null;
 }
 
-function createUser({ fullName, email, password, role, level, grade, schoolId }) {
+// La edad, o null si no viene o no tiene sentido. Nunca revienta: una cuenta
+// sin edad es una cuenta válida (todas las de escuela lo son).
+function normalizeAge(age) {
+  const n = Number(age);
+  if (!Number.isFinite(n)) return null;
+  const entero = Math.floor(n);
+  return entero >= 4 && entero <= 120 ? entero : null;
+}
+
+// `passwordHash` es un atajo SOLO para la consola de demostración, que da de
+// alta cientos de cuentas con la misma contraseña de mentira: calcular el hash
+// una vez y reutilizarlo ahorra la mayor parte del tiempo. Una cuenta de
+// verdad nunca lo pasa, y entonces se calcula aquí como siempre.
+function createUser({ fullName, email, password, role, level, grade, schoolId, plan, age, passwordHash }) {
   const now = new Date().toISOString();
   const user = {
     id: cache.meta.nextUserId++,
     fullName,
     email: email ? String(email).trim().toLowerCase() : null,
-    passwordHash: bcrypt.hashSync(password, 10),
+    passwordHash: passwordHash || bcrypt.hashSync(password, 10),
     role: ROLES.includes(role) ? role : 'personal',
     schoolId: schoolId != null ? Number(schoolId) : null,
     level: normalizeLevel(level) || null,
     grade: grade || null,
+    // Solo la traen las cuentas personales; en una de escuela el nivel y el
+    // grado dicen lo mismo con más precisión (ver routes/auth.js).
+    age: normalizeAge(age),
     status: 'active',
     profilePic: null,
     notifications: [],
+    plan: plans.PLAN_IDS.includes(plan) ? plan : 'free',
+    planCycle: 'monthly',
+    planSince: now,
+    planRenewsAt: null,
+    usage: { date: todayKey(), aiMessages: 0, gameHints: 0, homeworkHelp: 0 },
     createdAt: now
   };
   if (user.role === 'student') user.studentCode = `STU-${String(user.id).padStart(5, '0')}`;
@@ -335,18 +476,30 @@ function updateUser(id, updates) {
   }
   if (updates.level !== undefined) user.level = normalizeLevel(updates.level);
   if (updates.grade !== undefined) user.grade = updates.grade;
+  if (updates.age !== undefined) user.age = normalizeAge(updates.age);
   if (updates.status !== undefined) user.status = updates.status;
   if (updates.schoolId !== undefined) user.schoolId = updates.schoolId == null ? null : Number(updates.schoolId);
   if (updates.password) user.passwordHash = bcrypt.hashSync(updates.password, 10);
   if (updates.profilePic !== undefined) user.profilePic = updates.profilePic;
+  if (updates.plan !== undefined && plans.PLAN_IDS.includes(updates.plan)) user.plan = updates.plan;
+  if (updates.planCycle !== undefined) user.planCycle = updates.planCycle;
   save();
   return user;
 }
 
 function deleteUser(id) {
+  const target = Number(id);
   const before = cache.users.length;
-  cache.users = cache.users.filter(u => u.id !== Number(id));
-  cache.tasks = cache.tasks.filter(t => t.userId !== Number(id));
+  cache.users = cache.users.filter(u => u.id !== target);
+  cache.tasks = cache.tasks.filter(t => t.userId !== target);
+  cache.chats = cache.chats.filter(c => c.userId !== target);
+  cache.submissions = cache.submissions.filter(s => s.studentId !== target);
+  cache.gameScores = cache.gameScores.filter(s => s.userId !== target);
+  cache.aiLogs = cache.aiLogs.filter(l => l.userId !== target);
+  // La persona sale tambien de las clases en las que estaba.
+  cache.classes.forEach(item => {
+    item.studentIds = (item.studentIds || []).filter(sid => sid !== target);
+  });
   save();
   return cache.users.length < before;
 }
@@ -356,12 +509,95 @@ function verifyPassword(user, password) {
   return bcrypt.compareSync(password, user.passwordHash);
 }
 
+// Lo que el navegador puede saber de una cuenta: todo menos el hash de la
+// contraseña, más lo que se calcula (escuela, permisos, plan, cuánto le queda
+// de Robin hoy y si le toca la interfaz de los peques).
+// Calcular un hash sin crear la cuenta. La consola de demostración lo usa para
+// hacerlo una sola vez y repartirlo entre todas las cuentas de la tanda.
+function hashPassword(password) {
+  return bcrypt.hashSync(password, 10);
+}
+
 function publicUser(user) {
   if (!user) return null;
-  const { passwordHash, ...rest } = user;
+  // Fuera la contraseña y fuera la llave de la API: ninguna de las dos tiene
+  // por qué viajar al navegador. El estado de la conexión sí, porque es lo que
+  // se enseña en la pantalla de configuración.
+  const { passwordHash, ai, ...rest } = user;
+  rest.ai = {
+    hasKey: Boolean(ai && ai.key),
+    keyHint: maskKey(ai && ai.key),
+    model: (ai && ai.model) || '',
+    lastTest: (ai && ai.lastTest) || null
+  };
   const school = user.schoolId ? getSchoolById(user.schoolId) : null;
   rest.schoolName = school ? school.name : null;
+  rest.roleLabel = permissions.ROLE_LABEL[user.role] || user.role;
+  rest.permissions = permissions.permissionsOf(user.role);
+  rest.difficulty = games.difficultyFor(user);
+  rest.isLittle = isLittleKid(user);
+  rest.planInfo = planInfoFor(user);
+  rest.usageToday = usageSummary(user);
+  rest.limitPct = user.role === 'personal' ? null : schoolLimitPct(school, limitGroupOf(user.role));
   return rest;
+}
+
+// Parvularia y los primeros grados de primaria usan una pantalla distinta:
+// Robin en grande, letras grandes y casi nada más. Lo decide el nivel y el
+// grado, no la edad, porque es el dato que sí tenemos.
+function isLittleKid(user) {
+  if (!user || user.role !== 'student') return false;
+  if (user.level === 'Parvularia') return true;
+  return user.level === 'Primaria' && games.difficultyFor(user) === 1;
+}
+
+// ---- La conexión con Claude de cada cuenta --------------------------------
+// Cada quien pone su propia llave de la API. Se guarda en data/db.json, que no
+// sale de esta computadora, y NUNCA vuelve al navegador entera: lo que se
+// enseña en pantalla son los últimos cuatro caracteres, lo justo para
+// reconocer cuál pusiste.
+//
+// Una cuenta sin llave propia usa la del proyecto (config.json) si la hay, y
+// si tampoco la hay, Robin contesta en su modo local sin conectarse a nada.
+
+function aiSettingsOf(user) {
+  if (!user) return { key: '', model: '', lastTest: null };
+  if (!user.ai) user.ai = { key: '', model: '', lastTest: null };
+  return user.ai;
+}
+
+// Solo los últimos cuatro, y nunca la llave entera.
+function maskKey(key) {
+  const limpia = String(key || '').trim();
+  if (!limpia) return '';
+  return `${limpia.slice(0, 7)}…${limpia.slice(-4)}`;
+}
+
+function setAiSettings(userId, { key, model }) {
+  const user = getUserById(userId);
+  if (!user) return null;
+  const ai = aiSettingsOf(user);
+
+  if (key !== undefined) {
+    ai.key = String(key || '').trim();
+    // La llave cambió: lo que dijera la última prueba ya no vale para esta.
+    ai.lastTest = null;
+  }
+  if (model !== undefined) ai.model = String(model || '').trim();
+
+  save();
+  return ai;
+}
+
+// Queda anotado cómo fue la última petición de verdad, para poder enseñar en
+// pantalla si la conexión funciona sin tener que volver a probarla.
+function recordAiTest(userId, resultado) {
+  const user = getUserById(userId);
+  if (!user) return null;
+  const ai = aiSettingsOf(user);
+  ai.lastTest = { at: new Date().toISOString(), ...resultado };
+  save();
+  return ai.lastTest;
 }
 
 // ---- Tareas (organizador personal) ----------------------------------------
@@ -580,6 +816,690 @@ function createActivity({ classId, title, description, dueDate }) {
   return activity;
 }
 
+// ---- Límite diario de Robin y planes ---------------------------------------
+// Robin no es infinito. Cada cuenta tiene una bolsa diaria de mensajes, de
+// pistas de minijuego y de "explícame esta tarea paso a paso". La bolsa se
+// vacía y se vuelve a llenar sola cada día: no hay ninguna tarea programada
+// corriendo por detrás, simplemente se compara la fecha guardada con la de hoy.
+
+function todayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function rollUsageDay() {
+  const hoy = todayKey();
+  let cambio = false;
+  cache.users.forEach(user => {
+    if (!user.usage || user.usage.date !== hoy) {
+      user.usage = { date: hoy, aiMessages: 0, gameHints: 0, homeworkHelp: 0 };
+      cambio = true;
+    }
+  });
+  return cambio;
+}
+
+// Los límites de una cuenta. Las de escuela no pagan nada, así que van con los
+// números del plan gratis pero con más margen: el trabajo escolar no se hace
+// en 25 mensajes.
+//
+// Este es el 100 %: el punto de partida de cualquier escuela.
+const SCHOOL_LIMITS = { aiMessages: 60, gameHints: 15, homeworkHelp: 15 };
+
+// La dirección puede subir ese margen desde su panel, por separado para
+// estudiantado, profesorado y dirección. Se guarda en porcentaje y no en
+// cifras: es lo que se ve en pantalla, así que es lo que conviene guardar —
+// si mañana cambia SCHOOL_LIMITS, lo que la escuela decidió sigue valiendo.
+const SCHOOL_LIMIT_GROUPS = ['student', 'teacher', 'staff'];
+const SCHOOL_LIMIT_MIN = 100;   // nunca por debajo del punto de partida
+const SCHOOL_LIMIT_MAX = 500;   // cinco veces: más que de sobra para una clase
+
+// A qué grupo de margen pertenece un rol. Subdirección y secretaría cuentan
+// como dirección: hacen el mismo trabajo y gastan a Robin igual.
+function limitGroupOf(role) {
+  if (role === 'student') return 'student';
+  if (role === 'teacher') return 'teacher';
+  if (permissions.isStaff(role)) return 'staff';
+  return null;
+}
+
+// El porcentaje que tiene puesto una escuela para un grupo. Sin nada guardado,
+// el 100 %: el punto de partida de siempre.
+function schoolLimitPct(school, group) {
+  const guardado = school && school.aiLimits && school.aiLimits[group];
+  const n = Number(guardado);
+  if (!Number.isFinite(n)) return SCHOOL_LIMIT_MIN;
+  return Math.min(SCHOOL_LIMIT_MAX, Math.max(SCHOOL_LIMIT_MIN, Math.round(n)));
+}
+
+function limitsFor(user) {
+  if (!user) return SCHOOL_LIMITS;
+  if (user.role === 'personal') {
+    const plan = plans.getPlan(user.plan);
+    return plan.limits;
+  }
+  // El profesorado y la dirección usan a Robin para preparar clase, no para
+  // estudiar: parten del mismo margen amplio que el estudiantado, y a partir
+  // de ahí manda lo que haya decidido su escuela.
+  const group = limitGroupOf(user.role);
+  const school = user.schoolId ? getSchoolById(user.schoolId) : null;
+  const pct = group ? schoolLimitPct(school, group) : SCHOOL_LIMIT_MIN;
+  if (pct === 100) return SCHOOL_LIMITS;
+
+  const factor = pct / 100;
+  return {
+    aiMessages: Math.round(SCHOOL_LIMITS.aiMessages * factor),
+    gameHints: Math.round(SCHOOL_LIMITS.gameHints * factor),
+    homeworkHelp: Math.round(SCHOOL_LIMITS.homeworkHelp * factor)
+  };
+}
+
+// Los tres porcentajes de una escuela, ya normalizados. Es lo que dibuja el
+// panel de dirección.
+function schoolAiLimits(schoolId) {
+  const school = getSchoolById(schoolId);
+  const out = {};
+  SCHOOL_LIMIT_GROUPS.forEach(g => { out[g] = schoolLimitPct(school, g); });
+  return out;
+}
+
+// Guarda los porcentajes que eligió la dirección. Solo toca los grupos que
+// vengan en la petición, y siempre dentro del rango permitido: un 900 %
+// escrito a mano en la petición no puede colarse.
+function setSchoolAiLimits(schoolId, cambios) {
+  const school = getSchoolById(schoolId);
+  if (!school) return null;
+  if (!school.aiLimits) school.aiLimits = {};
+
+  SCHOOL_LIMIT_GROUPS.forEach(g => {
+    if (cambios[g] === undefined || cambios[g] === null || cambios[g] === '') return;
+    const n = Number(cambios[g]);
+    if (!Number.isFinite(n)) return;
+    school.aiLimits[g] = Math.min(SCHOOL_LIMIT_MAX, Math.max(SCHOOL_LIMIT_MIN, Math.round(n)));
+  });
+
+  save();
+  return schoolAiLimits(school.id);
+}
+
+// Cuánto le queda hoy a alguien, en el formato que dibuja la barrita del menú.
+function usageSummary(user) {
+  const hoy = todayKey();
+  const usage = user.usage && user.usage.date === hoy
+    ? user.usage
+    : { date: hoy, aiMessages: 0, gameHints: 0, homeworkHelp: 0 };
+  const limits = limitsFor(user);
+
+  const linea = key => {
+    const limit = limits[key] === undefined ? -1 : limits[key];
+    const used = usage[key] || 0;
+    return {
+      used,
+      limit,
+      left: limit < 0 ? -1 : Math.max(0, limit - used),
+      unlimited: limit < 0
+    };
+  };
+
+  return {
+    date: hoy,
+    aiMessages: linea('aiMessages'),
+    gameHints: linea('gameHints'),
+    homeworkHelp: linea('homeworkHelp')
+  };
+}
+
+// Gasta un uso. Devuelve { ok, left, limit }. Si ok es false, quien llama
+// tiene que contestar con el mensaje de "hasta mañana" en lugar de trabajar.
+function consumeUsage(userId, key) {
+  const user = getUserById(userId);
+  if (!user) return { ok: false, left: 0, limit: 0 };
+
+  const hoy = todayKey();
+  if (!user.usage || user.usage.date !== hoy) {
+    user.usage = { date: hoy, aiMessages: 0, gameHints: 0, homeworkHelp: 0 };
+  }
+
+  const limits = limitsFor(user);
+  const limit = limits[key] === undefined ? -1 : limits[key];
+  if (limit >= 0 && (user.usage[key] || 0) >= limit) {
+    return { ok: false, left: 0, limit, unlimited: false };
+  }
+
+  user.usage[key] = (user.usage[key] || 0) + 1;
+  save();
+  return {
+    ok: true,
+    left: limit < 0 ? -1 : Math.max(0, limit - user.usage[key]),
+    limit,
+    unlimited: limit < 0
+  };
+}
+
+// La ficha del plan de una cuenta, ya con precio y límites resueltos.
+function planInfoFor(user) {
+  const plan = plans.getPlan(user && user.role === 'personal' ? user.plan : 'free');
+  return {
+    id: plan.id,
+    name: plan.name,
+    tagline: plan.tagline,
+    accent: plan.accent,
+    cycle: user ? user.planCycle || 'monthly' : 'monthly',
+    since: user ? user.planSince : null,
+    renewsAt: user ? user.planRenewsAt : null,
+    limits: limitsFor(user),
+    appliesToAccount: !user || user.role === 'personal'
+  };
+}
+
+// Cambiar de plan. En una instalación local no hay cobro de verdad: se guarda
+// la elección y la fecha de la próxima renovación para que la pantalla de
+// planes diga la verdad sobre lo que está activo.
+function setPlan(userId, planId, cycleId) {
+  const user = getUserById(userId);
+  if (!user) return null;
+  if (!plans.PLAN_IDS.includes(planId)) return null;
+
+  const cycle = plans.CYCLES.find(c => c.id === cycleId) || plans.CYCLES[0];
+  const ahora = new Date();
+  const renueva = new Date(ahora);
+  renueva.setMonth(renueva.getMonth() + cycle.months);
+
+  user.plan = planId;
+  user.planCycle = cycle.id;
+  user.planSince = ahora.toISOString();
+  user.planRenewsAt = planId === 'free' ? null : renueva.toISOString();
+  save();
+  return user;
+}
+
+// ---- Códigos de ingreso nominales ------------------------------------------
+// Además de los dos códigos permanentes de la escuela, dirección y profesorado
+// pueden emitir códigos con nombre y apellido:
+//
+//   teacher  un solo uso, lo emite dirección o subdirección para contratar a
+//            una persona concreta. En cuanto se usa, se quema.
+//   student  un solo uso, lo emite quien lleve el grupo para dar de alta a un
+//            estudiante concreto (con su nivel y grado ya puestos).
+//
+// Secretaría puede emitir los de estudiante pero NUNCA los de profesor: eso lo
+// comprueba la ruta con src/permissions.js.
+
+const CODE_PREFIX = { teacher: 'PRO', student: 'EST' };
+
+function nominalCodeExists(code) {
+  return cache.codes.some(c => c.code === code) || codeExists(code);
+}
+
+function createJoinCode({ type, schoolId, createdBy, createdByName, forName, level, grade, classId, note }) {
+  if (!CODE_PREFIX[type]) return null;
+
+  let code;
+  do { code = randomCode(CODE_PREFIX[type], 5); } while (nominalCodeExists(code));
+
+  const item = {
+    id: cache.meta.nextCodeId++,
+    code,
+    type,
+    schoolId: schoolId != null ? Number(schoolId) : null,
+    createdBy: createdBy != null ? Number(createdBy) : null,
+    createdByName: createdByName || null,
+    forName: forName ? String(forName).trim() : null,
+    level: type === 'student' ? normalizeLevel(level) || null : null,
+    grade: type === 'student' ? grade || null : null,
+    classId: classId != null ? Number(classId) : null,
+    note: note ? String(note).trim() : '',
+    maxUses: 1,               // siempre de un solo uso: es su razón de ser
+    uses: 0,
+    usedByUserId: null,
+    usedAt: null,
+    revoked: false,
+    createdAt: new Date().toISOString()
+  };
+  cache.codes.push(item);
+  save();
+  return item;
+}
+
+function getCodesForSchool(schoolId, { type, createdBy } = {}) {
+  return cache.codes
+    .filter(c =>
+      (schoolId == null || Number(c.schoolId) === Number(schoolId)) &&
+      (!type || c.type === type) &&
+      (createdBy == null || Number(c.createdBy) === Number(createdBy)))
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+}
+
+function getJoinCode(code) {
+  const clean = String(code || '').trim().toUpperCase();
+  if (!clean) return null;
+  return cache.codes.find(c => c.code === clean) || null;
+}
+
+// ¿Este código sirve todavía? Devuelve el motivo exacto cuando no, porque
+// "código incorrecto" a secas deja a la persona sin saber a quién preguntarle.
+function checkJoinCode(code) {
+  const item = getJoinCode(code);
+  if (!item) return { ok: false, reason: 'no-existe' };
+  if (item.revoked) return { ok: false, reason: 'anulado', code: item };
+  if (item.uses >= item.maxUses) return { ok: false, reason: 'usado', code: item };
+  return { ok: true, code: item, school: getSchoolById(item.schoolId) };
+}
+
+function burnJoinCode(codeId, userId) {
+  const item = cache.codes.find(c => c.id === Number(codeId));
+  if (!item) return null;
+  item.uses += 1;
+  item.usedByUserId = Number(userId);
+  item.usedAt = new Date().toISOString();
+  save();
+  return item;
+}
+
+function revokeJoinCode(codeId) {
+  const item = cache.codes.find(c => c.id === Number(codeId));
+  if (!item) return null;
+  item.revoked = true;
+  save();
+  return item;
+}
+
+// ---- Conversaciones con Robin ----------------------------------------------
+// Ya no es una lista plana: cada conversación tiene su título, su contexto
+// (general, una clase, una tarea o un minijuego) y sus mensajes, igual que
+// cualquier chat al que la gente ya está acostumbrada.
+
+function createChat({ userId, title, context, classId, activityId, gameId }) {
+  const now = new Date().toISOString();
+  const chat = {
+    id: cache.meta.nextChatId++,
+    userId: Number(userId),
+    title: title ? String(title).slice(0, 80) : 'Conversación nueva',
+    context: context || 'general',
+    classId: classId != null ? Number(classId) : null,
+    activityId: activityId != null ? Number(activityId) : null,
+    gameId: gameId || null,
+    messages: [],
+    createdAt: now,
+    updatedAt: now
+  };
+  cache.chats.push(chat);
+  save();
+  return chat;
+}
+
+function getChats(userId) {
+  return cache.chats
+    .filter(c => c.userId === Number(userId))
+    .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+}
+
+// La lista del menú lateral: sin los mensajes, que ahí no caben.
+function chatSummary(chat) {
+  const last = chat.messages[chat.messages.length - 1];
+  return {
+    id: chat.id,
+    title: chat.title,
+    context: chat.context,
+    classId: chat.classId,
+    activityId: chat.activityId,
+    gameId: chat.gameId,
+    messageCount: chat.messages.length,
+    preview: last ? String(last.text).slice(0, 90) : '',
+    createdAt: chat.createdAt,
+    updatedAt: chat.updatedAt
+  };
+}
+
+function getChat(userId, chatId) {
+  return cache.chats.find(c => c.id === Number(chatId) && c.userId === Number(userId)) || null;
+}
+
+// Guarda un turno completo. El título se pone solo con la primera pregunta:
+// es lo que la persona reconoce después en la lista.
+function appendChatTurn(userId, chatId, { question, reply, mode }) {
+  const chat = getChat(userId, chatId);
+  if (!chat) return null;
+  const now = new Date().toISOString();
+
+  chat.messages.push({ role: 'user', text: question, at: now });
+  chat.messages.push({ role: 'robin', text: reply, at: now, mode: mode || 'local' });
+
+  if (chat.title === 'Conversación nueva' || !chat.title) {
+    chat.title = String(question).replace(/\s+/g, ' ').trim().slice(0, 60);
+  }
+  chat.updatedAt = now;
+  save();
+  return chat;
+}
+
+function renameChat(userId, chatId, title) {
+  const chat = getChat(userId, chatId);
+  if (!chat) return null;
+  chat.title = String(title || '').trim().slice(0, 80) || chat.title;
+  save();
+  return chat;
+}
+
+function deleteChat(userId, chatId) {
+  const before = cache.chats.length;
+  cache.chats = cache.chats.filter(c => !(c.id === Number(chatId) && c.userId === Number(userId)));
+  save();
+  return cache.chats.length < before;
+}
+
+function deleteAllChats(userId) {
+  cache.chats = cache.chats.filter(c => c.userId !== Number(userId));
+  cache.aiLogs = cache.aiLogs.filter(l => l.userId !== Number(userId));
+  save();
+  return true;
+}
+
+// Los planes guardan el historial distintos días. Lo viejo se va solo, sin que
+// nadie tenga que acordarse de limpiar.
+function pruneChatHistory(user) {
+  const dias = plans.limitFor(user, 'historyDays');
+  if (dias < 0) return 0;
+  const corte = Date.now() - dias * 86400000;
+  const before = cache.chats.length;
+  cache.chats = cache.chats.filter(c =>
+    c.userId !== Number(user.id) || new Date(c.updatedAt).getTime() >= corte);
+  const borrados = before - cache.chats.length;
+  if (borrados) save();
+  return borrados;
+}
+
+// ---- Minijuegos: qué está activo y quién va ganando ------------------------
+// Un ajuste vive en un ámbito: 'school' (lo pone dirección) o 'class' (lo pone
+// quien da esa clase). Una cuenta personal no tiene ámbito: los tiene todos
+// desbloqueados y no hay nada que apagar.
+
+function gameSettingKey(scope, scopeId) {
+  return cache.gameSettings.find(s => s.scope === scope && Number(s.scopeId) === Number(scopeId)) || null;
+}
+
+function getDisabledGames(scope, scopeId) {
+  const item = gameSettingKey(scope, scopeId);
+  return item ? item.disabled.slice() : [];
+}
+
+function setGameEnabled(scope, scopeId, gameId, enabled) {
+  if (!games.GAME_IDS.includes(gameId)) return null;
+  let item = gameSettingKey(scope, scopeId);
+  if (!item) {
+    item = { scope, scopeId: Number(scopeId), disabled: [], updatedAt: null };
+    cache.gameSettings.push(item);
+  }
+  item.disabled = item.disabled.filter(id => id !== gameId);
+  if (!enabled) item.disabled.push(gameId);
+  item.updatedAt = new Date().toISOString();
+  save();
+  return item;
+}
+
+// Los minijuegos que esta persona puede abrir ahora mismo.
+//
+//   personal  todos, siempre. Es parte de lo que ofrece la cuenta personal.
+//   escuela   los que no haya apagado la dirección ni ninguna de sus clases.
+//             Si una clase lo apagó, se apagó para quien esté en esa clase.
+function availableGamesFor(user) {
+  const todos = games.catalog();
+
+  // La universidad no tiene minijuegos, ni para el estudiantado ni para una
+  // cuenta personal que diga estar en ese nivel. No es que se los apaguen:
+  // es que a esa altura no vienen al caso, y se dice tal cual.
+  if (user && user.level === 'Universidad') {
+    return [];
+  }
+
+  if (!user || user.role !== 'student') {
+    return todos.map(g => ({ ...g, enabled: true, disabledBy: null }));
+  }
+
+  const apagadosEscuela = user.schoolId ? getDisabledGames('school', user.schoolId) : [];
+  const misClases = cache.classes.filter(c => (c.studentIds || []).includes(user.id));
+  const apagadosClase = new Map();
+  misClases.forEach(item => {
+    getDisabledGames('class', item.id).forEach(gameId => {
+      if (!apagadosClase.has(gameId)) apagadosClase.set(gameId, item.name);
+    });
+  });
+
+  return todos.map(g => {
+    if (apagadosEscuela.includes(g.id)) {
+      return { ...g, enabled: false, disabledBy: 'la dirección de tu escuela' };
+    }
+    if (apagadosClase.has(g.id)) {
+      return { ...g, enabled: false, disabledBy: `tu clase de ${apagadosClase.get(g.id)}` };
+    }
+    return { ...g, enabled: true, disabledBy: null };
+  });
+}
+
+function canPlayGame(user, gameId) {
+  const item = availableGamesFor(user).find(g => g.id === gameId);
+  return item ? item.enabled : false;
+}
+
+// Marca de una persona en un minijuego: racha actual, mejor racha y aciertos.
+function scoreFor(userId, gameId) {
+  let item = cache.gameScores.find(s => s.userId === Number(userId) && s.gameId === gameId);
+  if (!item) {
+    item = {
+      userId: Number(userId), gameId,
+      plays: 0, correct: 0, streak: 0, bestStreak: 0,
+      hintsUsed: 0, lastPlayedAt: null
+    };
+    cache.gameScores.push(item);
+  }
+  return item;
+}
+
+function recordGameResult(userId, gameId, { correct, usedHint }) {
+  const item = scoreFor(userId, gameId);
+  item.plays += 1;
+  if (usedHint) item.hintsUsed += 1;
+  if (correct) {
+    item.correct += 1;
+    item.streak += 1;
+    if (item.streak > item.bestStreak) item.bestStreak = item.streak;
+  } else {
+    item.streak = 0;
+  }
+  item.lastPlayedAt = new Date().toISOString();
+  save();
+  return item;
+}
+
+function getGameScores(userId) {
+  return cache.gameScores.filter(s => s.userId === Number(userId));
+}
+
+// ---- Entregas de actividades -----------------------------------------------
+
+function getSubmission(activityId, studentId) {
+  return cache.submissions.find(s =>
+    s.activityId === Number(activityId) && s.studentId === Number(studentId)) || null;
+}
+
+function getSubmissionsForActivity(activityId) {
+  return cache.submissions.filter(s => s.activityId === Number(activityId));
+}
+
+function saveSubmission({ activityId, studentId, text }) {
+  let item = getSubmission(activityId, studentId);
+  const now = new Date().toISOString();
+  if (!item) {
+    item = {
+      id: cache.meta.nextSubmissionId++,
+      activityId: Number(activityId),
+      studentId: Number(studentId),
+      text: '',
+      grade: null,
+      feedback: '',
+      submittedAt: now,
+      updatedAt: now
+    };
+    cache.submissions.push(item);
+  }
+  item.text = String(text || '').trim();
+  item.updatedAt = now;
+  save();
+  return item;
+}
+
+function gradeSubmission(submissionId, { grade, feedback }) {
+  const item = cache.submissions.find(s => s.id === Number(submissionId));
+  if (!item) return null;
+  if (grade !== undefined) item.grade = grade === null || grade === '' ? null : Number(grade);
+  if (feedback !== undefined) item.feedback = String(feedback || '').trim();
+  item.updatedAt = new Date().toISOString();
+  save();
+  return item;
+}
+
+// ---- Clases y actividades: consultas que faltaban ---------------------------
+
+function getClassesForTeacher(teacherId) {
+  return cache.classes.filter(c => c.teacherId === Number(teacherId) && !c.archived);
+}
+
+function getClassesForStudent(studentId) {
+  return cache.classes.filter(c => (c.studentIds || []).includes(Number(studentId)));
+}
+
+function getClassesForSchool(schoolId) {
+  return cache.classes.filter(c => schoolId == null || Number(c.schoolId) === Number(schoolId));
+}
+
+function getClassByJoinCode(code) {
+  const clean = String(code || '').trim().toUpperCase();
+  if (!clean) return null;
+  return cache.classes.find(c => String(c.joinCode).toUpperCase() === clean) || null;
+}
+
+function removeStudentFromClass(classId, studentId) {
+  const item = getClassById(classId);
+  if (!item) return null;
+  item.studentIds = (item.studentIds || []).filter(id => id !== Number(studentId));
+  save();
+  return item;
+}
+
+function updateClass(classId, updates) {
+  const item = getClassById(classId);
+  if (!item) return null;
+  if (updates.name !== undefined) item.name = String(updates.name).trim() || item.name;
+  if (updates.description !== undefined) item.description = String(updates.description || '').trim();
+  if (updates.subject !== undefined) item.subject = updates.subject || null;
+  if (updates.level !== undefined) item.level = normalizeLevel(updates.level);
+  if (updates.visibility !== undefined) item.visibility = updates.visibility === 'private' ? 'private' : 'public';
+  if (updates.archived !== undefined) item.archived = Boolean(updates.archived);
+  save();
+  return item;
+}
+
+function deleteClass(classId) {
+  const id = Number(classId);
+  const before = cache.classes.length;
+  cache.classes = cache.classes.filter(c => c.id !== id);
+  const actividades = cache.activities.filter(a => a.classId === id).map(a => a.id);
+  cache.activities = cache.activities.filter(a => a.classId !== id);
+  cache.submissions = cache.submissions.filter(s => !actividades.includes(s.activityId));
+  cache.gameSettings = cache.gameSettings.filter(s => !(s.scope === 'class' && Number(s.scopeId) === id));
+  save();
+  return cache.classes.length < before;
+}
+
+function getActivityById(id) {
+  return cache.activities.find(a => a.id === Number(id)) || null;
+}
+
+// Todas las asignaciones que le tocan a un estudiante, de todas sus clases,
+// ya con el nombre de la clase y su entrega pegados: es exactamente lo que
+// necesita dibujar la pantalla de "mis asignaciones".
+function getAssignmentsForStudent(studentId) {
+  const misClases = getClassesForStudent(studentId);
+  const porClase = new Map(misClases.map(c => [c.id, c]));
+
+  return cache.activities
+    .filter(a => porClase.has(a.classId))
+    .map(a => {
+      const clase = porClase.get(a.classId);
+      const entrega = getSubmission(a.id, studentId);
+      return {
+        ...a,
+        className: clase.name,
+        classSubject: clase.subject,
+        teacherName: clase.teacherName,
+        submission: entrega
+          ? { id: entrega.id, text: entrega.text, grade: entrega.grade, feedback: entrega.feedback, updatedAt: entrega.updatedAt }
+          : null
+      };
+    })
+    .sort((a, b) => {
+      // Primero lo que vence antes; lo que no tiene fecha, al final.
+      if (a.dueDate && b.dueDate) return a.dueDate < b.dueDate ? -1 : 1;
+      if (a.dueDate) return -1;
+      if (b.dueDate) return 1;
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+}
+
+function updateActivity(id, updates) {
+  const item = getActivityById(id);
+  if (!item) return null;
+  if (updates.title !== undefined) item.title = String(updates.title).trim() || item.title;
+  if (updates.description !== undefined) item.description = String(updates.description || '').trim();
+  if (updates.dueDate !== undefined) item.dueDate = updates.dueDate || null;
+  if (updates.subject !== undefined) item.subject = updates.subject || null;
+  if (updates.points !== undefined) item.points = Number(updates.points) || 0;
+  save();
+  return item;
+}
+
+function deleteActivity(id) {
+  const target = Number(id);
+  const before = cache.activities.length;
+  cache.activities = cache.activities.filter(a => a.id !== target);
+  cache.submissions = cache.submissions.filter(s => s.activityId !== target);
+  save();
+  return cache.activities.length < before;
+}
+
+// ---- La escuela por dentro --------------------------------------------------
+
+function getSchoolStaff(schoolId) {
+  return getSchoolMembers(schoolId).filter(u => permissions.isStaff(u.role));
+}
+
+// Los estudiantes que de verdad le tocan a un profesor: los de sus clases.
+function getStudentsOfTeacher(teacherId) {
+  const misClases = getClassesForTeacher(teacherId);
+  const ids = new Set();
+  misClases.forEach(c => (c.studentIds || []).forEach(id => ids.add(id)));
+  return cache.users.filter(u => ids.has(u.id));
+}
+
+function teacherTeachesStudent(teacherId, studentId) {
+  return getClassesForTeacher(teacherId).some(c => (c.studentIds || []).includes(Number(studentId)));
+}
+
+// Una cuenta personal que acepta la invitación de un profesor se convierte en
+// estudiante de esa escuela. Conserva TODO lo suyo: sus pendientes, sus
+// conversaciones con Robin y el plan que haya pagado.
+function convertPersonalToStudent(userId, schoolId, { level, grade } = {}) {
+  const user = getUserById(userId);
+  if (!user || user.role !== 'personal') return null;
+  user.role = 'student';
+  user.schoolId = Number(schoolId);
+  user.level = normalizeLevel(level) || user.level || 'Secundaria';
+  user.grade = grade || user.grade || null;
+  if (!user.studentCode) user.studentCode = `STU-${String(user.id).padStart(5, '0')}`;
+  save();
+  return user;
+}
+
 load();
 
 module.exports = {
@@ -592,6 +1512,9 @@ module.exports = {
   // escuelas
   createSchool, getSchools, getSchoolById, getSchoolByDirector,
   resolveJoinCode, regenerateSchoolCode, renameSchool, getSchoolMembers, schoolStats,
+  // margen de Robin por escuela
+  SCHOOL_LIMITS, SCHOOL_LIMIT_GROUPS, SCHOOL_LIMIT_MIN, SCHOOL_LIMIT_MAX,
+  schoolAiLimits, setSchoolAiLimits, limitGroupOf,
   // tareas
   getTasks, createTask, updateTask, deleteTask,
   // clases y actividades
@@ -604,5 +1527,28 @@ module.exports = {
   // ia
   logAiChat, getAiHistory, clearAiHistory,
   // estadísticas
-  getStats
+  getStats,
+  // planes y límite diario de Robin
+  todayKey, rollUsageDay, limitsFor, usageSummary, consumeUsage, planInfoFor, setPlan,
+  // agrupar muchas escrituras en una sola (lo usa la consola de demostración)
+  enLote, hashPassword,
+  // la conexión con Claude de cada cuenta
+  aiSettingsOf, setAiSettings, recordAiTest, maskKey,
+  // códigos nominales
+  createJoinCode, getCodesForSchool, getJoinCode, checkJoinCode, burnJoinCode, revokeJoinCode,
+  // conversaciones con Robin
+  createChat, getChats, chatSummary, getChat, appendChatTurn, renameChat,
+  deleteChat, deleteAllChats, pruneChatHistory,
+  // minijuegos
+  getDisabledGames, setGameEnabled, availableGamesFor, canPlayGame,
+  scoreFor, recordGameResult, getGameScores,
+  // entregas
+  getSubmission, getSubmissionsForActivity, saveSubmission, gradeSubmission,
+  // clases y actividades
+  getClassesForTeacher, getClassesForStudent, getClassesForSchool, getClassByJoinCode,
+  removeStudentFromClass, updateClass, deleteClass,
+  getActivityById, getAssignmentsForStudent, updateActivity, deleteActivity,
+  // la escuela por dentro
+  getSchoolStaff, getStudentsOfTeacher, teacherTeachesStudent, convertPersonalToStudent,
+  isLittleKid
 };

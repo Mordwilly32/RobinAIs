@@ -23,7 +23,7 @@ form.addEventListener('submit', async (e) => {
     rrSetPose('authRobin', 'happy');
     btn.textContent = '¡Adentro!';
     rrConfetti(document.getElementById('authRobin'));
-    setTimeout(() => { window.location.href = rrDashboardFor(user.role); }, 620);
+    setTimeout(() => { window.location.href = rrDashboardFor(user.role, user); }, 620);
   } catch (err) {
     rrSetPose('authRobin', 'sad');
     errorBox.textContent = err.message;

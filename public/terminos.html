@@ -7,13 +7,13 @@
 <link rel="icon" href="/images/robin.png" />
 <link rel="stylesheet" href="/css/style.css" />
 <link rel="stylesheet" href="/css/landing.css" />
+<link rel="stylesheet" href="/css/consola.css" />
 </head>
 <body class="rb-page">
 
 <nav class="rb-nav" id="rbNav">
   <div class="rb-wrap rb-nav-inner">
-    <a href="/" class="rb-logo">
-      <span data-rr-mascot data-small></span>
+    <a href="/" class="rb-logo rb-logo-xl">
       <span>Robo<b>Robin</b></span>
     </a>
     <div class="rb-nav-links" id="rbNavLinks">
@@ -41,47 +41,72 @@
       <p>
         roboRobin es un <strong>proyecto escolar hecho para una exposición</strong>. No es una empresa, no es un
         servicio real y no hay nadie del otro lado. Las cifras, los precios, los testimonios, las escuelas aliadas,
-        los premios y las redes sociales que aparecen en la página son <strong>inventados</strong> y están puestos
+        los premios y las alianzas que aparecen en la página son <strong>inventados</strong> y están puestos
         únicamente para mostrar cómo se vería un sitio real.
       </p>
     </div>
 
     <h2 data-anim="up">1. Qué es esto en realidad</h2>
     <p data-anim="up">
-      roboRobin es una aplicación de demostración que corre <strong>completamente en la computadora donde se
-      instaló</strong>. No hay servidores en la nube, no hay una compañía detrás y no existe ningún equipo de
-      soporte. Si estás viendo esta página en una feria, una clase o una presentación, estás viendo una maqueta
-      funcional, no un producto.
+      roboRobin es una aplicación de <strong>demostración</strong>. No hay una compañía detrás, no hay contratos y
+      no existe ningún equipo de soporte. Si estás viendo esta página en una feria, una clase o una presentación,
+      estás viendo una maqueta funcional, no un producto en venta.
     </p>
 
     <h2 data-anim="up">2. Datos que aparecen en la página</h2>
     <ul data-anim="up">
-      <li><strong>«+50,000 estudiantes», «200+ escuelas», «98% de satisfacción»:</strong> inventados. Nadie los midió.</li>
-      <li><strong>Precios ($99/mes, «A medida»):</strong> inventados. <strong>No se cobra nada, nunca.</strong> No hay formularios de pago, no se piden tarjetas y no existe ninguna pasarela de cobro en este proyecto.</li>
-      <li><strong>«Disponible 24/7», «soporte prioritario»:</strong> inventados. El servicio solo funciona mientras alguien tenga el servidor encendido en su propia máquina.</li>
-      <li><strong>Redes sociales del pie de página:</strong> no llevan a ninguna cuenta real; regresan aquí.</li>
+      <li><strong>Precios ($20/mes, $99/mes):</strong> inventados. <strong>No se cobra nada, nunca.</strong> No hay formularios de pago, no se piden tarjetas y no existe ninguna pasarela de cobro en este proyecto.</li>
+      <li><strong>«Disponible 24/7», «soporte prioritario»:</strong> inventados. El servicio solo funciona mientras alguien tenga el proyecto en marcha.</li>
+      <li><strong>Porcentajes de los planes:</strong> son comparaciones contra el plan Gratis; las cifras exactas están abajo, en el apartado 3.</li>
       <li><strong>Nombres y logros de la conversación de ejemplo:</strong> escritos para la demostración.</li>
     </ul>
 
-    <h2 data-anim="up">3. La inteligencia artificial</h2>
+    <h2 id="limites" data-anim="up">3. Qué incluye cada plan, con números</h2>
     <p data-anim="up">
-      Robin funciona por defecto en <strong>modo local</strong>: entiende órdenes sencillas sobre tus pendientes
-      («recuérdame estudiar mañana») y responde con una base de consejos escrita a mano. No es un modelo de
-      lenguaje entrenado por este proyecto.
+      En la página de precios los planes se comparan en porcentaje porque es lo que se entiende de un vistazo.
+      Aquí quedan las cifras exactas sobre las que se calculan esos porcentajes. Todas son <strong>por día</strong>
+      y se reinician solas cada jornada.
+    </p>
+    <div class="rb-doc-table-wrap" data-anim="up">
+      <table class="rb-doc-table">
+        <thead>
+          <tr><th>Concepto</th><th>Gratis</th><th>Pro</th><th>Max</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Mensajes al día con Robin</td><td>25</td><td>400 <em>(+1 500 %)</em></td><td>Sin límite</td></tr>
+          <tr><td>Pistas al día en los minijuegos</td><td>5</td><td>100 <em>(+1 900 %)</em></td><td>Sin límite</td></tr>
+          <tr><td>Tareas desarmadas paso a paso</td><td>5</td><td>100</td><td>Sin límite</td></tr>
+          <tr><td>Historial de conversaciones</td><td>30 días</td><td>1 año</td><td>Para siempre</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p data-anim="up">
+      Las cuentas de escuela (estudiantado, profesorado y dirección) <strong>no llevan plan ni se les cobra
+      nada</strong>. Parten de 60 mensajes, 15 pistas y 15 tareas al día, y la dirección de cada escuela puede
+      subir ese margen hasta el 500 % desde su panel, por separado para estudiantes, profesorado y dirección.
     </p>
     <p data-anim="up">
-      Quien instale la aplicación puede, si quiere, poner su propia clave de la API de Anthropic en
-      <code>config.json</code> para que las preguntas abiertas las responda Claude. En ese caso —y solo en ese
-      caso— el texto que escribas se envía a Anthropic para obtener la respuesta. Sin clave, nada sale de la
-      computadora. Las respuestas de una IA pueden equivocarse: <strong>no las uses como fuente única</strong>
-      para tareas, decisiones médicas, legales ni financieras.
+      Cuando se acaba el margen del día, Robin lo dice y lo que se pierde es la conversación con la IA: el
+      organizador de tareas, las clases, los avisos y los minijuegos siguen funcionando igual.
     </p>
 
-    <h2 id="privacidad" data-anim="up">4. Privacidad</h2>
+    <h2 data-anim="up">4. La inteligencia artificial</h2>
+    <p data-anim="up">
+      Robin trae un <strong>modo propio</strong>: entiende órdenes sencillas sobre tus pendientes («recuérdame
+      estudiar mañana») y responde con una base de consejos escrita a mano. No es un modelo de lenguaje entrenado
+      por este proyecto.
+    </p>
+    <p data-anim="up">
+      Quien administre la instalación puede, si quiere, configurar una clave de la API de Anthropic para que las
+      preguntas abiertas las responda Claude. En ese caso —y solo en ese caso— el texto que escribas se envía a
+      Anthropic para obtener la respuesta. Las respuestas de una IA pueden equivocarse: <strong>no las uses como
+      fuente única</strong> para tareas, decisiones médicas, legales ni financieras.
+    </p>
+
+    <h2 id="privacidad" data-anim="up">5. Privacidad</h2>
     <p data-anim="up">
       Todo (cuentas, contraseñas encriptadas, escuelas, códigos, pendientes, avisos e historial del chat) se guarda
-      en un único archivo local: <code>data/db.json</code>. Quien tenga acceso a esa computadora tiene acceso al
-      archivo. Por eso:
+      en el almacén de datos del proyecto. Quien administre la instalación tiene acceso a ese almacén. Por eso:
     </p>
     <ul data-anim="up">
       <li>No escribas datos personales de verdad ni información sensible dentro de la demostración.</li>
@@ -89,31 +114,32 @@
       <li>Los códigos de ingreso son de 4 caracteres para poder dictarlos en voz alta: son cómodos, no son seguridad de verdad.</li>
     </ul>
 
-    <h2 data-anim="up">5. Cuentas y roles</h2>
+    <h2 data-anim="up">6. Cuentas y roles</h2>
     <p data-anim="up">
       Las cuentas de estudiante y profesor se crean con un código que reparte el director de cada escuela, y ese
       código es el que decide el rol. Dentro del proyecto la separación funciona, pero está pensada para una
       demostración: no la uses para administrar datos reales de menores de edad ni de una institución.
     </p>
 
-    <h2 data-anim="up">6. Garantías</h2>
+    <h2 data-anim="up">7. Garantías</h2>
     <p data-anim="up">
-      Ninguna. El software se entrega «tal cual», sin garantía de ningún tipo. Quien lo instala y lo corre es
-      responsable de lo que haga con él. Al ser un trabajo escolar, puede tener errores, puede perder datos y
+      Ninguna. El software se entrega «tal cual», sin garantía de ningún tipo. Quien lo administra es responsable
+      de lo que haga con él. Al ser un trabajo escolar, puede tener errores, puede perder datos y
       puede dejar de funcionar sin aviso.
     </p>
 
-    <h2 data-anim="up">7. Marcas y contenido de terceros</h2>
+    <h2 data-anim="up">8. Marcas y contenido de terceros</h2>
     <p data-anim="up">
       «Claude» y «Anthropic» son marcas de Anthropic; se mencionan solo porque la aplicación puede conectarse a su
-      API de forma opcional. Este proyecto no está afiliado, patrocinado ni respaldado por Anthropic ni por
+      API de forma opcional. «GitHub» es una marca de GitHub, Inc. Este proyecto no está afiliado, patrocinado ni respaldado por Anthropic ni por
       ninguna otra empresa.
     </p>
 
-    <h2 data-anim="up">8. Contacto</h2>
+    <h2 data-anim="up">9. Contacto</h2>
     <p data-anim="up">
       No hay un correo de soporte porque no hay soporte. Si estás viendo esto en una exposición, pregúntale
-      directamente a la persona que hizo el proyecto: para eso está ahí. 🐦
+      directamente a la persona que hizo el proyecto: para eso está ahí. El código vive en
+      <a href="https://github.com/Mordwilly32/RoboRobinAI" target="_blank" rel="noopener">GitHub</a>. 🐦
     </p>
 
     <div style="margin-top:48px;display:flex;gap:12px;flex-wrap:wrap" data-anim="up">
@@ -127,12 +153,13 @@
   <div class="rb-wrap">
     <div class="rb-footer-legal" style="border-top:none;margin-top:0">
       <span>© 2026 roboRobin — proyecto escolar de exposición, sin fines comerciales.</span>
-      <span class="socials"><a href="/">Inicio</a><a href="/login.html">Entrar</a></span>
+      <span class="socials"><a href="/">Inicio</a><a href="/login.html">Entrar</a><a href="https://github.com/Mordwilly32/RoboRobinAI" target="_blank" rel="noopener">Proyecto en GitHub ↗</a></span>
     </div>
   </div>
 </footer>
 
 <script src="/js/mascot.js"></script>
 <script src="/js/landing.js"></script>
+<script src="/js/consola.js"></script>
 </body>
 </html>

@@ -192,19 +192,14 @@ body.rb-page {
 .rb-hero-lead { font-size: 18.5px; line-height: 1.75; max-width: 560px; margin: 0 0 34px; }
 .rb-hero-actions { display: flex; gap: 14px; flex-wrap: wrap; }
 
-.rb-social { display: flex; align-items: center; gap: 14px; margin-top: 36px; flex-wrap: wrap; }
-.rb-avatars { display: flex; }
-.rb-avatars span {
-  width: 34px; height: 34px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  color: #fff; font-size: 13px; font-weight: 700;
-  border: 2.5px solid #fff; margin-left: -10px;
-  transition: transform .25s var(--rb-spring);
+/* Nota sosa bajo los botones: nada de cifras, solo lo que sí es cierto. */
+.rb-hero-note { margin-top: 34px; }
+.rb-hero-note span {
+  display: inline-block;
+  font-size: 14px; color: #8A93A0;
+  border-left: 3px solid var(--rb-red-soft-2);
+  padding-left: 12px;
 }
-.rb-avatars span:first-child { margin-left: 0; }
-.rb-avatars span:hover { transform: translateY(-5px) scale(1.1); z-index: 2; }
-.rb-social p { margin: 0; font-size: 15px; }
-.rb-social strong { color: var(--rb-ink); }
 
 /* Escena de Robin con sus tarjetas flotantes */
 .rb-scene { position: relative; display: flex; align-items: center; justify-content: center; min-height: 440px; }
@@ -261,18 +256,6 @@ body.rb-page {
   .rb-scene { min-height: 360px; }
   .rb-float { padding: 10px 13px; transform: scale(.86); }
 }
-
-/* =============================================================================
-   Cifras
-   ============================================================================= */
-
-.rb-stats { border-top: 1px solid var(--rb-line); border-bottom: 1px solid var(--rb-line); padding: 54px 0 46px; }
-.rb-stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; text-align: center; }
-@media (max-width: 720px) { .rb-stats-grid { grid-template-columns: repeat(2, 1fr); gap: 34px; } }
-.rb-stat .n { font-size: clamp(32px, 4vw, 44px); font-weight: 800; color: var(--rb-red); letter-spacing: -.04em; }
-.rb-stat .l { font-size: 15px; color: var(--rb-body); margin-top: 2px; }
-.rb-stats-note { text-align: center; font-size: 13px; color: #9AA3AE; margin: 30px 0 0; }
-.rb-stats-note a { color: var(--rb-red); font-weight: 700; text-decoration: underline; }
 
 /* =============================================================================
    Funciones
@@ -339,15 +322,37 @@ body.rb-page {
 .rb-step h3 { font-size: 19px; margin: 0 0 10px; }
 .rb-step p { font-size: 15px; line-height: 1.65; margin: 0; }
 
-/* Cinta de materias que se desliza sin parar */
-.rb-marquee { overflow: hidden; margin-top: 76px; -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); }
-.rb-marquee-track { display: flex; gap: 14px; width: max-content; animation: rb-slide 34s linear infinite; }
-.rb-marquee:hover .rb-marquee-track { animation-play-state: paused; }
+/* Cinta de materias: dos filas que corren en sentidos opuestos y no se
+   detienen nunca, ni al pasar el mouse por encima.
+   El separador va en margin-right y no en gap: así el ancho del carril es
+   exactamente el doble del contenido y el translateX(-50%) empalma sin salto. */
+.rb-marquee {
+  display: grid; gap: 14px; margin-top: 74px;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+}
+.rb-marquee-row { overflow: hidden; }
+.rb-marquee-track {
+  display: flex; width: max-content;
+  animation: rb-slide 38s linear infinite;
+  will-change: transform;
+}
+.rb-marquee-row.reverse .rb-marquee-track { animation-duration: 48s; animation-direction: reverse; }
 @keyframes rb-slide { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
 .rb-marquee span {
+  margin-right: 14px;
   border: 1px solid rgba(255, 255, 255, .16); border-radius: 999px;
+  background: rgba(255, 255, 255, .03);
   padding: 11px 22px; font-size: 14.5px; color: rgba(255, 255, 255, .8);
   white-space: nowrap;
+  transition: border-color .3s var(--rb-ease), color .3s var(--rb-ease), background .3s var(--rb-ease);
+}
+.rb-marquee span:hover { border-color: var(--rb-red); background: rgba(255, 46, 46, .14); color: #fff; }
+
+@media (max-width: 640px) {
+  .rb-marquee { margin-top: 54px; }
+  .rb-marquee span { font-size: 13.5px; padding: 10px 17px; }
 }
 
 /* =============================================================================
@@ -393,9 +398,24 @@ body.rb-page {
 .rb-panel.on .rb-checks li:nth-child(4) { animation-delay: .29s; }
 @keyframes rb-in-left { from { opacity: 0; transform: translateX(-18px); } to { opacity: 1; transform: none; } }
 
-/* Maqueta de conversación */
+/* Maqueta de conversación
+   -----------------------------------------------------------------------------
+   El guion lo escribe initChatDemo() en landing.js: va cambiando de tema y no
+   se detiene nunca, ni al pasar el mouse. El registro tiene alto fijo y apila
+   desde abajo, como un chat de verdad: así la sección no da saltos cada vez que
+   entra un mensaje, y lo viejo se sale por arriba con un desvanecido. */
 .rb-chat { background: var(--rb-red-soft); border-radius: 26px; padding: 26px; }
+
+.rb-chat-log {
+  height: 268px;
+  display: flex; flex-direction: column; justify-content: flex-end;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 14%);
+  mask-image: linear-gradient(180deg, transparent, #000 14%);
+}
+
 .rb-msg { display: flex; align-items: flex-start; gap: 11px; margin-bottom: 15px; }
+.rb-msg:last-child { margin-bottom: 0; }
 .rb-msg .rr-mascot { width: 34px; height: 34px; flex: 0 0 34px; }
 .rb-scene .rr-pose, .rb-cta-bird .rr-pose { width: auto; height: auto; }
 .rb-msg p {
@@ -405,20 +425,44 @@ body.rb-page {
 }
 .rb-msg.me { justify-content: flex-end; }
 .rb-msg.me p { background: var(--rb-red); color: #fff; border-radius: 16px; border-top-right-radius: 5px; box-shadow: 0 6px 18px rgba(255, 46, 46, .28); }
-.rb-panel.on .rb-msg { animation: rb-in-up .55s var(--rb-ease) both; }
-.rb-panel.on .rb-msg:nth-child(1) { animation-delay: .1s; }
-.rb-panel.on .rb-msg:nth-child(2) { animation-delay: .3s; }
-.rb-panel.on .rb-msg:nth-child(3) { animation-delay: .5s; }
+
+/* Cada mensaje entra por su cuenta, en el momento en que el guion lo suelta */
+.rb-msg { animation: rb-in-up .45s var(--rb-ease) both; }
 @keyframes rb-in-up { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 
+/* Los tres puntitos de «Robin está escribiendo» */
+.rb-typing {
+  display: flex; align-items: center; gap: 5px;
+  background: #fff; border-radius: 16px; border-top-left-radius: 5px;
+  padding: 17px 18px;
+  box-shadow: 0 3px 12px rgba(20, 20, 20, .05);
+}
+.rb-typing i {
+  width: 6px; height: 6px; border-radius: 50%; background: #C9CFD8;
+  animation: rb-typing 1.1s var(--rb-ease) infinite;
+}
+.rb-typing i:nth-child(2) { animation-delay: .15s; }
+.rb-typing i:nth-child(3) { animation-delay: .3s; }
+@keyframes rb-typing {
+  0%, 60%, 100% { transform: translateY(0); opacity: .45; }
+  30% { transform: translateY(-4px); opacity: 1; }
+}
+
 .rb-chat-bar { display: flex; gap: 10px; align-items: center; background: #fff; border-radius: 999px; padding: 7px 7px 7px 20px; margin-top: 20px; }
-.rb-chat-bar span { flex: 1; font-size: 14.5px; color: #A6AEB9; }
+.rb-chat-bar span {
+  flex: 1; font-size: 14.5px; color: #A6AEB9;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  transition: opacity .3s var(--rb-ease);
+}
 .rb-chat-bar i {
   width: 40px; height: 40px; border-radius: 50%; background: var(--rb-red); color: #fff;
+  flex: 0 0 40px;
   display: flex; align-items: center; justify-content: center; font-style: normal; font-size: 17px;
   animation: rb-nudge 2.4s var(--rb-ease) infinite;
 }
 @keyframes rb-nudge { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(4px); } }
+
+@media (max-width: 560px) { .rb-chat-log { height: 244px; } }
 
 /* =============================================================================
    Precios
@@ -588,71 +632,420 @@ body.rb-page {
   font-family: var(--rr-mono); word-break: break-all;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .rb-page *, .rb-page *::before, .rb-page *::after {
-    animation-duration: .001ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: .001ms !important;
-  }
-  [data-anim] { opacity: 1 !important; transform: none !important; }
-}
-
-
 /* =============================================================================
-   Conoce a Robin — el elenco dibujado a mano
+   Funciones — la zona que se ancla al hacer scroll
    -----------------------------------------------------------------------------
-   Las tarjetas imitan una hoja de cuaderno: papel calido, borde punteado y el
-   dibujo suelto encima. La idea es que se note que esto se dibujo a mano y no
-   lo genero una maquina.
+   El carril (.rb-showcase-track) es alto a propósito; dentro, el escenario se
+   queda pegado arriba (sticky) mientras el carril pasa por la pantalla. Con ese
+   recorrido landing.js escribe --open (0 → 1): primero la zona se abre —crece,
+   se aclara y le sale el halo— y después van apareciendo las tarjetas una por
+   una. Al terminar el carril, la sección se despega y la página sigue.
+
+   La zona ESTIRA hasta llenar el escenario en vez de quedarse centrada con su
+   alto natural. En un monitor grande eso era una franja muerta arriba y abajo:
+   ahora el panel ocupa la pantalla y el aire que sobra queda dentro de él, como
+   respiro del diseño. Los tamaños van en clamp con vh para que en pantallas
+   altas todo crezca en lugar de nadar en el hueco.
+
+   En pantallas chicas o bajas no se ancla nada: el escenario vuelve a ser una
+   sección normal y las tarjetas entran al asomarse, como el resto de la página.
    ============================================================================= */
 
-.rb-cast { background: linear-gradient(180deg, var(--rr-white), #FBF7F3); }
+.rb-showcase { position: relative; }
+.rb-showcase-track { position: relative; height: 280vh; }
 
-/* Tres y tres: seis tarjetas en dos filas parejas, en vez de cuatro y dos. */
-.rb-cast-grid {
-  display: grid; gap: 20px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  margin-top: 8px;
+.rb-showcase-stage {
+  position: sticky; top: 0;
+  height: 100vh; height: 100svh;
+  display: flex; align-items: stretch;
+  padding: calc(var(--rb-nav-h) + clamp(8px, 2vh, 26px)) 0 clamp(24px, 4.5vh, 60px);
+  overflow: hidden;
 }
-@media (max-width: 900px) { .rb-cast-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 560px) { .rb-cast-grid { grid-template-columns: 1fr; } }
+.rb-showcase-stage > .rb-wrap { display: flex; max-width: 1340px; }
 
-.rb-cast-card {
-  margin: 0; padding: 26px 22px 22px;
-  background: var(--rr-paper);
-  border: 1.5px dashed var(--rr-line-strong);
-  border-radius: var(--rr-r-lg);
-  text-align: center;
-  transition: transform var(--rr-mid) var(--rr-ease), box-shadow var(--rr-mid) var(--rr-ease), border-color var(--rr-mid) var(--rr-ease);
+.rb-showcase-zone {
+  --open: 0;
+  position: relative; z-index: 1;
+  flex: 1;
+  display: flex; flex-direction: column; justify-content: center;
+  gap: clamp(16px, 3.2vh, 44px);
+  padding: clamp(20px, 3.4vh, 52px) clamp(18px, 2.6vw, 46px);
+  border-radius: calc(48px - 16px * var(--open));
+  border: 1px solid rgba(255, 46, 46, calc(.04 + .1 * var(--open)));
+  background: linear-gradient(180deg, rgba(255, 240, 238, calc(.55 * var(--open))), rgba(255, 255, 255, 0));
+  transform: scale(calc(.88 + .12 * var(--open)));
+  opacity: calc(.2 + .8 * var(--open));
+  will-change: transform, opacity;
 }
-.rb-cast-card:hover {
-  transform: translateY(-6px);
-  border-color: var(--rr-red);
-  border-style: solid;
-  box-shadow: var(--rr-sh-md);
-}
-
-.rb-cast-card .art {
-  height: 168px;
-  display: grid; place-items: center;
-  margin-bottom: 16px;
-}
-.rb-cast-card .art .rr-pose {
-  width: auto; height: auto;
-  max-height: 168px; max-width: 100%;
-}
-
-.rb-cast-card figcaption { display: block; }
-.rb-cast-card strong {
-  display: block; font-size: 16px; font-weight: 800;
-  color: var(--rr-ink); margin-bottom: 6px;
-}
-.rb-cast-card span {
-  display: block; font-size: 13.6px; line-height: 1.55;
-  color: var(--rr-text-muted);
+/* Halo que se abre con la zona */
+.rb-showcase-zone::before {
+  content: ""; position: absolute; inset: -8% -5%; z-index: -1;
+  border-radius: 60px; pointer-events: none;
+  background: radial-gradient(circle at 50% 42%, rgba(255, 46, 46, .12), transparent 68%);
+  opacity: var(--open);
+  transform: scale(calc(.72 + .28 * var(--open)));
 }
 
-@media (max-width: 560px) {
-  .rb-cast-card .art { height: 132px; }
-  .rb-cast-card .art .rr-pose { max-height: 132px; }
+/* El encabezado y la rejilla se reparten el alto de la zona */
+.rb-showcase .rb-section-head { margin: 0 auto; flex: 0 0 auto; }
+.rb-showcase .rb-section-head h2 { font-size: clamp(27px, 3.6vw, 52px); margin: clamp(10px, 1.6vh, 20px) 0 clamp(8px, 1.2vh, 16px); }
+.rb-showcase .rb-section-head p { font-size: clamp(14px, 1.5vw, 18.5px); line-height: 1.6; }
+
+.rb-showcase .rb-features-grid {
+  flex: 1 1 auto;
+  width: 100%; align-self: center;
+  grid-auto-rows: 1fr;                       /* las dos filas reparten el alto */
+  max-height: clamp(340px, 58vh, 660px);
+  gap: clamp(11px, 1.8vh, 24px);
+}
+.rb-showcase .rb-feature {
+  display: flex; flex-direction: column; justify-content: center;
+  padding: clamp(16px, 2.6vh, 34px) clamp(15px, 1.6vw, 30px);
+}
+.rb-showcase .rb-feature-ic {
+  width: clamp(42px, 5.4vh, 58px); height: clamp(42px, 5.4vh, 58px);
+  flex: 0 0 auto; border-radius: 14px;
+  margin-bottom: clamp(9px, 1.8vh, 20px);
+}
+.rb-showcase .rb-feature-ic svg { width: clamp(21px, 2.6vh, 27px); height: clamp(21px, 2.6vh, 27px); }
+.rb-showcase .rb-feature h3 { font-size: clamp(16px, 1.6vw, 21px); margin-bottom: 7px; }
+.rb-showcase .rb-feature p { font-size: clamp(12.8px, 1.2vw, 16px); line-height: 1.55; }
+
+/* Cada tarjeta espera su turno */
+.rb-showcase .rb-feature {
+  opacity: 0; transform: translateY(30px) scale(.96);
+  transition: opacity .5s var(--rb-ease), transform .6s var(--rb-spring),
+              box-shadow .32s var(--rb-ease), border-color .32s var(--rb-ease);
+}
+.rb-showcase .rb-feature.show { opacity: 1; transform: none; }
+.rb-showcase .rb-feature.show:hover { transform: translateY(-8px); box-shadow: 0 22px 46px rgba(20, 20, 20, .1); }
+
+/* Sin anclaje: pantallas angostas, ventanas bajas y movimiento reducido. */
+@media (max-width: 860px), (max-height: 660px) {
+  .rb-showcase-track { height: auto; }
+  .rb-showcase-stage { position: static; height: auto; display: block; padding: 96px 0; overflow: visible; }
+  .rb-showcase-stage > .rb-wrap { display: block; }
+  .rb-showcase-zone,
+  .rb-showcase-zone::before { transform: none; }
+  .rb-showcase-zone {
+    display: block; gap: 0;
+    opacity: 1; padding: 0; border: 0; background: none; border-radius: 0;
+  }
+  .rb-showcase-zone::before { display: none; }
+  .rb-showcase .rb-section-head { margin: 0 auto 52px; }
+  .rb-showcase .rb-features-grid { max-height: none; grid-auto-rows: auto; }
+  .rb-showcase .rb-feature { display: block; }
+}
+
+/* =============================================================================
+   Movimiento reducido — calmar, no congelar
+   -----------------------------------------------------------------------------
+   Windows trae un interruptor en Configuración → Accesibilidad → Efectos
+   visuales → «Efectos de animación». Si está apagado, Chrome pide
+   prefers-reduced-motion: reduce, y aquí antes eso apagaba TODA la portada:
+   las animaciones no se veían nunca en la laptop mientras en el celular —donde
+   el interruptor está encendido— se veían bien.
+
+   Ya no se apaga nada. Solo se calma: las entradas recorren la mitad, los
+   bucles decorativos van un tercio más lentos y desaparece lo que tiembla.
+   La cinta de materias no está aquí: su velocidad la calcula initMarquee(),
+   que ya baja de 45 a 30 píxeles por segundo cuando el sistema lo pide.
+   ============================================================================= */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+
+  /* Las entradas siguen entrando, pero desde más cerca */
+  [data-anim="up"] { transform: translateY(18px); }
+  [data-anim="down"] { transform: translateY(-16px); }
+  [data-anim="left"] { transform: translateX(-24px); }
+  [data-anim="right"] { transform: translateX(24px); }
+  [data-anim="zoom"] { transform: scale(.96); }
+  [data-anim="flip"] { transform: translateY(16px); }
+
+  /* La zona se abre menos, pero se abre */
+  .rb-showcase-zone { transform: scale(calc(.96 + .04 * var(--open))); }
+  .rb-showcase .rb-feature { transform: translateY(14px); }
+  .rb-showcase .rb-feature.show { transform: none; }
+
+  /* Los bucles que no paran, un tercio más lentos: se siguen viendo */
+  .rb-hero::before { animation-duration: 24s; }
+  .rb-hero::after { animation-duration: 30s; }
+  .rb-float { animation-duration: 7s; }
+  .rb-scene-ring { animation-duration: 10s; }
+  .rb-scene-ring::after { animation-duration: 40s; }
+  .rb-chat-bar i { animation-duration: 3.6s; }
+  .rb-tag .dot { animation-duration: 3.4s; }
+  .rb-typing i { animation-duration: 1.6s; }
+
+  /* Lo que tiembla o parpadea sí se va */
+  .rb-error .code { animation: none; }
+}
+
+/* La letra pequeña de los ciclos largos, debajo del precio mensual: es lo que
+   convierte "20 al mes" en una decisión informada. */
+.rb-price-cycle {
+  font-size: 12px; color: var(--rr-text-faint, #9A8C83);
+  margin: 0 0 16px; line-height: 1.5; text-align: center;
+}
+.rb-price.featured .rb-price-cycle { color: rgba(255, 255, 255, .72); }
+
+/* La banda de escuelas: no compite con los tres planes porque no es un plan. */
+.rb-price-schools {
+  display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap;
+  background: var(--rr-ink, #14100E); color: #fff;
+  border-radius: 28px; padding: 28px 32px; margin-top: 22px;
+}
+.rb-price-schools strong { display: block; font-size: 19px; margin-bottom: 6px; }
+.rb-price-schools p { margin: 0; font-size: 14px; line-height: 1.6; color: rgba(255, 255, 255, .7); max-width: 62ch; }
+
+/* =============================================================================
+   Entradas con carácter
+   -----------------------------------------------------------------------------
+   La portada ya entraba bien; lo que le faltaba era intención. Tres cambios, y
+   ninguno de los tres se nota por separado — que es justo la idea:
+
+     1. La curva. Las entradas ya no frenan en seco: pasan un pelo de largo y
+        vuelven. Es un 2 % de recorrido de más, lo justo para que se sienta
+        vivo y no rebotón.
+     2. Robin aterriza. La escena del héroe baja con un pequeño arco en vez de
+        aparecer escalando: llega, no se materializa.
+     3. Las tarjetas flotantes esperan su turno. Salen una a una DESPUÉS de que
+        Robin se asienta, no todas con él.
+
+   Todo se apaga solo con «menos movimiento» del sistema (ver el bloque de
+   prefers-reduced-motion más abajo, que ya estaba).
+   ============================================================================= */
+
+:root {
+  /* Un muelle contenido: sobrepasa poco y vuelve rápido. Nada de rebotes. */
+  --rb-spring: cubic-bezier(.22, 1.12, .36, 1);
+}
+
+[data-anim] {
+  transition: opacity .72s var(--rb-ease), transform .78s var(--rb-spring);
+}
+
+/* ---- Robin aterriza -------------------------------------------------------- */
+
+.rb-scene .rr-mascot { animation: rb-landing 1.15s var(--rb-spring) both; }
+@keyframes rb-landing {
+  0%   { opacity: 0; transform: translateY(-58px) rotate(-7deg) scale(.9); }
+  62%  { opacity: 1; transform: translateY(6px) rotate(2deg) scale(1.015); }
+  100% { opacity: 1; transform: none; }
+}
+
+/* El anillo se abre desde el centro justo cuando Robin toca suelo. */
+.rb-scene-ring { animation-delay: .5s; }
+.rb-scene::after {
+  /* La sombra que deja al aterrizar: se estira al llegar y se asienta. */
+  content: ""; position: absolute; z-index: 1;
+  bottom: 14%; left: 50%; width: 42%; height: 16px;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse at center, rgba(20, 16, 14, .16), transparent 70%);
+  animation: rb-landing-shadow 1.15s var(--rb-spring) both;
+}
+@keyframes rb-landing-shadow {
+  0%   { opacity: 0; transform: translateX(-50%) scaleX(.4); }
+  62%  { opacity: 1; transform: translateX(-50%) scaleX(1.12); }
+  100% { opacity: .9; transform: translateX(-50%) scaleX(1); }
+}
+
+/* ---- Las tarjetas flotantes esperan su turno ------------------------------- */
+
+.rb-float {
+  /* Dos animaciones encadenadas: primero la entrada, después el flotar de
+     siempre. El retraso de cada una es lo que hace la cascada. */
+  animation:
+    rb-float-in .7s var(--rb-spring) both,
+    rb-floaty 5s var(--rb-ease) infinite;
+}
+@keyframes rb-float-in {
+  from { opacity: 0; transform: translateY(16px) scale(.88); }
+  to   { opacity: 1; transform: none; }
+}
+.rb-float-1 { animation-delay: .78s, 1.5s; }
+.rb-float-2 { animation-delay: .94s, 2.7s; }
+.rb-float-3 { animation-delay: 1.1s, 2.1s; }
+
+/* ---- Micro-reacciones ------------------------------------------------------ */
+
+/* Los botones grandes se levantan un poco y les cruza un brillo. Se ve al
+   pasar por encima, dura 600 ms y no vuelve: no es un letrero de neón. */
+.rb-btn-primary, .rb-btn-onred {
+  position: relative; overflow: hidden;
+  transition: transform .22s var(--rb-spring), box-shadow .22s var(--rb-ease), background .2s var(--rb-ease);
+}
+.rb-btn-primary::after, .rb-btn-onred::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(105deg, transparent 38%, rgba(255, 255, 255, .28) 50%, transparent 62%);
+  transform: translateX(-120%);
+  transition: transform .6s var(--rb-ease);
+}
+.rb-btn-primary:hover::after, .rb-btn-onred:hover::after { transform: translateX(120%); }
+.rb-btn-primary:active, .rb-btn-onred:active { transform: translateY(1px) scale(.985); }
+
+/* El icono de cada función gira un grado al acercarse el mouse a la tarjeta. */
+.rb-feature-ic { transition: transform .32s var(--rb-spring); }
+.rb-feature:hover .rb-feature-ic { transform: scale(1.09) rotate(-6deg); }
+
+/* El número de cada paso crece un punto al asomarse: marca el ritmo del "01,
+   02, 03" mejor que cualquier flecha. */
+.rb-step-n { transition: transform .4s var(--rb-spring), color .3s var(--rb-ease); }
+.rb-step.in .rb-step-n { animation: rb-step-pop .55s var(--rb-spring) both; }
+@keyframes rb-step-pop {
+  0%   { transform: scale(.72); opacity: 0; }
+  100% { transform: none; opacity: 1; }
+}
+
+/* ---- En el móvil ----------------------------------------------------------- */
+/* Sin mouse no hay hover ni parallax, así que la vida tiene que estar en la
+   entrada. Se acorta el recorrido (una pantalla pequeña se recorre en menos)
+   y se sustituye el hover por una respuesta clara al tocar. */
+@media (hover: none) {
+  [data-anim="up"] { transform: translateY(26px); }
+  [data-anim="left"] { transform: translateX(-32px); }
+  [data-anim="right"] { transform: translateX(32px); }
+  [data-anim] { transition-duration: .6s, .66s; }
+
+  .rb-btn:active { transform: scale(.96); }
+  .rb-feature:active { transform: translateY(-3px) scale(.99); }
+  .rb-price:active { transform: translateY(-3px); }
+}
+
+/* Con «menos movimiento» del sistema, el aterrizaje se queda en una entrada
+   quieta: nada de arcos ni de sombras que se estiran. */
+@media (prefers-reduced-motion: reduce) {
+  .rb-scene .rr-mascot { animation: rb-fade-quiet .6s ease both; }
+  .rb-scene::after { animation: none; opacity: .9; }
+  .rb-float { animation: rb-fade-quiet .5s ease both, rb-floaty 7s var(--rb-ease) infinite; }
+  .rb-btn-primary::after, .rb-btn-onred::after { display: none; }
+  .rb-step.in .rb-step-n { animation: none; }
+  @keyframes rb-fade-quiet { from { opacity: 0; } to { opacity: 1; } }
+}
+
+/* =============================================================================
+   Pantallas grandes: que la portada use la laptop entera
+   =============================================================================
+   Hasta aquí todo estaba pensado para 1240 px de ancho útil, que en un monitor
+   de 1600 o 1920 deja dos franjas vacías enormes a los lados y hace que la
+   página se vea pequeña y apretada en medio. A partir de 1440 px el contenedor
+   se ensancha y todo lo que se lee sube de tamaño con él: títulos, texto,
+   botones, tarjetas y separaciones. En móvil y tablet no cambia nada. */
+
+@media (min-width: 1440px) {
+  :root { --rb-nav-h: 86px; }
+
+  .rb-wrap { max-width: 1440px; padding: 0 48px; }
+  .rb-showcase-stage > .rb-wrap { max-width: 1540px; }
+  .rb-section { padding: 128px 0; }
+  .rb-section-head { max-width: 860px; margin-bottom: 68px; }
+
+  .rb-logo { font-size: 25px; }
+  .rb-logo-xl { font-size: 30px; }
+  .rb-nav-links a, .rb-nav-cta .rb-login { font-size: 17px; }
+  .rb-btn { padding: 17px 34px; font-size: 17px; }
+  .rb-btn-sm { padding: 13px 26px; font-size: 16px; }
+  .rb-tag { font-size: 15px; padding: 10px 22px; }
+
+  .rb-hero { padding: calc(var(--rb-nav-h) + 96px) 0 118px; }
+  .rb-hero-lead { font-size: 21px; max-width: 640px; }
+  .rb-hero-note span { font-size: 15.5px; }
+  .rb-scene { min-height: 540px; }
+  .rb-scene .rr-mascot { width: min(330px, 32vw); height: min(330px, 32vw); }
+  .rb-scene-ring { width: min(520px, 42vw); }
+  .rb-float strong { font-size: 17px; }
+  .rb-float small { font-size: 13px; }
+
+  .rb-section-head p { font-size: 19px; }
+  .rb-feature { padding: 34px; }
+  .rb-feature h3 { font-size: 21px; }
+  .rb-feature p { font-size: 16.5px; }
+  .rb-step h3 { font-size: 21px; }
+  .rb-step p { font-size: 16.5px; }
+  .rb-panel h3 { font-size: 30px; }
+  .rb-panel p, .rb-checks li { font-size: 17px; }
+  .rb-chat-log { height: 330px; }
+  .rb-msg p { font-size: 16px; }
+
+  .rb-price { padding: 38px 34px; }
+  .rb-price ul li { font-size: 16.5px; }
+  .rb-price .amount { font-size: 52px; }
+  .rb-cta-band { padding: 84px 60px; }
+  .rb-cta-band p { font-size: 20px; max-width: 660px; }
+  .rb-cta-bird .rr-mascot { width: 142px; height: 142px; }
+
+  .rb-footer-grid { gap: 48px; }
+  .rb-footer p, .rb-footer ul a { font-size: 16px; }
+  .rb-doc-inner { max-width: 900px; }
+  .rb-doc-inner p, .rb-doc-inner li { font-size: 18px; }
+}
+
+@media (min-width: 1800px) {
+  .rb-wrap { max-width: 1640px; }
+  .rb-showcase-stage > .rb-wrap { max-width: 1740px; }
+  /* Los documentos largos no se ensanchan con el resto: una línea de 1600 px
+     no se lee, se rastrea. Va aquí y no solo en el tramo de 1440 porque
+     .rb-doc-inner comparte especificidad con .rb-wrap y gana el último. */
+  .rb-doc-inner { max-width: 980px; }
+  .rb-doc-inner p, .rb-doc-inner li { font-size: 19px; }
+  .rb-section { padding: 150px 0; }
+  .rb-hero-lead { font-size: 22.5px; max-width: 700px; }
+  .rb-scene .rr-mascot { width: 380px; height: 380px; }
+  .rb-scene-ring { width: 600px; }
+  .rb-logo-xl { font-size: 34px; }
+}
+
+/* El logo sin pajarito: ya no comparte espacio con nada, así que puede
+   respirar y leerse de lejos. */
+.rb-logo-xl { font-size: 26px; letter-spacing: -.04em; gap: 0; }
+
+/* La tabla de cifras de los términos. La página de precios habla en
+   porcentajes; aquí es donde se pueden mirar los números de verdad, así que
+   tiene que leerse cómoda incluso en un teléfono: por eso el envoltorio con
+   scroll propio en lugar de dejar que la tabla estire toda la página. */
+.rb-doc-table-wrap { overflow-x: auto; margin: 22px 0 8px; -webkit-overflow-scrolling: touch; }
+.rb-doc-table { width: 100%; min-width: 520px; border-collapse: collapse; font-size: 15.5px; }
+.rb-doc-table th, .rb-doc-table td { padding: 13px 16px; text-align: left; border-bottom: 1px solid var(--rb-line); }
+.rb-doc-table th { font-weight: 800; color: var(--rb-ink); background: #FAFAFA; font-size: 14px; letter-spacing: .01em; }
+.rb-doc-table td:first-child { color: var(--rb-ink); font-weight: 600; }
+.rb-doc-table em { font-style: normal; color: var(--rb-red); font-weight: 700; }
+
+/* =============================================================================
+   Selector de cada cuánto se paga (portada)
+   ============================================================================= */
+/* Va arriba, encima de las tres tarjetas, y manda sobre las tres a la vez.
+   Antes cada plan llevaba su propia línea de "cada 4 meses / al año" y había
+   que leer seis cifras para comparar dos planes. */
+
+.rb-cycle-switch {
+  display: inline-flex; flex-wrap: wrap; gap: 4px; margin: 26px auto 0;
+  padding: 5px; border-radius: 999px;
+  background: #fff; border: 1px solid var(--rb-line);
+  box-shadow: 0 6px 18px rgba(20, 20, 20, .06);
+}
+.rb-cycle-switch button {
+  display: inline-flex; align-items: center; gap: 7px;
+  border: none; background: transparent; cursor: pointer;
+  font: inherit; font-size: 14px; font-weight: 700; color: var(--rb-body);
+  padding: 10px 18px; border-radius: 999px;
+  transition: background .18s ease, color .18s ease;
+}
+.rb-cycle-switch button:hover { color: var(--rb-ink); background: #F4F4F6; }
+.rb-cycle-switch button.on { background: var(--rb-red); color: #fff; }
+.rb-cycle-switch .rb-cycle-off {
+  font-size: 11px; font-weight: 800; letter-spacing: .02em;
+  padding: 3px 7px; border-radius: 999px;
+  background: var(--rb-red); color: #fff;
+}
+.rb-cycle-switch button.on .rb-cycle-off { background: rgba(255, 255, 255, .24); }
+@media (max-width: 520px) {
+  .rb-cycle-switch { width: 100%; justify-content: center; }
+  .rb-cycle-switch button { padding: 9px 13px; font-size: 13px; }
+}
+
+/* Quien ya inició sesión: su cara y su nombre en lugar de "Iniciar sesión". */
+.rb-login-me { display: inline-flex; align-items: center; gap: 9px; }
+.rb-login-face {
+  width: 28px; height: 28px; border-radius: 50%; object-fit: cover;
+  background: #F4F4F6; border: 1px solid var(--rb-line);
 }

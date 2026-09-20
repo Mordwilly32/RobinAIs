@@ -57,6 +57,8 @@ document.querySelectorAll('.rr-choice').forEach(card => {
       if (accountType === 'personal') {
         document.getElementById('levelSection').style.display = 'none';
         document.getElementById('gradeFieldWrap').style.display = 'none';
+        document.getElementById('ageFieldWrap').style.display = '';
+        document.getElementById('age').required = true;
         document.getElementById('emailOptional').textContent = '';
         document.getElementById('email').required = true;
         setStep('step-form', STEPS.personalForm);
@@ -99,20 +101,33 @@ async function checkCode() {
     joinInfo = data;
     const isTeacher = data.role === 'teacher';
 
+    // Un codigo nominal ya sabe para quien es y de que nivel: no tiene sentido
+    // volver a preguntarlo. Lo que trae puesto se muestra, no se pide.
+    const nominal = data.kind === 'nominal';
+
     codeResult.innerHTML = `
       <div class="card" style="border-left:4px solid var(--${isTeacher ? 'rr-blue' : 'rr-red'});animation:rr-pop-in .35s var(--rr-spring) both">
         <div class="pill ${isTeacher ? 'pill-teacher' : 'pill-student'}">${isTeacher ? 'Profesor' : 'Estudiante'}</div>
         <h3 style="margin:10px 0 4px;font-size:18px">${rrEscapeHtml(data.school.name)}</h3>
         <p class="text-muted" style="margin:0;font-size:14px">
-          Vas a entrar como ${isTeacher ? 'profesor' : 'estudiante'} de esta escuela.
+          ${nominal && data.forName
+            ? `Este código se emitió a nombre de <strong>${rrEscapeHtml(data.forName)}</strong> y sirve una sola vez.`
+            : `Vas a entrar como ${isTeacher ? 'profesor' : 'estudiante'} de esta escuela.`}
         </p>
+        ${data.level ? `<p class="hint" style="margin:8px 0 0">Nivel: ${rrEscapeHtml(data.level)}${data.grade ? ` · ${rrEscapeHtml(data.grade)}` : ''}</p>` : ''}
+        ${data.className ? `<p class="hint" style="margin:4px 0 0">Entras directo a la clase de ${rrEscapeHtml(data.className)}.</p>` : ''}
       </div>`;
 
-    // El nivel solo se pide a estudiantes.
-    document.getElementById('levelSection').style.display = isTeacher ? 'none' : '';
-    document.getElementById('gradeFieldWrap').style.display = isTeacher ? 'none' : '';
+    // El nivel solo se pide a estudiantes, y solo si el codigo no lo trae ya.
+    const pideNivel = !isTeacher && !data.level;
+    document.getElementById('levelSection').style.display = pideNivel ? '' : 'none';
+    document.getElementById('gradeFieldWrap').style.display = pideNivel ? '' : 'none';
+    document.getElementById('ageFieldWrap').style.display = 'none';
+    document.getElementById('age').required = false;
     document.getElementById('emailOptional').textContent = isTeacher ? '' : '(opcional)';
     document.getElementById('email').required = isTeacher;
+    if (data.level) selectedLevel = data.level;
+    if (nominal && data.forName) document.getElementById('fullName').value = data.forName;
 
     setTimeout(() => {
       setStep('step-form', {
@@ -137,7 +152,8 @@ const GRADES_BY_LEVEL = {
   'Parvularia': ['Kínder 4', 'Kínder 5', 'Preparatoria'],
   'Primaria': ['1.º grado', '2.º grado', '3.º grado', '4.º grado', '5.º grado', '6.º grado'],
   'Secundaria': ['7.º grado', '8.º grado', '9.º grado'],
-  'Bachillerato': ['1.º año', '2.º año', '3.º año']
+  'Bachillerato': ['1.º año', '2.º año', '3.º año'],
+  'Universidad': ['1.º año', '2.º año', '3.º año', '4.º año', '5.º año', 'Posgrado']
 };
 
 document.querySelectorAll('.level-card').forEach(card => {
@@ -145,6 +161,15 @@ document.querySelectorAll('.level-card').forEach(card => {
     document.querySelectorAll('.level-card').forEach(c => c.classList.remove('selected'));
     card.classList.add('selected');
     selectedLevel = card.dataset.level;
+
+    // Lo único que cambia en universidad es que no hay minijuegos. Se dice
+    // aquí, al elegir, y no después de crear la cuenta.
+    const aviso = document.getElementById('levelHint');
+    if (aviso) {
+      aviso.textContent = selectedLevel === 'Universidad'
+        ? 'En universidad tienes todo lo demás igual, pero sin minijuegos: a este nivel ya no vienen al caso.'
+        : 'Elige el nivel que estás cursando.';
+    }
 
     const gradeSelect = document.getElementById('grade');
     gradeSelect.innerHTML = '<option value="">Elige tu grado…</option>';
@@ -164,7 +189,16 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
   clearError();
 
   const isStudent = accountType === 'join' && joinInfo && joinInfo.role === 'student';
+  // Si el codigo ya traia el nivel, selectedLevel viene puesto desde ahi.
   if (isStudent && !selectedLevel) return showError('Elige tu nivel escolar.');
+
+  // La edad se revisa aquí además de en el servidor, para no hacer ir y venir
+  // el formulario entero por un número mal escrito.
+  const edad = Number(document.getElementById('age').value);
+  if (accountType === 'personal') {
+    if (!edad) return showError('Escribe tu edad.');
+    if (edad < 4 || edad > 120) return showError('Esa edad no parece real. Escríbela en años.');
+  }
 
   const btn = document.getElementById('registerBtn');
   btn.disabled = true;
@@ -176,11 +210,12 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
     email: document.getElementById('email').value.trim() || undefined,
     password: document.getElementById('password').value
   };
+  if (accountType === 'personal') payload.age = edad;
   if (accountType === 'join') {
     payload.code = codeInput.value.trim().toUpperCase();
     if (isStudent) {
       payload.level = selectedLevel;
-      payload.grade = document.getElementById('grade').value || undefined;
+      payload.grade = (joinInfo && joinInfo.grade) || document.getElementById('grade').value || undefined;
     }
   }
 
@@ -190,7 +225,7 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
     rrSetPose('authRobin', 'happy');
     btn.textContent = '¡Cuenta creada!';
     rrConfetti(document.getElementById('authRobin'));
-    setTimeout(() => { window.location.href = rrDashboardFor(user.role); }, 700);
+    setTimeout(() => { window.location.href = rrDashboardFor(user.role, user); }, 700);
   } catch (err) {
     showError(err.message);
     btn.disabled = false;

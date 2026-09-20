@@ -3,9 +3,10 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Panel del estudiante — roboRobin</title>
+<title>Mi escuela — roboRobin</title>
 <link rel="icon" href="/images/robin.png" />
 <link rel="stylesheet" href="/css/style.css" />
+<link rel="stylesheet" href="/css/consola.css" />
 </head>
 <body>
 
@@ -13,78 +14,167 @@
   <main class="rr-main">
     <div class="rr-topbar">
       <div>
-        <button class="rr-menu-btn" id="rrMenuBtn">☰</button>
+        <button class="rr-menu-btn" id="rrMenuBtn" aria-label="Abrir menú">☰</button>
         <h1 id="welcomeTitle">Hola</h1>
         <div class="sub" id="welcomeSub">Cargando tu panel…</div>
       </div>
     </div>
 
-    <!-- Resumen -->
-    <section class="rr-section" id="section-overview">
-      <div class="rr-stat-cards">
-        <div class="card rr-stat-card"><div class="n" id="statLevel">—</div><div class="l">Nivel</div></div>
-        <div class="card rr-stat-card"><div class="n" id="statGrade">—</div><div class="l">Grado o sección</div></div>
-        <div class="card rr-stat-card"><div class="n" id="statStudentCode" style="font-size:20px;font-family:var(--rr-mono)">—</div><div class="l">Tu ID de estudiante</div></div>
-        <div class="card rr-stat-card"><div class="n" id="statTasks">0</div><div class="l">Pendientes propios</div></div>
-      </div>
-
+    <!-- AVISOS. Es la pantalla de entrada: lo primero es enterarse.
+         Aquí dentro viven también las notificaciones: eran dos pantallas que
+         contestaban a la misma pregunta ("¿qué hay de nuevo?") y obligaban a
+         mirar en dos sitios para responderla. -->
+    <section class="rr-section" id="section-announcements">
       <div id="robinSays"></div>
-
-      <div class="rr-section-title">
-        <h2>Lo último para ti</h2>
-        <button class="btn btn-sm btn-soft" id="goToAnnouncements">Ver todos →</button>
-      </div>
-      <div id="overviewAnnouncements"></div>
-    </section>
-
-    <!-- Avisos -->
-    <section class="rr-section" id="section-announcements" style="display:none">
       <div class="rr-section-title"><h2>Avisos</h2></div>
+
+      <h3 class="rr-sub-h">De la escuela</h3>
       <div id="fullAnnouncements"></div>
-    </section>
 
-    <!-- Clases -->
-    <section class="rr-section" id="section-classes" style="display:none">
-      <div class="rr-section-title"><h2>Clases</h2></div>
-      <p class="rr-section-lead">Las clases públicas puedes unirte de una vez. Las privadas te pedirán su código al pulsar «Unirme».</p>
-      <div id="studentClasses"></div>
-    </section>
-
-    <!-- Notificaciones -->
-    <section class="rr-section" id="section-notifications" style="display:none">
-      <div class="rr-section-title"><h2>Notificaciones</h2></div>
+      <h3 class="rr-sub-h">Para ti</h3>
+      <p class="rr-section-lead">Lo que te llega a ti en persona: una clase nueva, una entrega calificada, un mensaje de tu profesorado.</p>
       <div id="notificationsList"></div>
     </section>
 
-    <!-- Pendientes personales -->
-    <section class="rr-section" id="section-tasks" style="display:none">
-      <div class="rr-section-title"><h2>Mis pendientes</h2></div>
-      <p class="rr-section-lead">Tu lista privada: ni profesores ni director la ven. También puedes decirle a Robin «recuérdame estudiar para el examen el viernes».</p>
-      <div id="taskPanel" style="max-width:520px"></div>
+    <!-- CLASES. Solo lo de clase: dónde estás matriculado y qué te han dejado.
+         Antes esta sección llevaba dentro además los pendientes y los
+         minijuegos, y era un rollo larguísimo donde había que bajar mucho para
+         encontrar cualquier cosa. Ahora cada cosa tiene su entrada en el menú,
+         igual que en una cuenta personal. -->
+    <section class="rr-section" id="section-classes" style="display:none">
+      <div class="rr-section-title">
+        <h2>Mis clases</h2>
+        <button class="btn btn-sm btn-soft" id="joinByCode">Entrar con un código</button>
+      </div>
+
+      <div class="rr-inline-form" id="joinByCodeBox" hidden>
+        <form id="joinCodeForm">
+          <label for="joinCodeInput">Código de la clase</label>
+          <div class="rr-inline-row">
+            <input type="text" id="joinCodeInput" placeholder="ej. 3R5Y" autocomplete="off" style="text-transform:uppercase;font-family:var(--rr-mono);letter-spacing:.08em" />
+            <button class="btn btn-sm btn-primary" type="submit">Entrar</button>
+          </div>
+          <small>Te lo da tu profesor. Es distinto del código con el que creaste tu cuenta.</small>
+        </form>
+      </div>
+
+      <h3 class="rr-sub-h">Lo que me han dejado</h3>
+      <p class="rr-section-lead">Robin te acompaña con cualquiera de estas, pero no te va a dar la respuesta: te la desarma en pasos para que la hagas tú.</p>
+      <div id="assignments" class="rr-assign-list"></div>
+
+      <h3 class="rr-sub-h">Todas mis clases</h3>
+      <div id="studentClasses"></div>
     </section>
 
-    <!-- Perfil -->
-    <section class="rr-section" id="section-profile" style="display:none">
-      <div class="rr-section-title"><h2>Mi perfil</h2></div>
-      <div class="card" style="max-width:500px">
-        <div class="form-error" id="profileError"></div>
-        <form id="profileForm">
-          <div class="field"><label for="pFullName">Nombre completo</label><input type="text" id="pFullName" required /></div>
-          <div class="field">
-            <label for="pPhoto">Foto de perfil</label>
-            <input type="file" id="pPhoto" accept="image/*" />
-            <div class="hint">JPG o PNG, hasta 1 MB.</div>
+    <!-- PENDIENTES. Su propia pantalla, como en una cuenta personal. -->
+    <section class="rr-section" id="section-tasks" style="display:none">
+      <!-- Sin título aquí: el panel dibuja el suyo dentro (tasks-panel.js). -->
+      <p class="rr-section-lead">Tu lista privada: ni profesores ni dirección la ven. También puedes decirle a Robin «recuérdame estudiar para el examen el viernes» y él la apunta solo.</p>
+      <div class="rr-tasks-wrap">
+        <div id="taskPanel"></div>
+        <div class="card rr-tasks-side" id="tasksSide"></div>
+      </div>
+    </section>
+
+    <!-- MINIJUEGOS. Se abren en su propia ventana (ver games-ui.js). -->
+    <section class="rr-section" id="section-games" style="display:none">
+      <div id="gamesPanel"></div>
+    </section>
+
+    <!-- Robin -->
+    <section class="rr-section rr-section-full" id="section-chat" style="display:none">
+      <div class="rr-chat" id="chat">
+        <div class="rr-chat-head">
+          <div>
+            <strong>Robin</strong>
+            <span>Te explico, te acompaño… pero las respuestas las pones tú</span>
           </div>
-          <div class="field">
-            <label for="pEmail">Correo</label>
-            <input type="text" id="pEmail" disabled />
-            <div class="hint">Pídele a tu director que lo cambie si hace falta.</div>
-          </div>
-          <hr style="border:none;border-top:1px solid var(--rr-line);margin:22px 0" />
-          <div class="field"><label for="pCurrentPassword">Contraseña actual</label><input type="password" id="pCurrentPassword" placeholder="Solo si vas a cambiarla" /></div>
-          <div class="field"><label for="pNewPassword">Nueva contraseña</label><input type="password" id="pNewPassword" placeholder="Al menos 6 caracteres" /></div>
-          <button type="submit" class="btn btn-primary" id="profileBtn">Guardar cambios</button>
+        </div>
+        <div class="rr-chat-body" id="chatBody"></div>
+        <form class="rr-composer" id="chatForm">
+          <textarea id="chatInput" rows="1" placeholder="Pregúntame lo que sea…  (Enter para enviar)"></textarea>
+          <button type="submit" id="chatSend" aria-label="Enviar">➤</button>
         </form>
+      </div>
+    </section>
+
+    <!-- Mi cuenta: aquí vive ahora el resumen -->
+    <section class="rr-section" id="section-profile" style="display:none">
+      <div class="rr-section-title"><h2>Mi cuenta</h2></div>
+
+      <div class="rr-profile-grid">
+        <div class="card rr-profile-card">
+          <div class="rr-profile-top">
+            <label class="rr-photo" for="pPhoto" title="Cambiar foto">
+              <span id="photoPreview" class="rr-photo-empty">👤</span>
+              <span class="rr-photo-edit">Cambiar</span>
+            </label>
+            <div>
+              <h3 id="profileName">—</h3>
+              <span class="pill pill-student" id="profileRole">Estudiante</span>
+              <p class="text-muted" id="profileSchool"></p>
+            </div>
+          </div>
+
+          <div class="form-error" id="profileError"></div>
+          <form id="profileForm">
+            <input type="file" id="pPhoto" accept="image/*" hidden />
+            <div class="field">
+              <label for="pFullName">Nombre completo</label>
+              <input type="text" id="pFullName" required />
+            </div>
+            <div class="field">
+              <label for="pEmail">Correo</label>
+              <input type="text" id="pEmail" disabled />
+              <div class="hint">Si hay que cambiarlo, pídeselo a tu profesor o a la dirección.</div>
+            </div>
+            <div class="field">
+              <label>Contraseña</label>
+              <div class="rr-locked-note">
+                🔒 Tu contraseña la cambia tu profesor o la dirección de tu escuela.
+                Si se te olvidó, pídesela — no la puedes cambiar desde aquí.
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary" id="profileBtn">Guardar cambios</button>
+          </form>
+        </div>
+
+        <div class="rr-profile-side">
+          <div class="card rr-summary" id="profileSummary">
+            <div class="rr-loader"><div class="rr-spinner"></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Configuración -->
+    <section class="rr-section" id="section-settings" style="display:none">
+      <div class="rr-section-title"><h2>Configuración</h2></div>
+
+      <div class="card rr-set-card">
+        <h3>Cómo te ayuda Robin</h3>
+        <p class="text-muted">Robin te explica el método, corrige tus intentos y te dice en qué paso te equivocaste. Lo que nunca va a hacer es escribirte la respuesta: eso es lo que te toca a ti, y es la parte que sirve.</p>
+      </div>
+
+      <div class="card rr-set-card rr-ai-card" id="aiSettings">
+        <div class="rr-loader"><div class="rr-spinner"></div></div>
+      </div>
+
+      <div class="card rr-set-card">
+        <h3>Minijuegos</h3>
+        <p class="text-muted" id="setGames">—</p>
+      </div>
+
+      <div class="card rr-set-card">
+        <h3>Historial de conversaciones</h3>
+        <p class="text-muted" id="setHistory">—</p>
+        <button class="btn btn-sm btn-danger" id="clearHistory">Borrar todo el historial</button>
+      </div>
+
+      <div class="card rr-set-card">
+        <h3>Guía para estudiantes</h3>
+        <p class="text-muted">Cómo funciona todo: tus clases, tus asignaciones, los minijuegos y qué hace Robin.</p>
+        <a class="btn btn-sm btn-outline" href="/guia.html">Abrir la guía</a>
       </div>
     </section>
   </main>
@@ -95,7 +185,9 @@
 <script src="/js/chat.js"></script>
 <script src="/js/sidebar.js"></script>
 <script src="/js/tasks-panel.js"></script>
-<script src="/js/ai-widget.js"></script>
+<script src="/js/games-ui.js"></script>
+<script src="/js/ai-settings.js"></script>
 <script src="/js/student.js"></script>
+<script src="/js/consola.js"></script>
 </body>
 </html>

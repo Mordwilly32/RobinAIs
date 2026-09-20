@@ -13,7 +13,12 @@ async function rrApi(path, { method = 'GET', body } = {}) {
   try { data = await res.json(); } catch { /* sin cuerpo */ }
 
   if (!res.ok) {
-    throw new Error((data && data.error) || `Algo salió mal (${res.status}).`);
+    // El error lleva pegado el cuerpo completo: hay respuestas que traen mucho
+    // más que un texto (el límite diario trae la pista y el botón de planes).
+    const err = new Error((data && data.error) || `Algo salió mal (${res.status}).`);
+    err.status = res.status;
+    err.payload = data || {};
+    throw err;
   }
   return data;
 }
@@ -45,15 +50,21 @@ function rrToast(message, type = 'info') {
 
 // ---- Sesión ----------------------------------------------------------------
 
-function rrDashboardFor(role) {
-  if (role === 'admin') return '/dashboard-admin.html';
+// A dónde va cada quien al entrar. Subdirección y secretaría comparten el
+// panel de dirección (con menos botones), y los más peques tienen el suyo.
+function rrDashboardFor(role, user) {
+  if (['admin', 'subdirector', 'secretary'].includes(role)) return '/dashboard-admin.html';
   if (role === 'teacher') return '/dashboard-teacher.html';
-  if (role === 'student') return '/dashboard-student.html';
+  if (role === 'student') {
+    return user && user.isLittle ? '/dashboard-peques.html' : '/dashboard-student.html';
+  }
   return '/dashboard-personal.html';
 }
 
 const RR_ROLE_LABEL = {
-  admin: 'Director',
+  admin: 'Dirección',
+  subdirector: 'Subdirección',
+  secretary: 'Secretaría',
   teacher: 'Profesor',
   student: 'Estudiante',
   personal: 'Cuenta personal'
@@ -67,11 +78,17 @@ function rrShowError(motivo) {
 }
 
 // Se usa al inicio de cada panel protegido.
-async function rrRequireSession(allowedRoles) {
+async function rrRequireSession(allowedRoles, { allowLittle = false } = {}) {
   try {
     const { user } = await rrApi('/api/me');
     if (allowedRoles && !allowedRoles.includes(user.role)) {
       rrShowError('permiso'); // este panel es de otro rol
+      return null;
+    }
+    // Un peque que cae en el panel normal (o al revés) se manda al suyo: no es
+    // un error, es que su pantalla es otra.
+    if (user.role === 'student' && Boolean(user.isLittle) !== allowLittle) {
+      window.location.replace(rrDashboardFor(user.role, user));
       return null;
     }
     return user;
@@ -85,7 +102,7 @@ async function rrRequireSession(allowedRoles) {
 async function rrRedirectIfSignedIn() {
   try {
     const { user } = await rrApi('/api/me');
-    window.location.href = rrDashboardFor(user.role);
+    window.location.href = rrDashboardFor(user.role, user);
   } catch { /* sin sesión: seguimos aquí */ }
 }
 
@@ -123,6 +140,12 @@ function rrDayLabel(isoDate) {
   if (diff === -1) return 'ayer';
   if (diff > 1 && diff < 7) return date.toLocaleDateString('es', { weekday: 'long' });
   return date.toLocaleDateString('es', { day: 'numeric', month: 'short' });
+}
+
+// Precios: sin decimales cuando el numero es redondo, con dos cuando no.
+function rrMoney(amount) {
+  const n = Number(amount) || 0;
+  return Number.isInteger(n) ? `$${n}` : `$${n.toFixed(2)}`;
 }
 
 function rrGreeting() {
@@ -171,4 +194,49 @@ async function rrCopy(text, button) {
   } catch {
     rrToast(`Código: ${text}`, 'info');
   }
+}
+
+// ---- Confirmar en dos tiempos ----------------------------------------------
+// Para las acciones que no se deshacen: el primer clic no hace nada, solo
+// cambia el botón y pide que se vuelva a pulsar. Es menos brusco que una
+// ventana del navegador y, sobre todo, deja ver qué hay detrás del botón —
+// que es justo lo que se está a punto de cambiar.
+//
+//   rrConfirmButton(boton, 'Pulsa otra vez para invitar', async () => { ... })
+
+function rrConfirmButton(button, confirmLabel, action) {
+  const original = button.textContent;
+  let armado = false;
+  let temporizador = null;
+
+  const desarmar = () => {
+    armado = false;
+    clearTimeout(temporizador);
+    button.textContent = original;
+    button.classList.remove('rr-confirming');
+  };
+
+  button.addEventListener('click', async (e) => {
+    e.preventDefault();
+
+    if (!armado) {
+      armado = true;
+      button.textContent = confirmLabel;
+      button.classList.add('rr-confirming');
+      // Si no se vuelve a pulsar, el botón se rinde solo: nadie se queda con
+      // un botón armado esperando un clic que ya no va a llegar.
+      temporizador = setTimeout(desarmar, 4000);
+      return;
+    }
+
+    desarmar();
+    button.disabled = true;
+    try {
+      await action();
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  return { desarmar };
 }

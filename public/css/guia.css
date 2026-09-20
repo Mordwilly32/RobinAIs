@@ -1,0 +1,165 @@
+/* =============================================================================
+   public/css/guia.css
+   La guía. Un documento largo que la gente va a leer de verdad, así que manda
+   la lectura: una sola columna estrecha, el índice al lado para saber dónde
+   estás, y nada que se mueva mientras lees.
+   ============================================================================= */
+
+.rr-guide-wrap { width: 100%; max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+
+.rr-guide-top {
+  position: sticky; top: 0; z-index: 20;
+  background: rgba(250, 247, 244, .88); backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--rr-line);
+}
+.rr-guide-top .rr-guide-wrap {
+  display: flex; align-items: center; justify-content: space-between; height: 62px;
+}
+
+.rr-guide-layout {
+  display: grid; grid-template-columns: 216px minmax(0, 1fr);
+  gap: 48px; align-items: start; padding-top: 34px; padding-bottom: 90px;
+}
+@media (max-width: 900px) { .rr-guide-layout { grid-template-columns: 1fr; gap: 0; } }
+
+/* ---- Índice ---------------------------------------------------------------- */
+
+.rr-guide-nav { position: sticky; top: 92px; }
+@media (max-width: 900px) { .rr-guide-nav { display: none; } }
+.rr-guide-nav-title {
+  font-size: 10.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--rr-text-faint); margin-bottom: 12px; padding-left: 13px;
+}
+.rr-guide-nav a {
+  display: block; padding: 7px 13px; margin-bottom: 1px;
+  border-left: 2px solid var(--rr-line);
+  font-size: 13.5px; color: var(--rr-text-muted); line-height: 1.4;
+  transition: color var(--rr-fast) var(--rr-ease), border-color var(--rr-fast) var(--rr-ease), background var(--rr-fast) var(--rr-ease);
+}
+.rr-guide-nav a:hover { color: var(--rr-ink); border-left-color: var(--rr-line-strong); }
+.rr-guide-nav a.on {
+  color: var(--rr-red-dark); border-left-color: var(--rr-red);
+  background: var(--rr-red-soft); font-weight: 700;
+}
+
+/* ---- El documento ---------------------------------------------------------- */
+
+.rr-guide-body { max-width: 74ch; }
+
+.rr-guide-hero { display: flex; gap: 22px; align-items: center; margin-bottom: 46px; flex-wrap: wrap; }
+.rr-guide-hero .rr-mascot { width: 86px; height: 86px; flex-shrink: 0; }
+.rr-guide-hero h1 { font-size: clamp(28px, 4vw, 38px); margin-bottom: 8px; }
+.rr-guide-hero p { font-size: 16px; color: var(--rr-text-muted); margin: 0; }
+.rr-guide-hero a { color: var(--rr-red); font-weight: 700; }
+.rr-guide-hero a:hover { text-decoration: underline; }
+
+.rr-guide-body section { margin-bottom: 58px; scroll-margin-top: 86px; }
+.rr-guide-body h2 {
+  font-size: 25px; padding-bottom: 12px; margin-bottom: 18px;
+  border-bottom: 2px solid var(--rr-line);
+}
+.rr-guide-body h3 { font-size: 16.5px; margin: 30px 0 10px; }
+.rr-guide-body p { font-size: 15px; line-height: 1.72; color: var(--rr-text); }
+.rr-guide-body p.text-muted { color: var(--rr-text-muted); font-size: 14px; }
+.rr-guide-body code {
+  background: var(--rr-paper-2); padding: 2px 6px; border-radius: 5px;
+  font-family: var(--rr-mono); font-size: 13px;
+}
+
+.rr-guide-list { padding-left: 0; list-style: none; margin: 0 0 18px; }
+.rr-guide-list li {
+  position: relative; padding-left: 24px; margin-bottom: 11px;
+  font-size: 15px; line-height: 1.68;
+}
+.rr-guide-list li::before {
+  content: ""; position: absolute; left: 6px; top: 11px;
+  width: 6px; height: 6px; border-radius: 50%; background: var(--rr-red);
+}
+.rr-guide-list.tight li { margin-bottom: 7px; font-size: 14px; }
+
+/* Dos tarjetas en paralelo: «esto sí / esto no», «personal / escuela». */
+.rr-guide-two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 20px 0 24px; }
+@media (max-width: 680px) { .rr-guide-two { grid-template-columns: 1fr; } }
+.rr-guide-two .card { padding: 22px; }
+.rr-guide-two h3 { margin: 0 0 10px; font-size: 16px; }
+.rr-guide-two p { font-size: 14px; margin-bottom: 10px; }
+.rr-guide-two p:last-child { margin-bottom: 0; }
+.rr-guide-two .card.ok { border-left: 4px solid var(--rr-green); }
+.rr-guide-two .card.no { border-left: 4px solid var(--rr-danger); }
+.rr-guide-two .card.no .rr-guide-list li::before { background: var(--rr-danger); }
+.rr-guide-two .card.ok .rr-guide-list li::before { background: var(--rr-green); }
+
+/* La nota al margen: lo que hay que recordar aunque se lea en diagonal. */
+.rr-guide-note {
+  background: var(--rr-blue-soft); border-radius: var(--rr-r-sm);
+  padding: 15px 18px; margin: 20px 0;
+  font-size: 14.5px; line-height: 1.65; color: var(--rr-text);
+}
+.rr-guide-note strong { color: var(--rr-ink); }
+.rr-guide-note.warn { background: var(--rr-gold-soft); }
+
+/* ---- Tablas ---------------------------------------------------------------- */
+
+.rr-guide-table-wrap { overflow-x: auto; margin: 18px 0 24px; border-radius: var(--rr-r-sm); border: 1px solid var(--rr-line); }
+.rr-guide-table { width: 100%; border-collapse: collapse; font-size: 14px; background: var(--rr-white); }
+.rr-guide-table th, .rr-guide-table td { padding: 11px 14px; text-align: left; border-bottom: 1px solid var(--rr-line); }
+.rr-guide-table thead th {
+  background: var(--rr-paper); font-size: 12px; font-weight: 800;
+  letter-spacing: .04em; text-transform: uppercase; color: var(--rr-text-muted);
+  white-space: nowrap;
+}
+.rr-guide-table th:not(:first-child), .rr-guide-table td:not(:first-child) { text-align: center; white-space: nowrap; }
+.rr-guide-table tbody tr:last-child td { border-bottom: none; }
+.rr-guide-table tbody tr:hover { background: var(--rr-paper); }
+/* La fila donde de verdad se separan los cargos. */
+.rr-guide-table tr.hl td { background: var(--rr-gold-soft); font-weight: 600; }
+.rr-guide-table tr.hl:hover td { background: #FFEBC4; }
+
+/* ---- La rejilla de minijuegos ---------------------------------------------- */
+
+.rr-guide-games { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 20px 0 24px; }
+.rr-guide-games > div {
+  background: var(--rr-white); border: 1px solid var(--rr-line);
+  border-radius: var(--rr-r-sm); padding: 16px 14px; text-align: center;
+  transition: transform var(--rr-mid) var(--rr-spring), border-color var(--rr-mid) var(--rr-ease);
+}
+.rr-guide-games > div:hover { transform: translateY(-3px); border-color: var(--rr-line-strong); }
+.rr-guide-games span { display: block; font-size: 30px; margin-bottom: 7px; }
+.rr-guide-games strong { display: block; font-size: 14px; }
+.rr-guide-games small { font-size: 11.5px; color: var(--rr-text-muted); }
+
+/* ---- Dudas rápidas --------------------------------------------------------- */
+
+.rr-guide-faq { display: grid; gap: 8px; }
+.rr-guide-faq details {
+  background: var(--rr-white); border: 1px solid var(--rr-line);
+  border-radius: var(--rr-r-sm); overflow: hidden;
+  transition: border-color var(--rr-fast) var(--rr-ease);
+}
+.rr-guide-faq details[open] { border-color: var(--rr-line-strong); }
+.rr-guide-faq summary {
+  padding: 15px 18px; cursor: pointer; font-weight: 700; font-size: 14.5px;
+  list-style: none; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.rr-guide-faq summary::-webkit-details-marker { display: none; }
+.rr-guide-faq summary::after {
+  content: "+"; font-size: 19px; font-weight: 400; color: var(--rr-text-faint);
+  transition: transform var(--rr-mid) var(--rr-spring);
+}
+.rr-guide-faq details[open] summary::after { transform: rotate(45deg); }
+.rr-guide-faq summary:hover { background: var(--rr-paper); }
+.rr-guide-faq p {
+  margin: 0; padding: 0 18px 17px; font-size: 14.5px; line-height: 1.68; color: var(--rr-text-muted);
+  animation: rr-fade-up .25s var(--rr-ease) both;
+}
+
+/* ---- Cierre ---------------------------------------------------------------- */
+
+.rr-guide-end {
+  display: flex; gap: 22px; align-items: center; flex-wrap: wrap;
+  background: var(--rr-paper-2); border-radius: var(--rr-r-lg);
+  padding: 30px 32px; margin-top: 20px;
+}
+.rr-guide-end .rr-pose { width: auto; height: auto; max-height: 110px; }
+.rr-guide-end h3 { margin: 0 0 6px; font-size: 19px; }
+.rr-guide-end p { margin: 0 0 14px; color: var(--rr-text-muted); font-size: 14.5px; }

@@ -1,0 +1,7 @@
+{
+  "sessionSecret": "cambia-esto-por-una-frase-larga-y-tuya",
+  "anthropicApiKey": "",
+  "aiModel": "claude-sonnet-5",
+  "aiModelMax": "claude-opus-5",
+  "devConsole": true
+}

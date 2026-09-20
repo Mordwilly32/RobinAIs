@@ -150,6 +150,14 @@ p { line-height: 1.65; margin: 0 0 1em; }
 }
 .rr-mascot-sm { width: 38px; height: 38px; }
 
+/* La galería rotatoria (ver rrMontarGaleria en mascot.js). Es un .rr-mascot
+   más, así que hereda respiración, hover y brinco; lo único suyo es el
+   parpadeo corto con el que se cambia de dibujo, para que el relevo no se
+   vea como un corte seco. */
+.rr-galeria { display: inline-block; line-height: 0; }
+.rr-galeria-img { transition: opacity .18s var(--rr-ease); cursor: pointer; }
+.rr-galeria-img.rr-galeria-fade { opacity: 0; }
+
 /* Flota suave: se usa en el héroe, en las pantallas de acceso y al saludar */
 .rr-mascot-bob { animation: rr-hover 3.4s var(--rr-ease) infinite; }
 
@@ -276,9 +284,17 @@ p { line-height: 1.65; margin: 0 0 1em; }
   96% { transform: rotate(1deg) translateX(2px); }
 }
 
+/* Con el movimiento reducido del sistema, Robin no se queda tieso: solo
+   respira más despacio. Ver la nota larga en landing.css. */
 @media (prefers-reduced-motion: reduce) {
-  .rr-mascot, .rr-pose { animation: none !important; }
-  .rr-mascot:hover { animation: none; }
+  .rr-mascot-bob { animation-duration: 9s; }
+  .rr-pose-ghost { animation-duration: 10s; }
+  .rr-pose-mailman { animation-duration: 6s; }
+  .rr-pose-talking { animation-duration: 4.5s; }
+  .rr-pose-happy { animation-duration: 4s; }
+  .rr-pose-sad { animation-duration: 8s; }
+  .rr-pose-idle { animation-duration: 8s; }
+  .rr-pose-error { animation: none; }
 }
 
 /* =============================================================================
@@ -330,7 +346,7 @@ p { line-height: 1.65; margin: 0 0 1em; }
 .field .hint { font-size: 12.5px; color: var(--rr-text-muted); margin-top: 6px; line-height: 1.5; }
 
 input[type="text"], input[type="email"], input[type="password"], input[type="search"],
-input[type="date"], input[type="file"], select, textarea {
+input[type="date"], input[type="number"], input[type="file"], select, textarea {
   width: 100%;
   padding: 12px 14px;
   font: inherit; font-size: 14.5px;
@@ -404,8 +420,17 @@ input:focus, select:focus, textarea:focus {
 .rr-choice .t { font-size: 15px; font-weight: 800; color: var(--rr-ink); }
 .rr-choice .d { font-size: 13px; color: var(--rr-text-muted); margin-top: 4px; line-height: 1.5; }
 
-.level-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-@media (max-width: 640px) { .level-grid { grid-template-columns: repeat(2, 1fr); } }
+/* Cinco niveles, y la rejilla se reparte sola. Estaba fijada a cuatro
+   columnas de cuando eran cuatro: al aparecer Universidad, se quedaba sola en
+   una segunda fila, pegada abajo a la izquierda, y parecía añadida a última
+   hora en vez de una opción más. */
+.level-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+@media (max-width: 900px) { .level-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 560px) { .level-grid { grid-template-columns: repeat(2, 1fr); } }
+/* Si el último se queda solo en su fila, se estira para ocuparla entera: una
+   tarjeta suelta a media fila es lo que se veía mal. */
+.level-card:last-child:nth-child(odd) { grid-column: 1 / -1; }
+@media (min-width: 901px) { .level-card:last-child:nth-child(odd) { grid-column: auto; } }
 .level-card {
   border: 2px solid var(--rr-line); border-radius: var(--rr-r-sm);
   padding: 14px 10px; text-align: center; cursor: pointer; background: var(--rr-white);
@@ -413,7 +438,7 @@ input:focus, select:focus, textarea:focus {
 }
 .level-card:hover { transform: translateY(-4px); box-shadow: var(--rr-sh-sm); }
 .level-card.selected { border-color: var(--rr-red); background: var(--rr-red-soft); }
-.level-card .level-icon { font-size: 25px; margin-bottom: 6px; transition: transform var(--rr-mid) var(--rr-spring); }
+.level-card .level-icon { font-size: 26px; margin-bottom: 7px; transition: transform var(--rr-mid) var(--rr-spring); }
 .level-card:hover .level-icon { transform: scale(1.15) translateY(-2px); }
 .level-card .level-name { font-size: 12.5px; font-weight: 700; }
 
@@ -489,34 +514,20 @@ input:focus, select:focus, textarea:focus {
 /* "Robin dice": el pajarito y un globo de dialogo. La cola del globo se dibuja
    con un cuadrado girado para que no haga falta ninguna imagen extra. */
 .rr-says {
-  display: flex; align-items: center; gap: 4px;
-  /* Con un ancho tope el globo se lee como globo y no como una banda que
-     cruza toda la pantalla. */
-  max-width: 760px;
-  margin: 0 0 22px;
-  animation: rr-fade-up .5s var(--rr-ease) both;
+  display: flex; align-items: center; gap: 16px;
+  margin: 4px 0 18px;
 }
-.rr-says-art { flex: 0 0 98px; display: grid; place-items: center; }
-.rr-says-art .rr-pose { width: auto; height: auto; max-height: 98px; }
-.rr-says-bubble {
-  position: relative; flex: 1; min-width: 0;
-  background: var(--rr-white); border: 1px solid var(--rr-line);
-  border-radius: var(--rr-r-md); box-shadow: var(--rr-sh-xs);
-  padding: 14px 18px;
-}
-.rr-says-bubble::before {
-  content: ""; position: absolute; left: -6px; top: 50%; margin-top: -6px;
-  width: 11px; height: 11px; transform: rotate(45deg);
-  background: var(--rr-white);
-  border-left: 1px solid var(--rr-line); border-bottom: 1px solid var(--rr-line);
-}
-.rr-says-bubble p { margin: 0; font-size: 14px; line-height: 1.55; color: var(--rr-text); }
-.rr-says-bubble p strong { color: var(--rr-red-dark); }
+.rr-says-art { flex: 0 0 84px; display: grid; place-items: center; }
+.rr-says-art .rr-pose { width: auto; height: auto; max-height: 84px; }
+/* Texto y ya: ni fondo, ni borde, ni pico. Igual que en la portada. */
+.rr-says-bubble { flex: 1; min-width: 0; }
+.rr-says-bubble p { margin: 0; font-size: 15.5px; line-height: 1.6; color: var(--rr-text); }
+.rr-says-bubble p strong { color: var(--rr-ink); font-weight: 750; }
 .rr-says-bubble .btn { margin-top: 12px; }
 @media (max-width: 560px) {
-  .rr-says { gap: 2px; }
-  .rr-says-art { flex-basis: 74px; }
-  .rr-says-art .rr-pose { max-height: 74px; }
+  .rr-says { gap: 12px; }
+  .rr-says-art { flex-basis: 62px; }
+  .rr-says-art .rr-pose { max-height: 62px; }
 }
 
 /* Robin pequenito dentro de un aviso flotante o una fila. */
@@ -723,19 +734,47 @@ input:focus, select:focus, textarea:focus {
 
 .rr-sidebar {
   width: var(--rr-sidebar-w); flex-shrink: 0;
-  position: sticky; top: 0; height: 100vh; overflow-y: auto;
+  position: sticky; top: 0; height: 100vh; overflow: hidden;
   background: var(--rr-ink); color: #fff;
-  padding: 22px 14px;
-  display: flex; flex-direction: column; gap: 4px;
+  padding: 18px 12px 14px;
+  display: flex; flex-direction: column; gap: 2px;
 }
-.rr-sidebar .rr-brand { color: #fff; padding: 2px 8px 20px; }
+.rr-side-head { display: flex; align-items: center; justify-content: space-between; padding: 2px 6px 14px; }
+.rr-sidebar .rr-brand { color: #fff; padding: 0; font-size: 20px; letter-spacing: -.025em; }
+.rr-sidebar .rr-brand:hover { color: #fff; opacity: .8; }
+.rr-side-close {
+  display: none; background: none; border: none; color: rgba(255, 255, 255, .6);
+  font-size: 26px; line-height: 1; cursor: pointer; padding: 0 4px;
+}
+.rr-side-close:hover { color: #fff; }
+
+/* El botón de conversación nueva va antes que el menú: es lo que más se pulsa. */
+.rr-new-chat {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  background: rgba(255, 255, 255, .07); border: 1px solid rgba(255, 255, 255, .13);
+  color: #fff; font-family: inherit; font-size: 14px; font-weight: 700;
+  padding: 11px 14px; border-radius: var(--rr-r-xs); cursor: pointer; margin-bottom: 10px;
+  transition: background var(--rr-fast) var(--rr-ease), border-color var(--rr-fast) var(--rr-ease), transform var(--rr-fast) var(--rr-ease);
+}
+.rr-new-chat:hover { background: var(--rr-red); border-color: var(--rr-red); transform: translateY(-1px); }
+.rr-new-chat .ic { font-size: 13px; }
+
+.rr-side-nav { display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; }
+
 .rr-side-label {
   font-size: 10.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase;
   color: rgba(255, 255, 255, .34); padding: 14px 14px 6px;
 }
+.rr-side-label-row { display: flex; align-items: center; justify-content: space-between; }
+.rr-side-mini {
+  background: none; border: none; color: rgba(255, 255, 255, .34);
+  cursor: pointer; font-size: 12px; padding: 2px 4px; border-radius: 6px;
+}
+.rr-side-mini:hover { color: #fff; background: rgba(255, 255, 255, .1); }
+
 .rr-side-link {
   display: flex; align-items: center; gap: 12px;
-  padding: 11px 14px; border-radius: var(--rr-r-xs);
+  padding: 10px 14px; border-radius: var(--rr-r-xs);
   color: rgba(255, 255, 255, .72); font-weight: 600; font-size: 14.5px;
   cursor: pointer; position: relative;
   transition: background var(--rr-fast) var(--rr-ease), color var(--rr-fast) var(--rr-ease), transform var(--rr-fast) var(--rr-ease);
@@ -750,10 +789,66 @@ input:focus, select:focus, textarea:focus {
 }
 .rr-side-link.active .badge { background: rgba(0, 0, 0, .3); }
 .rr-side-spacer { flex: 1; }
-.rr-side-foot { border-top: 1px solid var(--rr-ink-line); padding-top: 12px; margin-top: 8px; }
+
+/* El piso de en medio: crece, se encoge y tiene su propio scroll, para que
+   los botones de arriba y los de abajo no se muevan nunca de sitio. */
+.rr-side-chats { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.rr-chat-rail { flex: 1; min-height: 0; overflow-y: auto; padding-right: 2px; }
+.rr-chat-rail::-webkit-scrollbar { width: 6px; }
+.rr-chat-rail::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .14); border-radius: 99px; }
+.rr-rail-empty { padding: 10px 14px; font-size: 12.5px; color: rgba(255, 255, 255, .34); line-height: 1.5; }
+.rr-rail-group {
+  font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
+  color: rgba(255, 255, 255, .26); padding: 12px 14px 5px;
+}
+.rr-rail-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 10px 8px 12px; border-radius: 9px; cursor: pointer;
+  color: rgba(255, 255, 255, .66); font-size: 13.5px;
+  transition: background var(--rr-fast) var(--rr-ease), color var(--rr-fast) var(--rr-ease);
+}
+.rr-rail-item:hover { background: rgba(255, 255, 255, .07); color: #fff; }
+.rr-rail-item.active { background: rgba(255, 255, 255, .13); color: #fff; }
+.rr-rail-ic { font-size: 12px; opacity: .7; flex-shrink: 0; }
+.rr-rail-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rr-rail-del {
+  background: none; border: none; color: rgba(255, 255, 255, .4);
+  cursor: pointer; font-size: 12px; padding: 2px 4px; border-radius: 5px;
+  opacity: 0; transition: opacity var(--rr-fast) var(--rr-ease);
+}
+.rr-rail-item:hover .rr-rail-del { opacity: 1; }
+.rr-rail-del:hover { background: var(--rr-danger); color: #fff; }
+
+.rr-side-foot { border-top: 1px solid var(--rr-ink-line); padding-top: 10px; margin-top: 8px; flex-shrink: 0; }
+.rr-side-user-mini { display: flex; flex-shrink: 0; }
+.rr-side-user-text { min-width: 0; display: block; line-height: 1.25; }
+.rr-side-user-text strong { display: block; color: #fff; font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rr-side-user-text small { display: block; font-size: 11.5px; color: rgba(255, 255, 255, .45); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rr-side-user { display: flex; align-items: center; gap: 10px; padding: 8px; font-size: 12.5px; color: rgba(255, 255, 255, .6); }
 .rr-side-user strong { display: block; color: #fff; font-size: 13.5px; }
 .rr-side-user span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+
+/* Cuánto le queda hoy de Robin. Se ve siempre, no solo cuando se acaba. */
+.rr-usage {
+  display: block; padding: 9px 12px; margin-bottom: 8px;
+  background: rgba(255, 255, 255, .05); border-radius: var(--rr-r-xs);
+  font-size: 12px; cursor: default;
+  transition: background var(--rr-fast) var(--rr-ease);
+}
+.rr-usage[role="button"] { cursor: pointer; }
+.rr-usage[role="button"]:hover { background: rgba(255, 255, 255, .11); }
+.rr-usage-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.rr-usage-top strong { color: #fff; font-size: 12.5px; font-weight: 700; }
+.rr-usage-top em {
+  font-style: normal; font-size: 10px; font-weight: 800; letter-spacing: .06em;
+  text-transform: uppercase; color: rgba(255, 255, 255, .4);
+}
+.rr-usage-bar { display: block; height: 4px; margin-top: 7px; background: rgba(255, 255, 255, .12); border-radius: 99px; overflow: hidden; }
+.rr-usage-bar i { display: block; height: 100%; background: var(--rr-blue); border-radius: 99px; transition: width var(--rr-slow) var(--rr-ease); }
+.rr-usage.low .rr-usage-bar i { background: var(--rr-gold); }
+.rr-usage.low .rr-usage-top strong { color: var(--rr-gold); }
+.rr-usage-max { background: linear-gradient(135deg, rgba(242, 168, 27, .22), rgba(226, 58, 27, .18)); }
+.rr-usage-max .rr-usage-top em { color: var(--rr-gold); }
 
 .rr-sidebar-scrim { display: none; }
 @media (max-width: 860px) {
@@ -766,6 +861,7 @@ input:focus, select:focus, textarea:focus {
   .rr-sidebar-scrim { display: block; position: fixed; inset: 0; background: rgba(20, 16, 14, .5); backdrop-filter: blur(2px); z-index: 45; opacity: 0; pointer-events: none; transition: opacity var(--rr-mid) var(--rr-ease); }
   .rr-sidebar-scrim.open { opacity: 1; pointer-events: auto; }
   .rr-menu-btn { display: inline-flex !important; }
+  .rr-side-close { display: block; }
   .rr-main { padding: 20px 20px 70px; }
 }
 
@@ -908,49 +1004,56 @@ table.rr-table tbody tr:hover td { background: rgba(226, 58, 27, .04); }
 
 .rr-chat {
   display: flex; flex-direction: column;
-  height: calc(100vh - 150px); min-height: 460px;
-  background: var(--rr-white); border: 1px solid var(--rr-line);
-  border-radius: var(--rr-r-lg); box-shadow: var(--rr-sh-sm); overflow: hidden;
+  height: calc(100vh - 190px); min-height: 460px;
+  background: transparent; border: none; border-radius: 0; box-shadow: none;
+  overflow: hidden;
 }
 .rr-chat-head {
-  display: flex; align-items: center; gap: 12px;
-  padding: 14px 18px; border-bottom: 1px solid var(--rr-line);
-  background: linear-gradient(180deg, var(--rr-white), var(--rr-paper));
+  display: flex; align-items: baseline; gap: 12px;
+  padding: 0 0 14px; border-bottom: 1px solid var(--rr-line);
+  background: none;
 }
-.rr-chat-head .rr-mascot { width: 40px; height: 40px; }
 .rr-chat-head strong { display: block; font-size: 15px; }
 .rr-chat-head span { font-size: 12.5px; color: var(--rr-text-muted); }
 .rr-chat-mode {
-  margin-left: auto; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+  margin-left: auto; flex: 0 0 auto; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
   padding: 5px 11px; border-radius: 99px; background: var(--rr-green-soft); color: var(--rr-green);
 }
 .rr-chat-mode.live { background: var(--rr-red-soft); color: var(--rr-red-dark); }
 
-.rr-chat-body { flex: 1; overflow-y: auto; padding: 22px; display: flex; flex-direction: column; gap: 14px; scroll-behavior: smooth; }
-
-.rr-bubble { display: flex; gap: 10px; max-width: 84%; animation: rr-fade-up .3s var(--rr-ease) both; }
-.rr-bubble .av {
-  width: 30px; height: 30px; border-radius: 50%; flex: 0 0 30px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 11px; font-weight: 800; letter-spacing: .02em;
-  background: var(--rr-paper-2); overflow: hidden;
+.rr-chat-body {
+  flex: 1; overflow-y: auto; padding: 26px 0 10px;
+  display: flex; flex-direction: column; gap: 22px; scroll-behavior: smooth;
 }
-/* La cara de Robin en la burbuja: el dibujo original, sin recortarle nada. */
-.rr-bubble .av.bird { background: var(--rr-red-soft); padding: 2px; }
-.rr-bubble .av.bird img { width: 100%; height: 100%; object-fit: contain; }
+/* Todo lo que va dentro de la conversación comparte la misma columna: los
+   mensajes, el saludo, el aviso del límite y los puntitos de "escribiendo". */
+.rr-chat-body > * { width: 100%; max-width: 1400px; margin-inline: auto; }
+
+.rr-bubble { display: flex; animation: rr-fade-up .3s var(--rr-ease) both; }
 .rr-bubble .txt {
-  padding: 12px 15px; border-radius: 16px; font-size: 14.5px; line-height: 1.6;
+  font-size: 15.5px; line-height: 1.68;
   white-space: pre-wrap; word-break: break-word;
 }
-.rr-bubble.bot .txt { background: var(--rr-paper); border: 1px solid var(--rr-line); border-top-left-radius: 5px; }
-.rr-bubble.user { align-self: flex-end; flex-direction: row-reverse; }
-.rr-bubble.user .txt { background: var(--rr-red); color: #fff; border-top-right-radius: 5px; }
-.rr-bubble.user .av { background: var(--rr-ink); color: #fff; }
+/* Robin contesta como texto corrido, sin globo: lo que dice suele ser largo y
+   encerrarlo en una burbuja lo vuelve más difícil de leer, no más claro. */
+.rr-bubble.bot .txt { padding: 0; color: var(--rr-text); }
+/* Lo que escribe la persona sí lleva globo, y va a la derecha: es lo corto y
+   es lo que se busca con la vista al repasar la conversación. */
+.rr-bubble.user { justify-content: flex-end; }
+.rr-bubble.user .txt {
+  background: var(--rr-paper-2); border-radius: 18px;
+  padding: 11px 16px; max-width: 80%;
+}
 
-.rr-chat-hello { text-align: center; padding: 26px 10px 6px; animation: rr-fade-up .5s var(--rr-ease) both; }
-.rr-chat-hello .rr-mascot { width: 96px; height: 96px; margin: 0 auto 12px; }
+.rr-chat-hello { text-align: center; padding: 30px 10px 6px; animation: rr-fade-up .5s var(--rr-ease) both; }
 .rr-chat-hello .rr-pose { width: auto; height: auto; max-height: 118px; }
-.rr-chat-hello h3 { font-size: 21px; margin-bottom: 6px; }
+/* El Robin del saludo: se puede tocar y se pone a hablar. */
+.rr-hello-robin { display: block; margin-bottom: 14px; }
+/* El dibujo es un bloque, así que centrarlo es cosa suya y no del text-align
+   del contenedor. */
+.rr-hello-robin .rr-mascot { width: auto; height: auto; max-height: 130px; margin-inline: auto; }
+@media (max-width: 760px) { .rr-hello-robin .rr-mascot { max-height: 96px; } }
+.rr-chat-hello h3 { font-size: 26px; margin-bottom: 8px; letter-spacing: -.02em; }
 .rr-chat-hello p { color: var(--rr-text-muted); font-size: 14.5px; margin: 0 auto; max-width: 420px; }
 
 .rr-chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 18px; }
@@ -963,21 +1066,34 @@ table.rr-table tbody tr:hover td { background: rgba(226, 58, 27, .04); }
 .rr-chip:hover { border-color: var(--rr-red); color: var(--rr-red-dark); background: var(--rr-red-soft); transform: translateY(-2px); }
 
 /* Robin pensando: el boceto hablando + los tres puntitos de siempre. */
-.rr-typing-row { display: flex; align-items: flex-end; gap: 8px; animation: rr-fade-up .3s var(--rr-ease) both; }
-.rr-typing-bird { width: 64px; height: auto; flex: 0 0 64px; margin-bottom: -4px; }
-.rr-typing { display: flex; gap: 5px; padding: 12px 15px; background: var(--rr-paper); border: 1px solid var(--rr-line); border-radius: 16px; border-top-left-radius: 5px; width: fit-content; }
+.rr-typing-row { display: flex; animation: rr-fade-up .3s var(--rr-ease) both; }
+.rr-typing { display: flex; gap: 5px; padding: 6px 0; width: fit-content; }
 .rr-typing span { width: 7px; height: 7px; border-radius: 50%; background: var(--rr-text-faint); animation: rr-typing 1.1s infinite ease-in-out; }
 .rr-typing span:nth-child(2) { animation-delay: .15s; }
 .rr-typing span:nth-child(3) { animation-delay: .3s; }
 @keyframes rr-typing { 0%, 60%, 100% { transform: translateY(0); opacity: .45; } 30% { transform: translateY(-5px); opacity: 1; } }
 
-.rr-composer { display: flex; gap: 10px; padding: 14px; border-top: 1px solid var(--rr-line); background: var(--rr-white); }
-.rr-composer textarea {
-  flex: 1; min-height: 46px; max-height: 140px; resize: none;
-  border-radius: var(--rr-r-md); padding: 12px 16px;
+.rr-composer {
+  display: flex; gap: 10px; align-items: flex-end;
+  width: 100%; max-width: 1400px; margin: 14px auto 0;
+  padding: 10px 10px 10px 8px; border: 1px solid var(--rr-line);
+  border-radius: 28px; background: var(--rr-white);
+  box-shadow: var(--rr-sh-sm);
+  transition: border-color var(--rr-fast) var(--rr-ease), box-shadow var(--rr-fast) var(--rr-ease);
 }
+/* El texto de Robin sí se corta antes: una línea de 1400 px se lee mal, se
+   recorre. Lo que se estira es la caja de escribir y el ancho útil, no la
+   medida de la línea. */
+.rr-chat-body .rr-bubble.bot .txt { max-width: 78ch; }
+.rr-composer:focus-within { border-color: var(--rr-line-strong); box-shadow: var(--rr-sh-md); }
+.rr-composer textarea {
+  flex: 1; min-height: 52px; max-height: 220px; resize: none;
+  border: none; background: transparent; box-shadow: none;
+  border-radius: 0; padding: 15px 10px 15px 18px; font-size: 15.5px;
+}
+.rr-composer textarea:focus { outline: none; border: none; box-shadow: none; }
 .rr-composer button {
-  width: 46px; height: 46px; flex: 0 0 46px; align-self: flex-end;
+  width: 40px; height: 40px; flex: 0 0 40px; align-self: flex-end; margin-bottom: 2px;
   border-radius: 50%; border: none; background: var(--rr-red); color: #fff;
   font-size: 17px; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
@@ -1101,12 +1217,1113 @@ table.rr-table tbody tr:hover td { background: rgba(226, 58, 27, .04); }
   animation: rr-spin .8s linear infinite;
 }
 
+/* Aquí estaba el apagón general: un *{animation-duration:.001ms} que dejaba
+   la aplicación entera sin una sola animación en cuanto Windows tenía apagados
+   los efectos visuales. Ahora se calma en vez de apagarse. */
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  *, *::before, *::after {
-    animation-duration: .001ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: .001ms !important;
-  }
-  .rr-reveal { opacity: 1; transform: none; }
+  .rr-reveal { transform: translateY(14px); }
+  .rr-task { animation-duration: .3s; }
 }
+
+/* =============================================================================
+   Minijuegos
+   ============================================================================= */
+
+.rr-games-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 22px; }
+.rr-games-head h2 { font-size: 22px; margin: 0 0 4px; }
+.rr-games-head p { color: var(--rr-text-muted); font-size: 14px; margin: 0; max-width: 56ch; }
+.rr-games-count {
+  font-size: 12px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--rr-text-faint); background: var(--rr-paper-2); padding: 6px 12px; border-radius: var(--rr-r-pill);
+}
+
+.rr-game-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(268px, 1fr)); gap: 16px; max-width: 1140px; }
+
+.rr-game-card {
+  position: relative; overflow: hidden;
+  background: var(--rr-white); border: 1px solid var(--rr-line);
+  border-radius: var(--rr-r-md); padding: 22px 20px 20px;
+  display: flex; flex-direction: column; gap: 6px;
+  animation: rr-pop-in .4s var(--rr-ease) both;
+  transition: transform var(--rr-mid) var(--rr-ease), box-shadow var(--rr-mid) var(--rr-ease), border-color var(--rr-mid) var(--rr-ease);
+}
+/* La franja de color de arriba es lo que distingue una materia de otra de un
+   vistazo, antes incluso de leer el nombre. */
+.rr-game-card::before {
+  content: ""; position: absolute; inset: 0 0 auto 0; height: 4px;
+  background: var(--rr-red); transform: scaleX(.25); transform-origin: left;
+  transition: transform var(--rr-slow) var(--rr-ease);
+}
+.rr-game-card.accent-blue::before { background: var(--rr-blue); }
+.rr-game-card.accent-gold::before { background: var(--rr-gold); }
+.rr-game-card.accent-green::before { background: var(--rr-green); }
+.rr-game-card:hover { transform: translateY(-4px); box-shadow: var(--rr-sh-md); border-color: var(--rr-line-strong); }
+.rr-game-card:hover::before { transform: scaleX(1); }
+
+.rr-game-ic { font-size: 34px; line-height: 1; margin-bottom: 4px; transition: transform var(--rr-mid) var(--rr-spring); }
+.rr-game-card:hover .rr-game-ic { transform: scale(1.12) rotate(-7deg); }
+.rr-game-subject {
+  font-size: 10.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--rr-text-faint);
+}
+.rr-game-card h3 { font-size: 17px; margin: 0; }
+.rr-game-card p { font-size: 13.5px; color: var(--rr-text-muted); margin: 0; line-height: 1.55; flex: 1; }
+.rr-game-stats { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--rr-text-faint); margin: 10px 0 12px; }
+.rr-game-stats .hot { color: var(--rr-red); font-weight: 700; }
+.rr-game-card.off { opacity: .62; }
+.rr-game-card.off:hover { transform: none; box-shadow: none; }
+.rr-game-locked {
+  margin-top: 12px; font-size: 12.5px; color: var(--rr-text-muted);
+  background: var(--rr-paper-2); border-radius: var(--rr-r-xs); padding: 10px 12px; line-height: 1.5;
+}
+
+/* ---- El tablero de juego --------------------------------------------------- */
+
+.rr-game-board {
+  background: var(--rr-white); border: 1px solid var(--rr-line);
+  border-radius: var(--rr-r-lg); box-shadow: var(--rr-sh-sm);
+  overflow: hidden; max-width: 760px; margin: 0 auto;
+  animation: rr-pop-in .35s var(--rr-ease) both;
+}
+.rr-board-top {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+  padding: 14px 18px; border-bottom: 1px solid var(--rr-line); background: var(--rr-paper);
+}
+.rr-board-title { display: flex; align-items: center; gap: 11px; }
+.rr-board-title .ic { font-size: 26px; }
+.rr-board-title strong { display: block; font-size: 15.5px; }
+.rr-board-title small { font-size: 12px; color: var(--rr-text-muted); }
+.rr-board-streak { text-align: center; min-width: 62px; }
+.rr-board-streak strong { display: block; font-size: 22px; color: var(--rr-red); line-height: 1; }
+.rr-board-streak small { font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--rr-text-faint); }
+
+.rr-board-stage { padding: 30px 26px 24px; min-height: 190px; }
+.rr-round-prompt { font-size: 20px; font-weight: 650; line-height: 1.45; margin: 0 0 22px; color: var(--rr-ink); }
+
+.rr-round-options { display: grid; gap: 10px; }
+@media (min-width: 620px) { .rr-round-options { grid-template-columns: 1fr 1fr; } }
+.rr-option {
+  display: flex; align-items: center; gap: 12px; text-align: left;
+  background: var(--rr-white); border: 2px solid var(--rr-line);
+  border-radius: var(--rr-r-sm); padding: 14px 16px;
+  font-family: inherit; font-size: 15px; font-weight: 600; color: var(--rr-text);
+  cursor: pointer; animation: rr-pop-in .3s var(--rr-ease) both;
+  transition: border-color var(--rr-fast) var(--rr-ease), background var(--rr-fast) var(--rr-ease), transform var(--rr-fast) var(--rr-ease);
+}
+.rr-option .k {
+  display: grid; place-items: center; flex: 0 0 26px; height: 26px;
+  background: var(--rr-paper-2); border-radius: 8px;
+  font-size: 12px; font-weight: 800; color: var(--rr-text-faint);
+}
+.rr-option:hover:not(:disabled) { border-color: var(--rr-red); transform: translateY(-2px); }
+.rr-option:hover:not(:disabled) .k { background: var(--rr-red-soft); color: var(--rr-red-dark); }
+.rr-option:disabled { cursor: default; opacity: .55; }
+.rr-option.right { border-color: var(--rr-green); background: var(--rr-green-soft); opacity: 1; }
+.rr-option.right .k { background: var(--rr-green); color: #fff; }
+.rr-option.wrong { border-color: var(--rr-danger); background: var(--rr-danger-soft); opacity: 1; animation: rr-shake .4s var(--rr-ease); }
+
+.rr-round-input { display: flex; gap: 10px; flex-wrap: wrap; }
+.rr-round-input input { flex: 1; min-width: 180px; font-size: 17px; font-family: var(--rr-mono); }
+
+.rr-board-help { padding: 0 26px; }
+.rr-board-help:empty { display: none; }
+
+.rr-round-result {
+  display: flex; align-items: center; gap: 14px;
+  border-radius: var(--rr-r-sm); padding: 14px 16px; margin-bottom: 4px;
+  animation: rr-fade-up .3s var(--rr-ease) both;
+}
+.rr-round-result.ok { background: var(--rr-green-soft); }
+.rr-round-result.no { background: var(--rr-gold-soft); }
+.rr-round-result strong { display: block; font-size: 14.5px; margin-bottom: 2px; }
+.rr-round-result .btn { margin-top: 8px; }
+/* El único que queda: el Robin triste del aviso de "se te acabó por hoy".
+   Los del resultado y la pista viven ahora en la columna de Robin de la
+   ventana de minijuegos, que tiene su propio dibujo grande. */
+.rr-limit-bird { width: auto; height: auto; max-height: 62px; flex: 0 0 auto; }
+
+.rr-round-help {
+  display: flex; gap: 14px; align-items: flex-start;
+  background: var(--rr-blue-soft); border-radius: var(--rr-r-sm);
+  padding: 15px 17px; margin-bottom: 4px;
+  animation: rr-fade-up .3s var(--rr-ease) both;
+}
+.rr-round-help.limit { background: var(--rr-gold-soft); }
+.rr-round-help em { display: block; font-style: normal; font-weight: 700; font-size: 13.5px; margin-bottom: 6px; color: var(--rr-ink); }
+.rr-round-help p { margin: 0 0 6px; font-size: 14px; line-height: 1.55; }
+.rr-round-help ol { margin: 0 0 6px; padding-left: 20px; font-size: 14px; line-height: 1.7; }
+.rr-round-help small { font-size: 11.5px; color: var(--rr-text-muted); }
+.rr-round-help .btn { margin-top: 8px; }
+
+.rr-board-actions {
+  display: flex; gap: 10px; flex-wrap: wrap;
+  padding: 16px 26px 20px; border-top: 1px solid var(--rr-line); margin-top: 16px;
+}
+
+/* ---- Interruptores de minijuego (profesorado y dirección) ------------------ */
+
+.rr-toggle-list { display: grid; gap: 8px; max-width: 560px; }
+.rr-toggle-row {
+  display: flex; align-items: center; gap: 13px; cursor: pointer;
+  background: var(--rr-white); border: 1px solid var(--rr-line);
+  border-radius: var(--rr-r-sm); padding: 13px 16px;
+  transition: border-color var(--rr-fast) var(--rr-ease), opacity var(--rr-fast) var(--rr-ease);
+}
+.rr-toggle-row:hover { border-color: var(--rr-line-strong); }
+.rr-toggle-row.off { opacity: .6; }
+.rr-toggle-row .ic { font-size: 22px; }
+.rr-toggle-row .txt { flex: 1; }
+.rr-toggle-row .txt strong { display: block; font-size: 14.5px; }
+.rr-toggle-row .txt small { font-size: 12px; color: var(--rr-text-muted); }
+.rr-toggle-row input { position: absolute; opacity: 0; pointer-events: none; }
+.rr-switch {
+  position: relative; flex: 0 0 44px; height: 25px;
+  background: var(--rr-line-strong); border-radius: 99px;
+  transition: background var(--rr-mid) var(--rr-ease);
+}
+.rr-switch::after {
+  content: ""; position: absolute; top: 3px; left: 3px; width: 19px; height: 19px;
+  background: #fff; border-radius: 50%; box-shadow: var(--rr-sh-xs);
+  transition: transform var(--rr-mid) var(--rr-spring);
+}
+.rr-toggle-row input:checked ~ .rr-switch { background: var(--rr-green); }
+.rr-toggle-row input:checked ~ .rr-switch::after { transform: translateX(19px); }
+
+/* =============================================================================
+   Planes
+   ============================================================================= */
+
+.rr-plans-head { text-align: center; max-width: 640px; margin: 0 auto 30px; }
+.rr-plans-head h2 { font-size: clamp(24px, 3.4vw, 32px); margin-bottom: 8px; }
+.rr-plans-head p { color: var(--rr-text-muted); font-size: 15px; }
+
+.rr-cycle-switch {
+  display: inline-flex; gap: 4px; padding: 4px; margin-top: 8px;
+  background: var(--rr-paper-2); border-radius: var(--rr-r-pill);
+}
+.rr-cycle-switch button {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: none; border: none; cursor: pointer;
+  font-family: inherit; font-size: 13.5px; font-weight: 700; color: var(--rr-text-muted);
+  padding: 9px 17px; border-radius: var(--rr-r-pill);
+  transition: background var(--rr-mid) var(--rr-ease), color var(--rr-mid) var(--rr-ease), box-shadow var(--rr-mid) var(--rr-ease);
+}
+.rr-cycle-switch button:hover { color: var(--rr-ink); }
+.rr-cycle-switch button.on { background: var(--rr-white); color: var(--rr-ink); box-shadow: var(--rr-sh-xs); }
+.rr-cycle-off {
+  font-size: 10.5px; font-weight: 800; letter-spacing: .03em;
+  background: var(--rr-green-soft); color: var(--rr-green);
+  padding: 2px 7px; border-radius: 99px;
+}
+
+.rr-plan-grid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); align-items: start; max-width: 1020px; margin: 0 auto; }
+
+.rr-plan {
+  position: relative; background: var(--rr-white);
+  border: 1px solid var(--rr-line); border-radius: var(--rr-r-lg);
+  padding: 30px 26px 26px; display: flex; flex-direction: column;
+  animation: rr-fade-up .45s var(--rr-ease) both;
+  transition: transform var(--rr-mid) var(--rr-ease), box-shadow var(--rr-mid) var(--rr-ease);
+}
+.rr-plan:hover { transform: translateY(-4px); box-shadow: var(--rr-sh-md); }
+.rr-plan.popular { border-color: var(--rr-red); box-shadow: var(--rr-sh-md); }
+.rr-plan.current { border-color: var(--rr-blue); }
+.rr-plan-flag {
+  position: absolute; top: -11px; left: 50%; transform: translateX(-50%); white-space: nowrap;
+  background: var(--rr-red); color: #fff;
+  font-size: 11px; font-weight: 800; letter-spacing: .03em;
+  padding: 5px 14px; border-radius: 99px; box-shadow: var(--rr-sh-sm);
+}
+.rr-plan-flag.current { background: var(--rr-blue); }
+.rr-plan.current.popular .rr-plan-flag:not(.current) { display: none; }
+
+.rr-plan h3 { font-size: 21px; margin: 0 0 4px; }
+.rr-plan-tag { font-size: 13.5px; color: var(--rr-text-muted); margin: 0 0 18px; line-height: 1.5; min-height: 40px; }
+.rr-plan-price { display: flex; align-items: baseline; gap: 7px; }
+.rr-plan-price strong { font-size: 40px; font-weight: 800; letter-spacing: -.03em; line-height: 1; color: var(--rr-ink); }
+.rr-plan-price span { font-size: 13.5px; color: var(--rr-text-muted); }
+.rr-plan-billing { font-size: 12.5px; color: var(--rr-text-faint); margin: 8px 0 20px; min-height: 18px; }
+.rr-plan-billing em { font-style: normal; color: var(--rr-green); font-weight: 700; margin-left: 6px; }
+
+.rr-plan-list { list-style: none; padding: 0; margin: 0 0 22px; flex: 1; }
+.rr-plan-list li { position: relative; padding: 0 0 0 26px; margin-bottom: 11px; font-size: 13.8px; line-height: 1.5; color: var(--rr-text); }
+.rr-plan-list li::before {
+  content: "✓"; position: absolute; left: 0; top: -1px;
+  color: var(--rr-green); font-weight: 800; font-size: 14px;
+}
+.rr-plan.accent-red .rr-plan-list li::before { color: var(--rr-red); }
+.rr-plan.accent-gold .rr-plan-list li::before { color: var(--rr-gold); }
+
+.rr-plans-note {
+  text-align: center; max-width: 620px; margin: 28px auto 0;
+  font-size: 12.5px; color: var(--rr-text-faint); line-height: 1.6;
+}
+
+/* =============================================================================
+   Cuenta y perfil
+   ============================================================================= */
+
+.rr-profile-grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 22px; align-items: start; }
+@media (max-width: 960px) { .rr-profile-grid { grid-template-columns: 1fr; } }
+
+.rr-profile-card { padding: 26px; }
+.rr-profile-top { display: flex; align-items: center; gap: 18px; margin-bottom: 24px; flex-wrap: wrap; }
+.rr-profile-top h3 { font-size: 20px; margin: 0 0 6px; }
+.rr-profile-top p { font-size: 12.5px; margin: 8px 0 0; }
+
+.rr-photo {
+  position: relative; display: block; width: 88px; height: 88px; flex-shrink: 0;
+  border-radius: 50%; overflow: hidden; cursor: pointer;
+  border: 2px solid var(--rr-line); background: var(--rr-paper-2);
+  transition: border-color var(--rr-fast) var(--rr-ease);
+}
+.rr-photo:hover { border-color: var(--rr-red); }
+.rr-photo img { width: 100%; height: 100%; object-fit: cover; }
+.rr-photo-empty { display: grid; place-items: center; width: 100%; height: 100%; font-size: 34px; }
+.rr-photo-edit {
+  position: absolute; inset: auto 0 0 0; padding: 5px 0;
+  background: rgba(20, 16, 14, .72); color: #fff;
+  font-size: 10.5px; font-weight: 700; text-align: center; text-transform: uppercase; letter-spacing: .05em;
+  opacity: 0; transition: opacity var(--rr-fast) var(--rr-ease);
+}
+.rr-photo:hover .rr-photo-edit { opacity: 1; }
+
+.rr-rule { border: none; border-top: 1px solid var(--rr-line); margin: 22px 0; }
+
+.rr-summary { padding: 22px; }
+.rr-summary h3 { font-size: 16px; margin-bottom: 14px; }
+.rr-summary-rows { display: grid; gap: 1px; background: var(--rr-line); border-radius: var(--rr-r-xs); overflow: hidden; }
+.rr-summary-rows > div {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  background: var(--rr-white); padding: 11px 13px;
+}
+.rr-summary-rows span { font-size: 12.5px; color: var(--rr-text-muted); }
+.rr-summary-rows strong { font-size: 14px; text-align: right; }
+
+.rr-set-card { padding: 22px; margin-bottom: 14px; max-width: 640px; }
+.rr-set-card h3 { font-size: 16px; margin-bottom: 6px; }
+.rr-set-card p { font-size: 13.5px; margin-bottom: 14px; }
+.rr-set-card code { background: var(--rr-paper-2); padding: 2px 6px; border-radius: 5px; font-family: var(--rr-mono); font-size: 12.5px; }
+
+.rr-tasks-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 22px; align-items: start; }
+@media (max-width: 1000px) { .rr-tasks-wrap { grid-template-columns: 1fr; } }
+.rr-tasks-side { padding: 22px; }
+.rr-tasks-side h3 { font-size: 16px; margin-bottom: 14px; }
+.rr-mini-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+.rr-mini-stats > div { text-align: center; background: var(--rr-paper); border-radius: var(--rr-r-xs); padding: 12px 6px; }
+.rr-mini-stats strong { display: block; font-size: 24px; line-height: 1; color: var(--rr-ink); }
+.rr-mini-stats span { font-size: 11px; color: var(--rr-text-muted); }
+.rr-mini-stats .alert strong { color: var(--rr-danger); }
+
+/* Sección que ocupa el alto completo (el chat a pantalla entera). */
+.rr-section-full { display: flex; flex-direction: column; }
+
+/* El aviso de "se te acabó por hoy" dentro del chat. */
+.rr-limit-note {
+  display: flex; align-items: flex-start; gap: 14px;
+  background: var(--rr-gold-soft); border-radius: var(--rr-r-md);
+  padding: 16px 18px; animation: rr-fade-up .35s var(--rr-ease) both;
+}
+.rr-limit-note strong { display: block; font-size: 14.5px; margin-bottom: 5px; }
+.rr-limit-note p { font-size: 13.5px; margin: 0 0 10px; line-height: 1.55; color: var(--rr-text-muted); }
+
+/* Robin en modo tutor: la burbuja se marca, para que se note que no es que no
+   sepa la respuesta, es que no la va a dar. */
+.rr-bubble.tutor .txt { border-left: 3px solid var(--rr-blue); padding-left: 16px; }
+.rr-bubble.tutor .txt::after {
+  content: "Robin guía, no resuelve";
+  display: block; margin-top: 9px; font-size: 10.5px; font-weight: 800;
+  letter-spacing: .06em; text-transform: uppercase; color: #1D6373; opacity: .75;
+}
+
+/* =============================================================================
+   Asignaciones y entregas
+   ============================================================================= */
+
+.rr-assign-list { display: grid; gap: 12px; }
+.rr-assign {
+  background: var(--rr-white); border: 1px solid var(--rr-line);
+  border-left: 4px solid var(--rr-line-strong);
+  border-radius: var(--rr-r-sm); padding: 18px 20px;
+  animation: rr-fade-up .35s var(--rr-ease) both;
+  transition: border-color var(--rr-fast) var(--rr-ease), box-shadow var(--rr-fast) var(--rr-ease);
+}
+.rr-assign:hover { box-shadow: var(--rr-sh-sm); }
+.rr-assign.pendiente { border-left-color: var(--rr-gold); }
+.rr-assign.atrasada { border-left-color: var(--rr-danger); }
+.rr-assign.entregada { border-left-color: var(--rr-blue); }
+.rr-assign.calificada { border-left-color: var(--rr-green); }
+.rr-assign-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.rr-assign h3 { font-size: 16px; margin: 0 0 4px; }
+.rr-assign .meta { font-size: 12px; color: var(--rr-text-faint); margin-bottom: 8px; }
+.rr-assign p { font-size: 13.8px; color: var(--rr-text-muted); margin: 0 0 12px; line-height: 1.6; }
+.rr-assign-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.rr-assign-state {
+  font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase;
+  padding: 4px 11px; border-radius: 99px; white-space: nowrap;
+}
+.rr-assign-state.pendiente { background: var(--rr-gold-soft); color: #8A5D00; }
+.rr-assign-state.atrasada { background: var(--rr-danger-soft); color: var(--rr-danger); }
+.rr-assign-state.entregada { background: var(--rr-blue-soft); color: #1D6373; }
+.rr-assign-state.calificada { background: var(--rr-green-soft); color: var(--rr-green); }
+
+.rr-assign-work { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--rr-line); }
+.rr-assign-work textarea { min-height: 130px; }
+.rr-assign-plan {
+  background: var(--rr-blue-soft); border-radius: var(--rr-r-sm);
+  padding: 14px 16px; margin-top: 12px; font-size: 13.8px; line-height: 1.65; white-space: pre-wrap;
+}
+.rr-assign-grade {
+  display: inline-flex; align-items: baseline; gap: 5px;
+  background: var(--rr-green-soft); color: var(--rr-green);
+  border-radius: var(--rr-r-xs); padding: 7px 13px; font-weight: 800; font-size: 15px;
+}
+.rr-assign-grade small { font-weight: 600; font-size: 11.5px; opacity: .8; }
+
+/* =============================================================================
+   Códigos de ingreso
+   ============================================================================= */
+
+.rr-code-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); margin-bottom: 26px; }
+.rr-code-card { padding: 22px; text-align: center; }
+.rr-code-card h3 { font-size: 15px; margin-bottom: 4px; }
+.rr-code-card > p { font-size: 12.5px; color: var(--rr-text-muted); margin-bottom: 14px; min-height: 36px; }
+.rr-code-value {
+  display: block; font-family: var(--rr-mono); font-size: 27px; font-weight: 700; letter-spacing: .09em;
+  background: var(--rr-paper); border: 1px dashed var(--rr-line-strong);
+  border-radius: var(--rr-r-sm); padding: 14px 10px; margin-bottom: 12px; color: var(--rr-ink);
+  word-break: break-all;
+}
+.rr-code-value.hidden-code { color: var(--rr-text-faint); font-size: 14px; letter-spacing: 0; font-family: var(--rr-font); }
+
+.rr-code-table { width: 100%; }
+.rr-code-state {
+  font-size: 10.5px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase;
+  padding: 3px 9px; border-radius: 99px;
+}
+.rr-code-state.listo { background: var(--rr-green-soft); color: var(--rr-green); }
+.rr-code-state.usado { background: var(--rr-paper-2); color: var(--rr-text-faint); }
+.rr-code-state.anulado { background: var(--rr-danger-soft); color: var(--rr-danger); }
+.rr-code-mono { font-family: var(--rr-mono); font-weight: 700; letter-spacing: .05em; }
+
+/* Confirmar en dos tiempos: el botón cambia y pide que se vuelva a pulsar.
+   Vale para invitar, para anular y para cualquier cosa que no se deshace. */
+.btn.rr-confirming {
+  background: var(--rr-gold) !important; color: var(--rr-ink) !important;
+  animation: rr-pulse-confirm 1.1s var(--rr-ease) infinite;
+}
+@keyframes rr-pulse-confirm {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(242, 168, 27, .5); }
+  50% { box-shadow: 0 0 0 7px rgba(242, 168, 27, 0); }
+}
+
+/* =============================================================================
+   Entrar y crear cuenta: media pantalla de formulario, media de foto
+   ============================================================================= */
+
+.rr-auth-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); min-height: 100vh; }
+@media (max-width: 940px) { .rr-auth-split { grid-template-columns: 1fr; } }
+
+.rr-auth-form-side {
+  display: flex; flex-direction: column; justify-content: center;
+  padding: 44px clamp(24px, 5vw, 72px); background: var(--rr-paper);
+}
+.rr-auth-inner { width: 100%; max-width: 420px; margin: 0 auto; animation: rr-fade-up .5s var(--rr-ease) both; }
+.rr-auth-inner.wide { max-width: 560px; }
+.rr-auth-back {
+  /* Cuelga de la columna, no del formulario: en pantalla grande se va a la
+     esquina (ver el @media de más abajo) y en pantalla estrecha se queda
+     encima del formulario, pegado a la izquierda y sin estirarse. */
+  display: inline-flex; align-self: flex-start; align-items: center; gap: 7px; margin-bottom: 30px;
+  font-size: 13.5px; font-weight: 600; color: var(--rr-text-muted);
+  transition: color var(--rr-fast) var(--rr-ease), transform var(--rr-fast) var(--rr-ease);
+}
+.rr-auth-back:hover { color: var(--rr-red); transform: translateX(-3px); }
+.rr-auth-inner h1 { font-size: clamp(26px, 3.4vw, 33px); margin-bottom: 7px; }
+.rr-auth-inner .lead { color: var(--rr-text-muted); font-size: 15px; margin-bottom: 28px; }
+.rr-auth-inner .rr-brand { margin-bottom: 20px; font-size: 17px; color: var(--rr-text-muted); }
+.rr-auth-inner .rr-brand:hover { color: var(--rr-ink); }
+
+/* El lado de la foto. La imagen cambia en cada recarga, así que entrar dos
+   veces seguidas nunca se ve igual. */
+.rr-auth-art-side { position: relative; overflow: hidden; background: var(--rr-ink); }
+@media (max-width: 940px) { .rr-auth-art-side { min-height: 210px; order: -1; } }
+.rr-auth-art-img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  animation: rr-auth-art 22s var(--rr-ease) both;
+}
+@keyframes rr-auth-art {
+  from { transform: scale(1.1); filter: saturate(.85); }
+  to { transform: scale(1.0); filter: saturate(1); }
+}
+.rr-auth-art-side::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(190deg, rgba(20, 16, 14, 0) 0%, rgba(20, 16, 14, .06) 45%, rgba(20, 16, 14, .5) 76%, rgba(20, 16, 14, .84) 100%);
+}
+.rr-auth-quote {
+  position: absolute; inset: auto 0 0 0; z-index: 1;
+  padding: clamp(26px, 4vw, 46px); color: #fff;
+  animation: rr-fade-up .8s .25s var(--rr-ease) both;
+}
+.rr-auth-quote .rr-mascot { width: 62px; height: 62px; margin-bottom: 14px; }
+.rr-auth-quote p { font-size: clamp(17px, 2.1vw, 22px); font-weight: 650; line-height: 1.45; margin: 0 0 8px; max-width: 24ch; letter-spacing: -.015em; }
+.rr-auth-quote small { font-size: 12.5px; color: rgba(255, 255, 255, .62); }
+
+.rr-auth-switch { text-align: center; font-size: 14px; color: var(--rr-text-muted); margin-top: 22px; }
+.rr-auth-switch a { color: var(--rr-red); font-weight: 700; }
+.rr-auth-switch a:hover { text-decoration: underline; }
+
+/* =============================================================================
+   Modo peques: parvularia y los primeros grados
+   ============================================================================= */
+
+.rr-kids {
+  min-height: 100vh; display: flex; flex-direction: column;
+  background:
+    radial-gradient(1200px 520px at 50% -180px, var(--rr-gold-soft), transparent 70%),
+    var(--rr-paper);
+}
+.rr-kids-top {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  padding: 18px clamp(18px, 4vw, 40px);
+}
+.rr-kids-hi { display: flex; align-items: center; gap: 13px; }
+.rr-kids-hi .rr-avatar { width: 46px; height: 46px; flex: 0 0 46px; border: 2px solid var(--rr-white); box-shadow: var(--rr-sh-xs); }
+.rr-kids-hi strong { display: block; font-size: 19px; }
+.rr-kids-hi small { font-size: 13px; color: var(--rr-text-muted); }
+
+.rr-kids-stage { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px 20px 30px; text-align: center; }
+.rr-kids-robin { width: min(280px, 58vw); height: auto; margin-bottom: 8px; }
+.rr-kids-bubble {
+  position: relative; background: var(--rr-white);
+  border: 2px solid var(--rr-line); border-radius: var(--rr-r-xl);
+  padding: 20px 28px; max-width: 620px; box-shadow: var(--rr-sh-sm);
+  font-size: clamp(19px, 2.6vw, 25px); font-weight: 650; line-height: 1.4; color: var(--rr-ink);
+  animation: rr-pop-in .4s var(--rr-spring) both;
+}
+.rr-kids-bubble::before {
+  content: ""; position: absolute; top: -13px; left: 50%; transform: translateX(-50%);
+  border: 12px solid transparent; border-bottom-color: var(--rr-line); border-top: 0;
+}
+.rr-kids-bubble::after {
+  content: ""; position: absolute; top: -10px; left: 50%; transform: translateX(-50%);
+  border: 11px solid transparent; border-bottom-color: var(--rr-white); border-top: 0;
+}
+
+.rr-kids-actions { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; margin-top: 28px; }
+.rr-kids-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  min-width: 132px; padding: 20px 22px;
+  background: var(--rr-white); border: 3px solid var(--rr-line);
+  border-radius: var(--rr-r-lg); cursor: pointer;
+  font-family: inherit; font-size: 16px; font-weight: 750; color: var(--rr-ink);
+  box-shadow: var(--rr-sh-sm);
+  transition: transform var(--rr-mid) var(--rr-spring), border-color var(--rr-mid) var(--rr-ease), box-shadow var(--rr-mid) var(--rr-ease);
+}
+.rr-kids-btn .ic { font-size: 40px; line-height: 1; }
+.rr-kids-btn:hover { transform: translateY(-6px) scale(1.03); border-color: var(--rr-red); box-shadow: var(--rr-sh-md); }
+.rr-kids-btn:active { transform: translateY(-1px) scale(.98); }
+.rr-kids-btn.mic.on { border-color: var(--rr-red); background: var(--rr-red-soft); animation: rr-mic 1.2s var(--rr-ease) infinite; }
+@keyframes rr-mic {
+  0%, 100% { box-shadow: 0 0 0 0 var(--rr-red-glow); }
+  50% { box-shadow: 0 0 0 14px rgba(226, 58, 27, 0); }
+}
+
+.rr-kids-say { display: flex; gap: 10px; margin-top: 26px; width: min(560px, 92vw); }
+.rr-kids-say input {
+  flex: 1; font-size: 18px; padding: 16px 20px; border-radius: var(--rr-r-pill);
+  border: 3px solid var(--rr-line); text-align: center;
+}
+.rr-kids-say input:focus { border-color: var(--rr-red); }
+.rr-kids-say button {
+  flex: 0 0 64px; height: 64px; border-radius: 50%; border: none;
+  background: var(--rr-red); color: #fff; font-size: 24px; cursor: pointer;
+  box-shadow: var(--rr-sh-glow);
+  transition: transform var(--rr-mid) var(--rr-spring);
+}
+.rr-kids-say button:hover { transform: scale(1.08); }
+
+.rr-kids-games { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; width: min(760px, 94vw); margin-top: 8px; }
+.rr-kids-game {
+  background: var(--rr-white); border: 3px solid var(--rr-line); border-radius: var(--rr-r-lg);
+  padding: 22px 16px; cursor: pointer; font-family: inherit; text-align: center;
+  box-shadow: var(--rr-sh-sm);
+  transition: transform var(--rr-mid) var(--rr-spring), border-color var(--rr-mid) var(--rr-ease);
+}
+.rr-kids-game:hover { transform: translateY(-5px) rotate(-1.5deg); border-color: var(--rr-gold); }
+.rr-kids-game .ic { font-size: 46px; display: block; margin-bottom: 8px; }
+.rr-kids-game strong { font-size: 16px; display: block; }
+.rr-kids-game small { font-size: 12.5px; color: var(--rr-text-muted); }
+.rr-kids-game[disabled] { opacity: .45; cursor: not-allowed; transform: none; }
+
+.rr-kids-option {
+  font-size: clamp(20px, 3vw, 28px); font-weight: 750;
+  padding: 22px 18px; border-width: 3px; justify-content: center; text-align: center;
+}
+.rr-kids-option .k { display: none; }
+
+/* =============================================================================
+   Tablas compactas de los paneles de escuela
+   ============================================================================= */
+
+.rr-people-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+.rr-person {
+  display: flex; gap: 13px; align-items: flex-start;
+  background: var(--rr-white); border: 1px solid var(--rr-line);
+  border-radius: var(--rr-r-sm); padding: 15px 16px;
+  animation: rr-pop-in .35s var(--rr-ease) both;
+}
+.rr-person .rr-avatar { width: 40px; height: 40px; flex: 0 0 40px; }
+.rr-person-main { flex: 1; min-width: 0; }
+.rr-person-main strong { display: block; font-size: 14.5px; }
+.rr-person-main .id { font-family: var(--rr-mono); font-size: 11.5px; color: var(--rr-text-faint); }
+.rr-person-main .mail { font-size: 12px; color: var(--rr-text-muted); overflow: hidden; text-overflow: ellipsis; }
+.rr-person-tags { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 7px; }
+.rr-person-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.pill-subdirector { background: var(--rr-blue-soft); color: #1D6373; }
+.pill-secretary { background: var(--rr-gold-soft); color: #8A5D00; }
+
+/* Robin en las pantallas de entrar y crear cuenta: cambia de cara según cómo
+   vaya el formulario, así que necesita su propio sitio y su propio tamaño. */
+.rr-auth-robin { display: block; margin-bottom: 14px; }
+.rr-auth-robin .rr-mascot { width: 76px; height: 76px; }
+.rr-auth-robin .rr-pose { width: auto; height: auto; max-height: 92px; }
+
+/* Subtítulo dentro de una sección, para separar dos listas distintas. */
+.rr-sub-h {
+  font-size: 15px; margin: 30px 0 10px;
+  color: var(--rr-text-muted); text-transform: uppercase;
+  letter-spacing: .07em; font-weight: 800;
+}
+.rr-sub-h:first-of-type { margin-top: 4px; }
+
+/* Un campo que existe pero no se puede tocar, con el motivo al lado. Mejor que
+   esconderlo: así se sabe que la contraseña sí se puede cambiar, y quién. */
+.rr-locked-note {
+  background: var(--rr-paper-2); border: 1px dashed var(--rr-line-strong);
+  border-radius: var(--rr-r-xs); padding: 13px 15px;
+  font-size: 13px; color: var(--rr-text-muted); line-height: 1.55;
+}
+
+/* El código para compartir de una clase, en la esquina de su tarjeta. */
+.rr-class-code { text-align: right; margin-bottom: 6px; }
+.rr-class-code small {
+  display: block; font-size: 10.5px; font-weight: 800; letter-spacing: .07em;
+  text-transform: uppercase; color: var(--rr-text-faint); margin-bottom: 3px;
+}
+.rr-class-code strong { font-size: 19px; letter-spacing: .12em; color: var(--rr-ink); }
+
+/* Tabla de "quién puede qué". Una fila por acción, con los cargos al lado. */
+.rr-perm-table { display: grid; gap: 1px; background: var(--rr-line); border-radius: var(--rr-r-xs); overflow: hidden; }
+.rr-perm-row {
+  display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 14px;
+  background: var(--rr-white); padding: 11px 14px; font-size: 13px; align-items: center;
+}
+@media (max-width: 620px) { .rr-perm-row { grid-template-columns: 1fr; gap: 6px; } }
+.rr-perm-row > span:last-child { display: flex; gap: 5px; flex-wrap: wrap; }
+.rr-perm-row em {
+  font-style: normal; font-size: 11px; font-weight: 700;
+  background: var(--rr-paper-2); color: var(--rr-text-muted);
+  padding: 3px 9px; border-radius: 99px; white-space: nowrap;
+}
+
+/* Estudiantes por nivel: la barra dice más de un vistazo que el número solo. */
+.rr-level-row { display: grid; grid-template-columns: 110px 1fr 34px; gap: 10px; align-items: center; margin-bottom: 9px; font-size: 13px; }
+.rr-level-row strong { text-align: right; }
+.rr-level-bar { height: 8px; background: var(--rr-paper-2); border-radius: 99px; overflow: hidden; }
+.rr-level-bar i { display: block; height: 100%; background: var(--rr-red); border-radius: 99px; animation: rr-grow .7s var(--rr-ease) both; }
+@keyframes rr-grow { from { transform: scaleX(0); transform-origin: left; } to { transform: scaleX(1); } }
+
+/* Formulario que se despliega dentro de una tarjeta, en vez de abrir una
+   ventana del navegador. Se ve dónde estás mientras escribes, que es
+   justo lo que un prompt() te quita. */
+.rr-inline-form {
+  background: var(--rr-paper); border: 1px dashed var(--rr-line-strong);
+  border-radius: var(--rr-r-sm); padding: 14px 16px; margin-top: 12px;
+  animation: rr-fade-up .25s var(--rr-ease) both;
+}
+.rr-inline-form label { display: block; font-size: 12.5px; font-weight: 700; margin-bottom: 7px; color: var(--rr-ink); }
+.rr-inline-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.rr-inline-row input { flex: 1; min-width: 190px; }
+.rr-inline-form small { display: block; margin-top: 8px; font-size: 12px; color: var(--rr-text-muted); line-height: 1.5; }
+
+/* =============================================================================
+   RobinAI en la barra lateral
+   =============================================================================
+   El bloque de Robin dejó de estar suelto arriba: ahora es su propio piso,
+   debajo del menú, con su título, su botón de conversación nueva y el
+   historial. Así la barra se lee de arriba abajo como lo que es — primero
+   dónde estás, luego con quién hablas. */
+
+.rr-side-robin-label {
+  cursor: pointer; border-radius: var(--rr-r-xs);
+  margin-top: 6px;
+  transition: color var(--rr-fast) var(--rr-ease), background var(--rr-fast) var(--rr-ease);
+}
+.rr-side-robin-label:hover { color: rgba(255, 255, 255, .72); background: rgba(255, 255, 255, .05); }
+.rr-side-robin-label > span { display: inline-flex; align-items: center; gap: 8px; }
+.rr-side-robin-label .ic { font-size: 12px; }
+.rr-side-chats .rr-new-chat { margin-bottom: 8px; }
+
+/* Subtítulo de tercer nivel: dentro de un bloque que ya tiene su .rr-sub-h.
+   Hace falta desde que varias pantallas se fusionaron en una. */
+.rr-sub-h2 {
+  font-size: 13px; margin: 20px 0 8px;
+  color: var(--rr-text-faint); text-transform: uppercase;
+  letter-spacing: .06em; font-weight: 800;
+}
+/* Un .rr-sub-h que además lleva un botón a la derecha. */
+.rr-sub-title { margin-top: 30px; }
+.rr-sub-title .rr-sub-h { margin: 0; }
+
+/* =============================================================================
+   El margen de Robin de toda la escuela (panel de dirección)
+   ============================================================================= */
+
+.rr-limit-row {
+  display: grid; grid-template-columns: 190px 1fr 74px;
+  align-items: center; gap: 14px;
+  padding: 13px 0; border-bottom: 1px solid var(--rr-line);
+}
+.rr-limit-row:last-of-type { border-bottom: none; }
+@media (max-width: 620px) {
+  .rr-limit-row { grid-template-columns: 1fr 64px; }
+  .rr-limit-who { grid-column: 1 / -1; }
+}
+.rr-limit-who { display: flex; align-items: center; gap: 9px; font-size: 14.5px; }
+.rr-limit-who .ic { font-size: 17px; }
+.rr-limit-row input[type="range"] { width: 100%; accent-color: var(--rr-red); cursor: pointer; }
+.rr-limit-out {
+  font-family: var(--rr-mono); font-size: 15px; font-weight: 700;
+  text-align: right; color: var(--rr-text-muted);
+}
+.rr-limit-out.subido { color: var(--rr-red-dark); }
+
+/* La comparación de un plan contra el Gratis, en porcentaje: es lo primero que
+   se mira de una tarjeta de plan. */
+.rr-plan-compare {
+  display: inline-block; margin: -10px 0 16px;
+  font-size: 12px; font-weight: 800; letter-spacing: .03em;
+  padding: 4px 11px; border-radius: 99px;
+  background: var(--rr-paper-2); color: var(--rr-text-muted);
+}
+.rr-plan.popular .rr-plan-compare { background: var(--rr-red-soft); color: var(--rr-red-dark); }
+
+/* La marca sin pajarito: sola, tiene que sostener la pantalla ella misma. */
+.rr-brand-xl { font-size: 24px; font-weight: 800; letter-spacing: -.035em; }
+
+/* =============================================================================
+   Entrar y crear cuenta en pantalla grande
+   =============================================================================
+   En una laptop ancha el formulario ya no tiene por qué llevar el "volver"
+   dentro de la columna, robándole altura al contenido: se va a la esquina de
+   la pantalla, que es donde se busca. En móvil se queda donde estaba, encima
+   del formulario, porque ahí una esquina flotante estorba. */
+
+@media (min-width: 941px) {
+  /* El hueco de arriba es para el "volver": la columna sigue centrada, pero
+     dentro de lo que queda, así que el contenido no puede subir hasta chocar
+     con la pastilla de la esquina por corta que sea la ventana. */
+  .rr-auth-form-side { position: relative; padding-top: 108px; }
+  .rr-auth-back {
+    position: absolute; top: 28px; left: 30px; margin-bottom: 0; z-index: 2;
+    background: var(--rr-white); border: 1px solid var(--rr-line);
+    border-radius: 99px; padding: 9px 17px;
+    box-shadow: var(--rr-sh-xs);
+  }
+  .rr-auth-back:hover { border-color: var(--rr-red); }
+}
+
+/* =============================================================================
+   Pantallas grandes: que los paneles usen la laptop entera
+   =============================================================================
+   Igual que en la portada: a 1440 px o más, todo lo que se lee crece — la
+   barra lateral, el texto, las tarjetas y las separaciones — en vez de dejar
+   una aplicación diminuta flotando en medio de un monitor enorme. Por debajo
+   de 1440 px no cambia absolutamente nada. */
+
+@media (min-width: 1440px) {
+  :root { --rr-sidebar-w: 300px; }
+
+  .rr-main { padding: 44px 64px 110px; max-width: 1760px; }
+  .rr-topbar h1 { font-size: 34px; }
+  .rr-topbar .sub { font-size: 16px; }
+
+  .rr-sidebar { padding: 24px 16px 18px; }
+  .rr-side-link { font-size: 16px; padding: 12px 16px; }
+  .rr-side-link .ic { font-size: 17px; width: 22px; }
+  .rr-new-chat { font-size: 15.5px; padding: 13px 16px; }
+  .rr-rail-item { font-size: 14.5px; padding: 9px 12px 9px 13px; }
+  .rr-usage-top strong { font-size: 14px; }
+  .rr-side-user-text strong { font-size: 15px; }
+  .rr-side-user-text small { font-size: 12.5px; }
+
+  .rr-section-title h2 { font-size: 24px; }
+  .rr-section-lead { font-size: 15.5px; max-width: 760px; }
+  .rr-sub-h { font-size: 16px; }
+  .rr-sub-h2 { font-size: 14px; }
+  .card { font-size: 15.5px; }
+  .btn { font-size: 15.5px; }
+  .btn-sm { font-size: 14px; }
+  .field label { font-size: 14.5px; }
+  .field input, .field select, .field textarea { font-size: 16px; }
+  .rr-table { font-size: 15px; }
+  .rr-chat-body { font-size: 16px; }
+  .rr-form-card { max-width: 920px; }
+
+  /* Entrar y crear cuenta: la columna del formulario también respira. */
+  .rr-auth-inner { max-width: 500px; }
+  .rr-auth-inner.wide { max-width: 700px; }
+  .rr-auth-inner h1 { font-size: 40px; }
+  .rr-auth-inner .lead { font-size: 17px; }
+  .rr-auth-robin .rr-mascot { width: 108px; height: 108px; }
+  .rr-auth-robin .rr-pose { max-height: 124px; }
+  .rr-auth-quote p { font-size: 26px; max-width: 26ch; }
+  .rr-auth-quote small { font-size: 14px; }
+  .rr-auth-back { top: 38px; left: 44px; font-size: 15px; padding: 11px 20px; }
+  .rr-auth-form-side { padding-top: 124px; }
+  .rr-choice { padding: 24px 22px; }
+  .rr-choice .t { font-size: 17px; }
+  .rr-choice .d { font-size: 14px; }
+  .rr-choice .ic { font-size: 26px; }
+  .rr-choice-grid { gap: 16px; }
+  .level-card { padding: 20px 14px; }
+  .rr-auth-switch { font-size: 15px; }
+  .hint { font-size: 13.5px; }
+}
+
+@media (min-width: 1800px) {
+  :root { --rr-sidebar-w: 330px; }
+  .rr-main { padding: 54px 84px 130px; }
+  .rr-topbar h1 { font-size: 38px; }
+  .rr-auth-inner { max-width: 560px; }
+  .rr-auth-inner.wide { max-width: 800px; }
+  .rr-auth-robin .rr-mascot { width: 128px; height: 128px; }
+}
+
+/* RobinAI encendido: es la sección que está abierta ahora mismo. */
+.rr-side-robin-label.on { color: #fff; background: rgba(255, 255, 255, .07); }
+
+/* Aire entre bloques que se dibujan solos dentro de una sección compartida
+   (los pendientes y los minijuegos dentro de "Mis clases"). Sin esto quedan
+   pegados al bloque de arriba y parecen parte de él. */
+.rr-lead-gap { margin-top: 34px; }
+.rr-block-gap { margin-top: 38px; }
+
+/* =============================================================================
+   La ventana de los minijuegos
+   ============================================================================= */
+/* Jugar pasa aquí dentro, encima de todo lo demás. El panel sigue existiendo
+   debajo pero no se ve ni se puede mover: jugar no tiene por qué sentirse como
+   rellenar un formulario más, debajo del menú y del "Hola, fulano".
+
+   La pantalla se parte en dos, y el reparto no es casual: el reto a la
+   izquierda, que es por donde se empieza a leer, y Robin a la derecha, que es
+   a donde se levanta la vista buscando ayuda. */
+
+body.rr-arcade-open { overflow: hidden; }
+
+.rr-arcade {
+  position: fixed; inset: 0; z-index: 400;
+  display: flex; flex-direction: column;
+  background: var(--rr-paper);
+  animation: rr-arcade-in .28s var(--rr-ease) both;
+}
+@keyframes rr-arcade-in { from { opacity: 0; transform: scale(.985); } to { opacity: 1; transform: none; } }
+
+.rr-arcade-top {
+  display: flex; align-items: center; gap: 16px;
+  padding: 12px 20px; border-bottom: 1px solid var(--rr-line);
+  background: var(--rr-white); flex: 0 0 auto;
+}
+.rr-arcade-x {
+  border: 1px solid var(--rr-line); background: var(--rr-white);
+  border-radius: var(--rr-r-pill); padding: 8px 15px;
+  font: inherit; font-size: 13.5px; font-weight: 700; color: var(--rr-text-muted);
+  cursor: pointer; transition: all var(--rr-fast) var(--rr-ease); flex: 0 0 auto;
+}
+.rr-arcade-x:hover { border-color: var(--rr-red); color: var(--rr-red-dark); background: var(--rr-red-soft); }
+
+.rr-arcade-title { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
+.rr-arcade-title .ic { font-size: 28px; line-height: 1; }
+.rr-arcade-title strong { display: block; font-size: 16px; }
+.rr-arcade-title small { font-size: 12.5px; color: var(--rr-text-muted); }
+
+.rr-arcade-streak { text-align: center; min-width: 62px; flex: 0 0 auto; }
+.rr-arcade-streak strong { display: block; font-size: 24px; color: var(--rr-red); line-height: 1; }
+.rr-arcade-streak small { font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--rr-text-faint); }
+
+.rr-arcade-body { flex: 1; min-height: 0; overflow: auto; }
+.rr-arcade-body.gallery { padding: 30px 32px 60px; }
+.rr-arcade-gallery { max-width: 1140px; margin: 0 auto; }
+
+/* Jugando: la pantalla partida por la mitad.
+ *
+ *   izquierda   el reto
+ *   derecha     Robin, grande, con lo que dice justo debajo
+ *
+ * Robin ocupa de verdad media pantalla: es el que acompaña, y a tamaño de
+ * icono no acompañaba nada. Lo que dice va DEBAJO de él y no encima, que es
+ * donde se mira después de mirarlo a él. */
+.rr-arcade-body.playing {
+  display: grid; grid-template-columns: 1fr 1fr;
+  overflow: hidden;
+}
+
+.rr-arcade-play {
+  display: flex; flex-direction: column; min-width: 0;
+  overflow: auto; padding: 34px 32px 0;
+}
+.rr-arcade-play .rr-board-stage { flex: 1; padding: 0 0 20px; min-height: 0; }
+.rr-arcade-play .rr-board-actions {
+  border-top: 1px solid var(--rr-line); margin-top: 20px;
+  padding: 16px 0 20px; position: sticky; bottom: 0; background: var(--rr-paper);
+}
+
+/* Los botones de ayuda, grandes: son la razón por la que Robin está ahí y se
+   pulsan con prisa, justo cuando uno se atoró. */
+.rr-arcade-play .rr-board-actions .btn {
+  font-size: 15px; padding: 13px 20px; border-radius: var(--rr-r-pill);
+}
+
+/* ---- La mitad de Robin ---------------------------------------------------- */
+
+.rr-buddy {
+  min-width: 0; overflow: hidden;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 20px 26px 24px; gap: 14px;
+  border-left: 1px solid var(--rr-line);
+  background: linear-gradient(180deg, var(--rr-white), var(--rr-paper));
+}
+/* Robin se lleva el espacio de arriba y crece con la ventana; el globo se
+   queda abajo con lo que necesite. */
+.rr-buddy-bird { flex: 1; min-height: 0; display: grid; place-items: center; width: 100%; }
+.rr-buddy-bird .rr-mascot {
+  width: auto; height: 100%; max-height: 100%; max-width: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 26px rgba(20, 20, 20, .12));
+}
+
+.rr-buddy-bubble {
+  flex: 0 0 auto; width: 100%; max-height: 42%; overflow-y: auto;
+  background: var(--rr-white); border: 1px solid var(--rr-line);
+  border-radius: 20px; padding: 17px 20px; box-shadow: var(--rr-sh-sm);
+}
+.rr-buddy-bubble[hidden] { display: none; }
+.rr-buddy-bubble p { margin: 0 0 8px; font-size: 15px; line-height: 1.6; }
+.rr-buddy-bubble p:last-child { margin-bottom: 0; }
+.rr-buddy-bubble em { display: block; font-style: normal; font-weight: 700; font-size: 14px; margin-bottom: 8px; color: var(--rr-ink); }
+.rr-buddy-bubble ol { margin: 0 0 8px; padding-left: 20px; font-size: 14.5px; line-height: 1.7; }
+.rr-buddy-bubble small, .rr-buddy-small { display: block; font-size: 12px; color: var(--rr-text-muted); }
+.rr-buddy-bubble .btn { margin-top: 10px; font-size: 14.5px; padding: 11px 18px; }
+.rr-buddy-bubble.ok { background: var(--rr-green-soft); border-color: transparent; }
+.rr-buddy-bubble.no { background: var(--rr-gold-soft); border-color: transparent; }
+.rr-buddy-bubble.help { background: var(--rr-blue-soft); border-color: transparent; }
+.rr-buddy-bubble.limit { background: var(--rr-gold-soft); border-color: transparent; }
+
+/* Al decir algo, el globo entra dando un saltito: es lo que hace que se note
+   que Robin reaccionó y no que el texto cambió solo. */
+.rr-buddy-pop { animation: rr-buddy-pop .34s var(--rr-spring) both; }
+@keyframes rr-buddy-pop {
+  from { opacity: 0; transform: translateY(10px) scale(.94); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* En pantalla angosta no se parte en dos: Robin se pone arriba, en pequeño,
+   y el reto ocupa el resto — que es lo que hay que ver. */
+@media (max-width: 900px) {
+  .rr-arcade-body.playing { display: flex; flex-direction: column; overflow: auto; }
+  .rr-arcade-play { padding: 22px 20px 0; overflow: visible; order: 2; }
+  .rr-buddy {
+    order: 1; border-left: none; border-bottom: 1px solid var(--rr-line);
+    flex-direction: row; align-items: center; padding: 14px 18px; gap: 14px;
+  }
+  .rr-buddy-bird { flex: 0 0 auto; width: auto; }
+  .rr-buddy-bird .rr-mascot { height: auto; max-height: 110px; }
+  .rr-buddy-bubble { max-height: none; padding: 13px 15px; }
+  .rr-buddy-bubble p { font-size: 14px; }
+  .rr-arcade-play .rr-board-actions .btn { font-size: 14px; padding: 11px 16px; }
+}
+
+/* La tarjeta que queda en el panel cuando los juegos viven en su ventana. */
+.rr-games-away { display: flex; align-items: center; gap: 20px; padding: 24px; max-width: 640px; }
+.rr-games-away-bird { width: auto; height: auto; max-height: 92px; flex: 0 0 auto; }
+.rr-games-away h3 { font-size: 17px; margin: 0 0 5px; }
+.rr-games-away p { font-size: 13.5px; color: var(--rr-text-muted); margin: 0 0 14px; }
+@media (max-width: 560px) { .rr-games-away { flex-direction: column; text-align: center; } }
+
+/* ---- Retos de armar con piezas -------------------------------------------- */
+/* Una fila de huecos arriba y el montón de piezas abajo. Las piezas se pueden
+   arrastrar o tocar: arrastrar en una tableta es incómodo y el reto tiene que
+   ser la materia, no la puntería. */
+
+.rr-round-lead { font-size: 14px; color: var(--rr-text-muted); margin: -14px 0 20px; }
+
+.rr-build { display: flex; flex-direction: column; gap: 22px; }
+
+.rr-build-slots {
+  display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+  min-height: 62px; padding: 14px 16px;
+  background: var(--rr-white); border: 2px dashed var(--rr-line-strong);
+  border-radius: var(--rr-r-md);
+  transition: border-color var(--rr-fast) var(--rr-ease);
+}
+.rr-build.tight .rr-build-slots { gap: 5px; }
+.rr-build-slots.right { border-color: var(--rr-green); border-style: solid; background: var(--rr-green-soft); }
+.rr-build-slots.wrong { border-color: var(--rr-danger); animation: rr-shake .4s var(--rr-ease); }
+
+.rr-build-slot {
+  display: grid; place-items: center;
+  min-width: 54px; height: 46px; padding: 0 12px;
+  border-radius: var(--rr-r-xs); background: var(--rr-paper-2);
+  border: 1px solid transparent;
+  font-size: 17px; font-weight: 700; color: var(--rr-ink);
+  cursor: default; transition: all var(--rr-fast) var(--rr-ease);
+}
+.rr-build.tight .rr-build-slot { min-width: 40px; padding: 0 6px; }
+.rr-build-slot.filled { background: var(--rr-ink); color: #fff; cursor: pointer; }
+.rr-build-slot.filled:hover { background: var(--rr-red); }
+.rr-build-slot.over { background: var(--rr-red-soft); border-color: var(--rr-red); }
+
+.rr-build-bank { display: flex; flex-wrap: wrap; gap: 10px; }
+.rr-build-piece {
+  min-width: 54px; height: 46px; padding: 0 14px;
+  border: 2px solid var(--rr-line); background: var(--rr-white);
+  border-radius: var(--rr-r-xs);
+  font: inherit; font-size: 17px; font-weight: 700; color: var(--rr-ink);
+  cursor: grab; animation: rr-pop-in .3s var(--rr-ease) both;
+  transition: all var(--rr-fast) var(--rr-ease);
+}
+.rr-build-piece:hover:not(.used) { border-color: var(--rr-red); transform: translateY(-2px); box-shadow: var(--rr-sh-sm); }
+.rr-build-piece.dragging { opacity: .4; cursor: grabbing; }
+.rr-build-piece.used { opacity: .25; pointer-events: none; }
+.rr-build-piece:disabled { opacity: .35; cursor: default; }
+
+.rr-build-actions { display: flex; gap: 10px; align-items: center; }
+
+/* Las piezas largas —una línea de programa, un paso de un algoritmo— no caben
+   en una ficha de ancho fijo: se estiran y respetan su propia sangría. */
+.rr-build-piece, .rr-build-slot { white-space: pre-wrap; text-align: left; }
+.rr-build.lines .rr-build-slots,
+.rr-build.lines .rr-build-bank { flex-direction: column; align-items: stretch; }
+.rr-build.lines .rr-build-piece,
+.rr-build.lines .rr-build-slot {
+  width: 100%; height: auto; min-height: 44px; padding: 11px 14px;
+  font-family: var(--rr-mono); font-size: 14px; white-space: pre;
+  overflow-x: auto; justify-items: start; display: flex; align-items: center;
+}
+
+/* ---- Armar con piezas, versión peques -------------------------------------
+   Lo mismo que en el panel grande pero todo el doble de grande y sin
+   arrastrar: a esta edad el dedo no tiene esa puntería todavía, y el reto
+   tiene que ser la palabra, no atinarle al hueco. */
+
+.rr-kids-build { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+
+.rr-kids-slots {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;
+  min-height: 82px; padding: 14px 18px;
+  background: #fff; border: 3px dashed var(--rr-line-strong); border-radius: 22px;
+}
+.rr-kids-build.tight .rr-kids-slots { gap: 6px; }
+.rr-kids-slots.right { border-style: solid; border-color: var(--rr-green); background: var(--rr-green-soft); }
+.rr-kids-slots.wrong { border-color: var(--rr-danger); animation: rr-shake .4s var(--rr-ease); }
+
+.rr-kids-slot {
+  display: grid; place-items: center;
+  min-width: 64px; height: 64px; padding: 0 14px;
+  border-radius: 16px; background: var(--rr-paper-2);
+  font-size: 30px; font-weight: 800; color: var(--rr-ink);
+  transition: all var(--rr-fast) var(--rr-ease);
+}
+.rr-kids-slot.filled { background: var(--rr-ink); color: #fff; cursor: pointer; }
+.rr-kids-slot.filled:active { transform: scale(.94); }
+
+.rr-kids-bank { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+.rr-kids-piece {
+  min-width: 64px; height: 64px; padding: 0 16px;
+  border: 3px solid var(--rr-line); background: #fff; border-radius: 16px;
+  font: inherit; font-size: 30px; font-weight: 800; color: var(--rr-ink);
+  cursor: pointer; transition: all var(--rr-fast) var(--rr-spring);
+}
+.rr-kids-piece:hover:not(.used) { border-color: var(--rr-red); transform: translateY(-3px); }
+.rr-kids-piece:active:not(.used) { transform: scale(.92); }
+.rr-kids-piece.used { opacity: .22; pointer-events: none; }
+
+/* =============================================================================
+   Robin encima del saludo
+   ============================================================================= */
+/* El único sitio de cada panel donde sale la cara de Robin. Antes salía además
+   en la cabecera del chat, en cada burbuja que contestaba y en cada aviso, y
+   de tanto repetirse dejaba de mirarse. Aquí sí: es lo primero que se ve al
+   entrar, encima del "Hola, fulano", y al hacerle clic se pone a hablar. */
+
+/* (El Robin que estaba encima del "Hola, fulano" se movió al saludo del chat:
+   ver .rr-hello-robin. Allí reacciona a lo que haces; aquí solo decoraba.) */
+
+/* =============================================================================
+   Mis pendientes en una pantalla de PC
+   ============================================================================= */
+/* La lista iba encajonada: angosta, con su propio scroll dentro de un alto
+   fijo, y en un monitor quedaba media pantalla vacía al lado. Ahora el panel
+   se estira —a lo ancho y a lo alto— y la lista corre con la página en vez de
+   tener su propia barrita de scroll metida dentro de la caja. */
+
+@media (min-width: 1100px) {
+  .rr-tasks-wrap { grid-template-columns: minmax(0, 1fr) 300px; gap: 26px; }
+  .rr-tasks { max-height: none; min-height: calc(100vh - 320px); }
+  .rr-tasks-head { padding: 22px 26px 14px; }
+  .rr-tasks-head h3 { font-size: 19px; }
+  .rr-task-add { padding: 18px 24px 12px; }
+  .rr-task-filters { padding: 0 24px 14px; }
+  .rr-task-list { overflow-y: visible; padding: 6px 18px 20px; }
+  .rr-task { padding: 14px 12px; gap: 14px; }
+  .rr-task-title { font-size: 15px; }
+  .rr-task-meta { font-size: 12px; }
+}
+@media (min-width: 1600px) {
+  .rr-tasks-wrap { grid-template-columns: minmax(0, 1fr) 340px; gap: 32px; }
+  .rr-task-title { font-size: 16px; }
+}
+
+/* =============================================================================
+   La conexión con Claude (pantalla de configuración)
+   ============================================================================= */
+
+.rr-ai-card { max-width: 680px; }
+.rr-ai-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+.rr-ai-head h3 { margin: 0; font-size: 16px; }
+.rr-ai-lead { font-size: 13.5px; margin-bottom: 18px; }
+
+/* El estado, de un vistazo: conectado, sin probar, falla o sin llave. */
+.rr-ai-dot {
+  flex: 0 0 auto; font-size: 11px; font-weight: 800;
+  letter-spacing: .05em; text-transform: uppercase;
+  padding: 5px 11px; border-radius: 99px;
+}
+.rr-ai-dot.ok { background: var(--rr-green-soft); color: var(--rr-green); }
+.rr-ai-dot.bad { background: var(--rr-danger-soft); color: var(--rr-danger); }
+.rr-ai-dot.unknown { background: var(--rr-gold-soft); color: #8A5D00; }
+.rr-ai-dot.off { background: var(--rr-paper-2); color: var(--rr-text-faint); }
+
+.rr-ai-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 18px 0 4px; }
+
+/* Lo que contestó la petición de prueba. Se enseña entero —el código de
+   estado, el tiempo, el modelo— porque "¿se envió bien?" no se responde con
+   un tic verde: se responde con lo que dijo el servidor. */
+.rr-ai-result {
+  margin-top: 16px; border-radius: var(--rr-r-sm); padding: 16px 18px;
+  animation: rr-fade-up .3s var(--rr-ease) both;
+}
+.rr-ai-result.ok { background: var(--rr-green-soft); }
+.rr-ai-result.bad { background: var(--rr-danger-soft); }
+.rr-ai-result strong { display: block; font-size: 14.5px; margin-bottom: 8px; }
+.rr-ai-result p { font-size: 13.5px; line-height: 1.55; margin: 0 0 10px; }
+.rr-ai-result ul { list-style: none; padding: 0; margin: 0 0 10px; display: grid; gap: 5px; }
+.rr-ai-result li { display: flex; justify-content: space-between; gap: 14px; font-size: 13px; }
+.rr-ai-result li span { color: var(--rr-text-muted); }
+.rr-ai-result li em {
+  font-style: normal; font-weight: 700; text-align: right;
+  font-family: var(--rr-mono); font-size: 12.5px; word-break: break-word;
+}
+.rr-ai-result small { font-size: 11.5px; color: var(--rr-text-muted); }
