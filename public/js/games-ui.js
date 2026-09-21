@@ -36,7 +36,7 @@ function rrMountGames(container, { onUsage, standalone = false } = {}) {
   let galeriaPendiente = false;
   let cargado = false;      // ya contestó /api/games al menos una vez
 
-  container.innerHTML = '<div class="rr-loader"><div class="rr-spinner"></div></div>';
+  container.innerHTML = '<div class="rr-loader"><div class="spinner"></div></div>';
 
   const DIFICULTAD_LABEL = {
     1: 'Para empezar',
@@ -66,6 +66,11 @@ function rrMountGames(container, { onUsage, standalone = false } = {}) {
     // Sin esto, la página de atrás sigue haciendo scroll debajo de la ventana.
     document.body.classList.add('rr-arcade-open');
 
+    // Al cambiar el tamaño de la ventana vuelve a decidirse dónde cabe la
+    // caja de preguntar: lo que entraba debajo del reto deja de entrar en
+    // cuanto se baja la ventana a media pantalla.
+    window.addEventListener('resize', colocarChatDelReto);
+
     arcade.addEventListener('click', (e) => {
       if (e.target.closest('[data-salir]')) cerrarVentana();
     });
@@ -84,10 +89,12 @@ function rrMountGames(container, { onUsage, standalone = false } = {}) {
   function cerrarVentana() {
     if (!arcade) return;
     document.removeEventListener('keydown', alPulsarEscape);
+    window.removeEventListener('resize', colocarChatDelReto);
     arcade.remove();
     arcade = null;
     jugando = null;
     reto = null;
+    chatReto = null;
     document.body.classList.remove('rr-arcade-open');
     if (standalone) document.dispatchEvent(new CustomEvent('rr:games-closed'));
     else renderGallery();
@@ -226,7 +233,7 @@ function rrMountGames(container, { onUsage, standalone = false } = {}) {
     cuerpo.innerHTML = `
       <section class="rr-arcade-play">
         <div class="rr-board-stage" id="rrStage">
-          <div class="rr-loader"><div class="rr-spinner"></div></div>
+          <div class="rr-loader"><div class="spinner"></div></div>
         </div>
         <div class="rr-board-actions">
           <button class="btn btn-sm btn-soft" id="rrHint">💡 Dame una pista</button>
@@ -245,12 +252,151 @@ function rrMountGames(container, { onUsage, standalone = false } = {}) {
       </div>`;
 
     rrMountGalerias();
+    montarChatDelReto();
     decir('Si te trabas, pídeme una pista y lo miramos juntos.');
 
     document.getElementById('rrHint').addEventListener('click', () => pedirAyuda('hint'));
     document.getElementById('rrSteps').addEventListener('click', () => pedirAyuda('steps'));
     document.getElementById('rrSkip').addEventListener('click', siguienteReto);
     document.getElementById('rrToGallery').addEventListener('click', abrirGaleria);
+  }
+
+  // ---- Preguntar sobre el reto ----------------------------------------------
+  //
+  // Debajo del reto sobraba media columna en blanco. Ahí va ahora una caja
+  // para preguntar, y no es relleno: las pistas vienen escritas de antemano y
+  // valen para el reto entero, pero la duda de quien está atascado casi nunca
+  // es «dame una pista» — es «¿por qué el % da 1 y no 3.5?». Eso solo lo
+  // contesta alguien a quien se le pueda preguntar.
+  //
+  // Dónde se pone depende de lo que ocupe el reto, que es lo que pidió tener
+  // en cuenta quien lo usa:
+  //
+  //   si el reto deja sitio    debajo de él, donde están las preguntas
+  //   si no lo deja (armar     al lado, debajo de Robin, que ahí siempre
+  //   un programa, por ej.)    queda hueco bajo el pájaro
+  //
+  // Se decide midiendo después de pintar cada reto, no por el nombre del
+  // juego: el mismo juego tiene retos cortos y retos largos.
+
+  let chatReto = null;   // el elemento, se mueve de columna pero no se recrea
+  let chatOcupado = false;
+
+  function montarChatDelReto() {
+    chatReto = document.createElement('div');
+    chatReto.className = 'rr-arcade-chat';
+    chatReto.innerHTML = `
+      <div class="rr-ac-head">
+        <span class="rr-ac-title">💬 Pregúntame sobre este reto</span>
+        <button type="button" class="rr-ac-fold" data-fold aria-label="Plegar">−</button>
+      </div>
+      <div class="rr-ac-body" id="rrAcBody">
+        <p class="rr-ac-empty">¿Por qué es así? ¿Y si fuera al revés? Lo que no entiendas del reto que tienes delante.</p>
+      </div>
+      <form class="rr-ac-form" id="rrAcForm">
+        <input type="text" id="rrAcInput" autocomplete="off" placeholder="Escribe tu duda…" />
+        <button type="submit" aria-label="Preguntar">➤</button>
+      </form>`;
+
+    chatReto.querySelector('[data-fold]').addEventListener('click', (e) => {
+      chatReto.classList.toggle('folded');
+      e.currentTarget.textContent = chatReto.classList.contains('folded') ? '+' : '−';
+    });
+    chatReto.querySelector('#rrAcForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const campo = document.getElementById('rrAcInput');
+      const texto = campo.value.trim();
+      if (!texto) return;
+      campo.value = '';
+      preguntarDelReto(texto);
+    });
+
+    colocarChatDelReto();
+  }
+
+  // Cuánto sitio le queda al reto por debajo. Si no llega para la caja, se va
+  // al lado de Robin en vez de empujar los botones de ayuda fuera de la
+  // pantalla — que es lo que pasaba con los retos de ordenar líneas de código.
+  function colocarChatDelReto() {
+    if (!chatReto) return;
+    const play = document.querySelector('.rr-arcade-play');
+    const buddy = document.getElementById('rrBuddy');
+    const stage = document.getElementById('rrStage');
+    const acciones = play && play.querySelector('.rr-board-actions');
+    if (!play || !buddy || !stage) return;
+
+    // En pantalla angosta no hay dos columnas: ahí siempre va debajo del reto,
+    // que es la única que existe.
+    const partida = window.matchMedia('(min-width: 901px)').matches;
+
+    // Ojo con la medida: el propio .rr-board-stage lleva flex:1, así que su
+    // altura es SIEMPRE la de la columna entera y no dice nada de lo que
+    // ocupa el reto. Lo que hay que sumar es lo que hay dentro — el
+    // enunciado, el código y las opciones — descontando la caja si ya está
+    // puesta ahí, o se mediría a sí misma y acabaría rebotando de columna en
+    // cada repintado.
+    const dentro = [...stage.children]
+      .filter(el => el !== chatReto)
+      .reduce((alto, el) => alto + el.offsetHeight, 0);
+    const reservado = acciones ? acciones.offsetHeight : 120;
+    const sobra = play.clientHeight - dentro - reservado - 40;
+
+    const alLado = partida && sobra < 230;
+    const destino = alLado ? buddy : play;
+
+    chatReto.classList.toggle('beside', alLado);
+    // Con la caja al lado, Robin deja de llevarse todo el alto: si no, la
+    // empuja fuera de su columna y se le monta encima.
+    buddy.classList.toggle('with-chat', alLado);
+
+    if (alLado) destino.appendChild(chatReto);
+    else if (acciones) play.insertBefore(chatReto, acciones);
+    else play.appendChild(chatReto);
+  }
+
+  async function preguntarDelReto(texto) {
+    if (chatOcupado) return;
+    chatOcupado = true;
+
+    const cuerpo = document.getElementById('rrAcBody');
+    const vacio = cuerpo.querySelector('.rr-ac-empty');
+    if (vacio) vacio.remove();
+
+    const mio = document.createElement('div');
+    mio.className = 'rr-ac-msg user';
+    mio.textContent = texto;
+    cuerpo.appendChild(mio);
+
+    const esperando = document.createElement('div');
+    esperando.className = 'rr-ac-msg bot';
+    esperando.innerHTML = rrLoadingHtml('Robin lo está mirando', { size: 'inline' });
+    cuerpo.appendChild(esperando);
+    cuerpo.scrollTop = cuerpo.scrollHeight;
+
+    try {
+      // El enunciado del reto va pegado a la pregunta: sin él, «¿por qué da
+      // 1?» no significa nada, y Robin contestaría cualquier cosa.
+      const data = await rrApi('/api/ai/chat', {
+        method: 'POST',
+        body: {
+          message: reto
+            ? `Estoy jugando a "${jugando.name}" (${jugando.subject}). El reto dice: «${reto.prompt}». Mi duda: ${texto}`
+            : texto,
+          context: 'game',
+          gameId: jugando.id
+        }
+      });
+      esperando.textContent = data.reply;
+      if (data.usage && typeof rrUpdateUsage === 'function') rrUpdateUsage(data.usage);
+      if (onUsage) onUsage(data.usage);
+    } catch (err) {
+      const p = err.payload || {};
+      esperando.textContent = p.hint ? `${err.message} ${p.hint}` : `No pude contestarte: ${err.message}`;
+      esperando.classList.add('limit');
+    } finally {
+      chatOcupado = false;
+      cuerpo.scrollTop = cuerpo.scrollHeight;
+    }
   }
 
   // Lo que Robin dice, en el globo de su esquina. Al hablar cambia también al
@@ -286,7 +432,7 @@ function rrMountGames(container, { onUsage, standalone = false } = {}) {
   async function siguienteReto() {
     const stage = document.getElementById('rrStage');
     if (!stage) return;
-    stage.innerHTML = '<div class="rr-loader"><div class="rr-spinner"></div></div>';
+    stage.innerHTML = '<div class="rr-loader"><div class="spinner"></div></div>';
     callar();
 
     try {
@@ -300,8 +446,11 @@ function rrMountGames(container, { onUsage, standalone = false } = {}) {
 
   function pintarReto() {
     const stage = document.getElementById('rrStage');
+    const { texto, codigo } = partirEnunciado(reto.prompt);
+
     stage.innerHTML = `
-      <p class="rr-round-prompt">${rrEscapeHtml(reto.prompt)}</p>
+      <p class="rr-round-prompt">${rrEscapeHtml(texto)}</p>
+      ${codigo ? `<pre class="rr-round-code">${resaltarHueco(codigo)}</pre>` : ''}
       ${reto.lead ? `<p class="rr-round-lead">${rrEscapeHtml(reto.lead)}</p>` : ''}
       <div id="rrRoundBody"></div>`;
 
@@ -309,6 +458,32 @@ function rrMountGames(container, { onUsage, standalone = false } = {}) {
     if (reto.kind === 'build') pintarArmado(cuerpo);
     else if (reto.kind === 'choice') pintarOpciones(cuerpo);
     else pintarEscribir(cuerpo);
+
+    // El reto ya está pintado: ahora sí se puede medir cuánto ocupa y decidir
+    // dónde cabe la caja de preguntar. En el mismo hilo la medida sale de
+    // antes, así que se espera al siguiente repintado.
+    requestAnimationFrame(colocarChatDelReto);
+  }
+
+  // Los retos de programación traen el enunciado y, tras una línea en blanco,
+  // el programa. Iban los dos dentro del mismo <p>, y ahí los saltos de línea
+  // no existen: un programa de cinco líneas salía como un renglón corrido e
+  // ilegible, justo donde la sangría ES el ejercicio. Se separan y el código
+  // va a su propio bloque, en monoespaciada y respetando los espacios.
+  function partirEnunciado(prompt) {
+    const corte = String(prompt || '').indexOf('\n\n');
+    if (corte < 0) return { texto: prompt, codigo: '' };
+    return {
+      texto: prompt.slice(0, corte).trim(),
+      codigo: prompt.slice(corte + 2).replace(/\s+$/, '')
+    };
+  }
+
+  // El hueco de los retos de completar, marcado para que se vea. Se escapa
+  // primero y se marca después: al revés, el propio código podría inyectar
+  // etiquetas.
+  function resaltarHueco(codigo) {
+    return rrEscapeHtml(codigo).replace(/_{3,}/g, m => `<mark class="rr-blank">${m}</mark>`);
   }
 
   function pintarOpciones(cuerpo) {
@@ -568,7 +743,7 @@ function rrMountGames(container, { onUsage, standalone = false } = {}) {
 // ---------------------------------------------------------------------------
 
 function rrMountGameSettings(container, { scope, scopeId, title, lead }) {
-  container.innerHTML = '<div class="rr-loader"><div class="rr-spinner"></div></div>';
+  container.innerHTML = '<div class="rr-loader"><div class="spinner"></div></div>';
 
   async function render() {
     try {

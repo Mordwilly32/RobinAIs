@@ -21,6 +21,12 @@ const RR_NAV_BY_ROLE = {
     { id: 'games', label: 'Minijuegos', icon: '🎮' },
     { id: 'plans', label: 'Planes', icon: '⭐' }
   ],
+  // Familia: una sola pantalla, porque una sola cosa hace. Si llegó hoy y los
+  // días de atrás. Un menú de cuatro entradas para eso sería puro decorado.
+  parent: [
+    { group: 'Mi familia' },
+    { id: 'children', label: 'Mis hijos', icon: '👪' }
+  ],
   // Estudiantado: lo de la escuela arriba y lo suyo propio debajo, igual que
   // en una cuenta personal. Antes "Clases" se lo llevaba todo dentro —las
   // asignaciones, los pendientes y los minijuegos— y era una sola pantalla
@@ -36,9 +42,16 @@ const RR_NAV_BY_ROLE = {
   // Profesorado: "Mis clases" se lleva dentro el listado de estudiantes y los
   // códigos, que es el orden en el que se usan de verdad (creo la clase, veo
   // quién está, doy de alta a quien falta).
+  // Donde estaba "Herramientas" ahora está "Asistencia". Las herramientas eran
+  // tres enlaces que abrían tres páginas sueltas en otra pestaña; de esas
+  // tres, dos (traducir un PDF y generar una actividad) se volvieron modos del
+  // propio chat —se eligen como quien elige modelo— y la tercera, el pase de
+  // lista, era lo bastante grande como para merecer su propia pantalla aquí
+  // dentro en vez de una ventana aparte que no sabía quién eras.
   teacher: [
     { group: 'Mi trabajo' },
     { id: 'classes', label: 'Mis clases', icon: '🏫' },
+    { id: 'attendance', label: 'Asistencia', icon: '🪪' },
     { id: 'announcements', label: 'Avisos', icon: '📣' },
     { id: 'tasks', label: 'Mis pendientes', icon: '✅' }
   ],
@@ -64,7 +77,7 @@ const RR_NAV_PERMISSION = {};
 
 // Todos los paneles llevan lista de conversaciones: poder hablar con Robin y
 // no poder volver a lo que te contestó ayer es un callejón sin salida.
-const RR_CHAT_RAIL_ROLES = ['personal', 'student', 'teacher', 'admin', 'subdirector', 'secretary'];
+const RR_CHAT_RAIL_ROLES = ['personal', 'parent', 'student', 'teacher', 'admin', 'subdirector', 'secretary'];
 
 let rrShellUser = null;
 let rrShellChats = [];

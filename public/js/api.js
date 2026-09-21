@@ -2,7 +2,57 @@
 // Envoltorio de fetch (agrega cabeceras JSON y lanza errores legibles),
 // avisos flotantes y utilidades compartidas por todas las páginas.
 
+// La foto de perfil no viaja al servidor. Es una cara, y las caras se quedan
+// en el aparato de quien las puso — el mismo criterio que el pase de lista,
+// ver public/js/face-vault.js. Vive en localStorage y no en IndexedDB porque
+// es un solo dato pequeño y hace falta en páginas que no cargan el archivo de
+// caras, como la de entrar.
+//
+// Lo que eso cuesta: solo tú ves tu foto, y solo en este navegador. En la
+// lista del profesor o en la de la dirección sales con el muñequito gris,
+// porque tu foto no está en ningún servidor que puedan consultar. Si algún día
+// se prefiere lo contrario, se quita 'profilePic' de CAMPOS_QUE_NO_SUBEN en
+// src/store.js y se borra este bloque.
+// Con el id de quien la puso, no a secas: la tablet del aula la usan treinta
+// personas, y una sola llave haría que cada quien entrara con la cara de la
+// anterior.
+function rrLlaveFoto(userId) {
+  return 'roborobin.miFoto.' + userId;
+}
+
+function rrFotoPropia(userId) {
+  if (userId === undefined || userId === null) return null;
+  try { return localStorage.getItem(rrLlaveFoto(userId)) || null; } catch { return null; }
+}
+
+function rrGuardarFotoPropia(userId, dataUrl) {
+  // undefined es "no tocaste la foto"; null o cadena vacía es "quítala".
+  if (dataUrl === undefined) return rrFotoPropia(userId);
+  try {
+    if (dataUrl) localStorage.setItem(rrLlaveFoto(userId), dataUrl);
+    else localStorage.removeItem(rrLlaveFoto(userId));
+  } catch {
+    // Sin espacio o en ventana privada. No es motivo para tumbar el guardado
+    // del resto del perfil, que sí importa.
+    rrToast('No pude guardar la foto en este navegador, pero lo demás sí se guardó.', 'error');
+    return rrFotoPropia(userId);
+  }
+  return dataUrl || null;
+}
+
 async function rrApi(path, { method = 'GET', body } = {}) {
+  // Único desvío de este envoltorio, y está aquí y no repetido en los cinco
+  // paneles para que sea una sola regla y no cinco que se van separando: al
+  // guardar el perfil, la foto se queda en este navegador y al servidor va
+  // todo lo demás. La respuesta vuelve con la foto puesta para que la pantalla
+  // no note la diferencia.
+  let fotoLocal;
+  if (method === 'PUT' && path === '/api/profile' && body && 'profilePic' in body) {
+    fotoLocal = body.profilePic;
+    body = { ...body };
+    delete body.profilePic;
+  }
+
   const res = await fetch(path, {
     method,
     headers: { 'Content-Type': 'application/json' },
@@ -19,6 +69,10 @@ async function rrApi(path, { method = 'GET', body } = {}) {
     err.status = res.status;
     err.payload = data || {};
     throw err;
+  }
+
+  if (fotoLocal !== undefined && data && data.user) {
+    data.user.profilePic = rrGuardarFotoPropia(data.user.id, fotoLocal);
   }
   return data;
 }
@@ -55,6 +109,7 @@ function rrToast(message, type = 'info') {
 function rrDashboardFor(role, user) {
   if (['admin', 'subdirector', 'secretary'].includes(role)) return '/dashboard-admin.html';
   if (role === 'teacher') return '/dashboard-teacher.html';
+  if (role === 'parent') return '/dashboard-parent.html';
   if (role === 'student') {
     return user && user.isLittle ? '/dashboard-peques.html' : '/dashboard-student.html';
   }
@@ -67,7 +122,8 @@ const RR_ROLE_LABEL = {
   secretary: 'Secretaría',
   teacher: 'Profesor',
   student: 'Estudiante',
-  personal: 'Cuenta personal'
+  personal: 'Cuenta personal',
+  parent: 'Padre o madre'
 };
 
 // Manda a la página de error explicando qué pasó, en vez de rebotar en
@@ -81,6 +137,8 @@ function rrShowError(motivo) {
 async function rrRequireSession(allowedRoles, { allowLittle = false } = {}) {
   try {
     const { user } = await rrApi('/api/me');
+    // Tu foto no viene del servidor: está aquí. Ver rrFotoPropia() arriba.
+    user.profilePic = rrFotoPropia(user.id);
     if (allowedRoles && !allowedRoles.includes(user.role)) {
       rrShowError('permiso'); // este panel es de otro rol
       return null;

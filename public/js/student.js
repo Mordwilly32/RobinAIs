@@ -31,6 +31,7 @@ let gamesPanel = null;
 let aiPanel = null;      // la conexión con Claude
 let juegosContados = false;   // el recuento de la pantalla de configuración
 let chat = null;
+let chatTools = null;   // el selector de modo del compositor
 let misClases = [];
 
 // ---- Avisos ----------------------------------------------------------------
@@ -211,7 +212,7 @@ function wireAssignments() {
       if (!texto) return rrToast('Escribe algo antes de entregar.', 'error');
 
       btn.disabled = true;
-      btn.textContent = 'Entregando…';
+      btn.innerHTML = rrLoadingHtml('Entregando', { size: 'inline' });
       try {
         const data = await rrApi(`/api/activities/${id}/submit`, { method: 'POST', body: { text: texto } });
         rrToast(data.message, 'success');
@@ -232,7 +233,7 @@ function wireAssignments() {
       const id = btn.dataset.help;
       const card = document.querySelector(`[data-assign="${id}"]`);
       btn.disabled = true;
-      btn.textContent = 'Robin lo está mirando…';
+      btn.innerHTML = rrLoadingHtml('Robin lo está mirando', { size: 'inline' });
 
       try {
         const data = await rrApi('/api/ai/homework', { method: 'POST', body: { activityId: Number(id) } });
@@ -554,6 +555,16 @@ async function refrescar() {
   chat.reset(helloHtml());
   wireChips();
 
+  // Los modos del chat: traducir un documento y generar una actividad. Antes
+  // eran dos páginas sueltas en /herramientas; ahora se eligen aquí, como
+  // quien elige con qué modelo hablar. Ver public/js/chat-tools.js.
+  chatTools = rrMountChatTools(chat, {
+    form: document.getElementById('chatForm'),
+    input: document.getElementById('chatInput'),
+    body: document.getElementById('chatBody'),
+    user: currentUser
+  });
+
   taskPanel = rrMountTaskPanel(document.getElementById('taskPanel'), {
     title: 'Mis pendientes',
     onChange: (tasks) => {
@@ -658,7 +669,7 @@ async function refrescar() {
     errorBox.classList.remove('visible');
     const btn = document.getElementById('profileBtn');
     btn.disabled = true;
-    btn.textContent = 'Guardando…';
+    btn.innerHTML = rrLoadingHtml('Guardando', { size: 'inline' });
 
     try {
       const profilePic = await photoData();

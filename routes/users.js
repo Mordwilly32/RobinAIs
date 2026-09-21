@@ -33,7 +33,9 @@ function inScope(user, schoolId) {
 
 router.put('/profile', requireLogin, (req, res) => {
   const user = db.getUserById(req.session.userId);
-  const { fullName, currentPassword, password, profilePic } = req.body || {};
+  // La foto no llega aquí: public/js/api.js la aparta antes de enviar y la
+  // guarda en el navegador de quien la puso. Ver rrGuardarFotoPropia().
+  const { fullName, currentPassword, password } = req.body || {};
 
   if (!fullName || !String(fullName).trim()) {
     return res.status(400).json({ error: 'El nombre completo es obligatorio.' });
@@ -55,8 +57,7 @@ router.put('/profile', requireLogin, (req, res) => {
 
   const updated = db.updateUser(user.id, {
     fullName: String(fullName).trim(),
-    password: user.role === 'student' ? undefined : password,
-    profilePic
+    password: user.role === 'student' ? undefined : password
   });
   res.json({ user: db.publicUser(updated) });
 });

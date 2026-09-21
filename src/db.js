@@ -1,9 +1,12 @@
 // src/db.js
 // ---------------------------------------------------------------------------
-// Toda la base de datos de roboRobin. Sin nube, sin servicios externos:
-// todo se lee y se escribe en un solo archivo local en data/db.json.
-// Se mantiene un caché en memoria sincronizado con ese archivo para que las
-// peticiones sean rápidas, y cada cambio se guarda al disco de inmediato.
+// Toda la base de datos de roboRobin. Un caché en memoria con todas las
+// colecciones, y cada cambio llamando a save() para que quede guardado.
+//
+// Dónde queda guardado no se decide aquí sino en src/store.js: en
+// data/db.json si no hay nada configurado, o en Postgres de Supabase si
+// existen SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY. Para todo lo que hay de
+// este punto hacia abajo, las dos son lo mismo.
 //
 // Modelo de datos
 //   users        -> cuentas. role: 'personal' | 'student' | 'teacher' |
@@ -25,15 +28,11 @@
 //   aiLogs       -> historial plano heredado; se conserva por compatibilidad
 // ---------------------------------------------------------------------------
 
-const fs = require('fs');
-const path = require('path');
 const bcrypt = require('bcryptjs');
 const plans = require('./plans');
 const games = require('./games');
 const permissions = require('./permissions');
-
-const DATA_DIR = path.join(__dirname, '..', 'data');
-const DB_FILE = path.join(DATA_DIR, 'db.json');
+const store = require('./store');
 
 const DEFAULT_ADMIN = {
   fullName: 'Robin Admin',
@@ -42,12 +41,17 @@ const DEFAULT_ADMIN = {
   role: 'admin'
 };
 
-const ROLES = ['personal', 'student', 'teacher', 'secretary', 'subdirector', 'admin'];
+const ROLES = ['personal', 'parent', 'student', 'teacher', 'secretary', 'subdirector', 'admin'];
 // Universidad es el último nivel y el único que NO lleva minijuegos: a esa
 // edad los retos de "arma la suma" no enseñan nada y sobran en pantalla. Todo
 // lo demás —clases, asignaciones, avisos, Robin— funciona igual que en los
 // otros niveles. Ver availableGamesFor().
 const LEVELS = ['Parvularia', 'Primaria', 'Secundaria', 'Bachillerato', 'Universidad'];
+
+// El código de país que viene puesto en el teléfono de la familia. El
+// Salvador, que es de donde es la escuela; se cambia en cada ficha, así que
+// una escuela de otro país solo lo corrige al dar de alta a su gente.
+const DEFAULT_PHONE_CODE = '503';
 
 // Alfabeto sin caracteres confusos (nada de O/0 ni I/1) para códigos que la
 // gente va a dictar en voz alta o copiar a mano.
@@ -64,7 +68,8 @@ function emptyDB() {
       nextTaskId: 1,
       nextCodeId: 1,
       nextChatId: 1,
-      nextSubmissionId: 1
+      nextSubmissionId: 1,
+      nextAttendanceId: 1
     },
     users: [],
     schools: [],
@@ -77,35 +82,32 @@ function emptyDB() {
     chats: [],
     gameScores: [],
     gameSettings: [],
+    attendance: [],
     aiLogs: []
   };
 }
 
 const COLLECTIONS = [
   'users', 'schools', 'codes', 'tasks', 'announcements', 'classes',
-  'activities', 'submissions', 'chats', 'gameScores', 'gameSettings', 'aiLogs'
+  'activities', 'submissions', 'chats', 'gameScores', 'gameSettings',
+  'attendance', 'aiLogs'
 ];
 
 let cache = null;
 
-function ensureDataDir() {
-  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-}
-
-// Guardar escribe el archivo entero, así que hacerlo una vez por cada dato que
-// se toca sale carísimo en una tanda grande: fabricar una escuela de
-// demostración son cientos de altas seguidas, y a archivo completo por alta la
-// espera crecía con el tamaño de la base.
+// Guardar el archivo entero una vez por cada dato que se toca sale carísimo en
+// una tanda grande: fabricar una escuela de demostración son cientos de altas
+// seguidas, y a archivo completo por alta la espera crecía con el tamaño de la
+// base.
 //
-// enLote() agrupa todo eso en una sola escritura al final. Fuera de un lote,
-// save() se comporta exactamente como antes: escribe y punto.
+// enLote() agrupa todo eso en un solo guardado al final. Fuera de un lote,
+// save() se comporta como siempre: guarda y punto.
 let guardadoEnPausa = 0;
 let quedoPendiente = false;
 
 function save() {
   if (guardadoEnPausa > 0) { quedoPendiente = true; return; }
-  ensureDataDir();
-  fs.writeFileSync(DB_FILE, JSON.stringify(cache, null, 2), 'utf-8');
+  store.guardar(cache);
 }
 
 // Ejecuta `trabajo` guardando una sola vez al terminar. Si algo falla a mitad,
@@ -124,25 +126,72 @@ function enLote(trabajo) {
   }
 }
 
-function load() {
-  ensureDataDir();
-  if (!fs.existsSync(DB_FILE)) {
-    cache = emptyDB();
-    seedAdmin();
+// Base recién nacida.
+//
+// El director de fábrica solo se crea cuando la base vive en este disco. En
+// Supabase no: la contraseña estaría escrita en un README público y eso no es
+// una cuenta, es una puerta abierta. Allá el primer director es quien inscribe
+// la primera escuela.
+function estrenar() {
+  cache = emptyDB();
+  if (!store.USA_SUPABASE) seedAdmin();
+}
+
+function adoptar(datos) {
+  cache = datos;
+  migrate();
+  save();
+}
+
+let listoPromesa = null;
+
+// Espera a que la base esté cargada. Con el guardado en archivo ya lo está
+// desde el require y esto devuelve de inmediato; con Supabase hay que ir a la
+// red, y server.js no abre el puerto hasta que esto termine.
+function listo() {
+  if (!listoPromesa) {
+    listoPromesa = (async () => {
+      let datos = null;
+      try {
+        datos = await store.cargar();
+      } catch (err) {
+        // Sin base no se puede atender a nadie: mejor no arrancar que arrancar
+        // con la memoria en blanco y empezar a escribir encima de lo que haya.
+        throw new Error('No se pudo leer la base de datos de Supabase: ' + err.message);
+      }
+
+      if (datos) {
+        adoptar(datos);
+      } else {
+        estrenar();
+        save();
+        console.log('[roboRobin] Base de datos de Supabase vacía: se estrena.');
+        console.log('[roboRobin] La primera escuela que se inscriba crea a su director.');
+      }
+      await store.vaciar();
+      return cache;
+    })();
+  }
+  return listoPromesa;
+}
+
+// Arranque con el guardado en archivo: se lee aquí mismo, en el require, tal y
+// como ha sido siempre.
+function loadDesdeArchivo() {
+  let datos = null;
+  try {
+    datos = store.cargarSincrono();
+  } catch (err) {
+    console.error('[roboRobin] No se pudo leer data/db.json, empezando de cero.', err);
+  }
+
+  if (datos) {
+    adoptar(datos);
+  } else {
+    estrenar();
     save();
     console.log('[roboRobin] Base de datos local creada en data/db.json');
     console.log(`[roboRobin] Acceso de director por defecto -> ${DEFAULT_ADMIN.email} / ${DEFAULT_ADMIN.password}`);
-  } else {
-    try {
-      cache = JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
-      migrate();
-      save();
-    } catch (err) {
-      console.error('[roboRobin] No se pudo leer data/db.json, empezando de cero.', err);
-      cache = emptyDB();
-      seedAdmin();
-      save();
-    }
   }
   return cache;
 }
@@ -168,6 +217,22 @@ function migrate() {
     if (!user.planCycle) user.planCycle = 'monthly';
     if (user.planSince === undefined) user.planSince = user.createdAt || new Date().toISOString();
     if (user.planRenewsAt === undefined) user.planRenewsAt = null;
+
+    // Lo que necesita el pase de lista: el número de la persona en la lista,
+    // su foto de reconocimiento y la huella que saca de ella face-api.
+    if (user.role === 'student') {
+      if (user.listNumber === undefined) user.listNumber = null;
+      if (user.facePhoto === undefined) user.facePhoto = null;
+      if (user.faceDescriptor === undefined) user.faceDescriptor = null;
+      // El teléfono de la familia, para avisar cuando alguien no llegó. Se
+      // guarda partido en dos —código de país y número— porque es lo que se
+      // corrige por separado: el código se pone una vez y el número cambia
+      // con cada persona.
+      if (user.parentPhoneCode === undefined) user.parentPhoneCode = DEFAULT_PHONE_CODE;
+      if (user.parentPhone === undefined) user.parentPhone = null;
+    }
+    // Una cuenta de familia lleva a quién acompaña.
+    if (user.role === 'parent' && !Array.isArray(user.childIds)) user.childIds = [];
 
     // Contador diario del uso de Robin. Se reinicia solo al cambiar el día.
     if (!user.usage || typeof user.usage !== 'object') {
@@ -459,7 +524,17 @@ function createUser({ fullName, email, password, role, level, grade, schoolId, p
     usage: { date: todayKey(), aiMessages: 0, gameHints: 0, homeworkHelp: 0 },
     createdAt: now
   };
-  if (user.role === 'student') user.studentCode = `STU-${String(user.id).padStart(5, '0')}`;
+  if (user.role === 'student') {
+    user.studentCode = `STU-${String(user.id).padStart(5, '0')}`;
+    // Lo del pase de lista: número en la lista y foto de reconocimiento. Se
+    // llenan después, desde la pantalla de asistencia del profesorado.
+    user.listNumber = null;
+    user.facePhoto = null;
+    user.faceDescriptor = null;
+    user.parentPhoneCode = DEFAULT_PHONE_CODE;
+    user.parentPhone = null;
+  }
+  if (user.role === 'parent') user.childIds = [];
   cache.users.push(user);
   save();
   return user;
@@ -523,7 +598,8 @@ function publicUser(user) {
   // Fuera la contraseña y fuera la llave de la API: ninguna de las dos tiene
   // por qué viajar al navegador. El estado de la conexión sí, porque es lo que
   // se enseña en la pantalla de configuración.
-  const { passwordHash, ai, ...rest } = user;
+  const { passwordHash, ai, faceDescriptor, ...rest } = user;
+  rest.hasFace = Boolean(faceDescriptor && faceDescriptor.length);
   rest.ai = {
     hasKey: Boolean(ai && ai.key),
     keyHint: maskKey(ai && ai.key),
@@ -538,7 +614,9 @@ function publicUser(user) {
   rest.isLittle = isLittleKid(user);
   rest.planInfo = planInfoFor(user);
   rest.usageToday = usageSummary(user);
-  rest.limitPct = user.role === 'personal' ? null : schoolLimitPct(school, limitGroupOf(user.role));
+  rest.limitPct = ['personal', 'parent'].includes(user.role)
+    ? null
+    : schoolLimitPct(school, limitGroupOf(user.role));
   return rest;
 }
 
@@ -874,7 +952,9 @@ function schoolLimitPct(school, group) {
 
 function limitsFor(user) {
   if (!user) return SCHOOL_LIMITS;
-  if (user.role === 'personal') {
+  // Una cuenta de familia tampoco pertenece a ninguna escuela, así que su
+  // margen sale de su plan igual que el de una cuenta personal.
+  if (user.role === 'personal' || user.role === 'parent') {
     const plan = plans.getPlan(user.plan);
     return plan.limits;
   }
@@ -1500,9 +1580,209 @@ function convertPersonalToStudent(userId, schoolId, { level, grade } = {}) {
   return user;
 }
 
-load();
+// ---------------------------------------------------------------------------
+// Pase de lista
+// ---------------------------------------------------------------------------
+// Una marca por persona y por día. Se puede poner a mano o dejar que la ponga
+// la cámara: el navegador compara la cara que ve con las fotos que el profesor
+// guardó EN ESE APARATO, y cuando reconoce a alguien manda su id aquí. Lo
+// único que llega al servidor es el id; la cara no sale del navegador.
+//
+// Parvularia se queda fuera a propósito: a esa edad el pase de lista lo hace
+// la maestra mirando, no una cámara. Ver ATTENDANCE_LEVELS.
+
+const ATTENDANCE_LEVELS = ['Primaria', 'Secundaria', 'Bachillerato', 'Universidad'];
+const ATTENDANCE_STATUS = ['present', 'late', 'absent'];
+
+function attendanceAllowed(user) {
+  return Boolean(user) && user.role === 'student' && ATTENDANCE_LEVELS.includes(normalizeLevel(user.level));
+}
+
+// La foto de reconocimiento y su huella ya no se guardan aquí: viven en el
+// navegador del aparato donde se pasa lista (public/js/face-vault.js). Ver la
+// nota de arriba y CAMPOS_QUE_NO_SUBEN en src/store.js.
+
+// El teléfono de la familia. El número se guarda solo con dígitos —los
+// espacios y guiones que escriba cada quien no son parte del número— y el
+// código de país sin el "+", que se pinta en pantalla.
+function setStudentContact(studentId, { parentPhoneCode, parentPhone }) {
+  const user = getUserById(studentId);
+  if (!user || user.role !== 'student') return null;
+
+  if (parentPhoneCode !== undefined) {
+    const code = String(parentPhoneCode || '').replace(/[^0-9]/g, '').slice(0, 4);
+    user.parentPhoneCode = code || DEFAULT_PHONE_CODE;
+  }
+  if (parentPhone !== undefined) {
+    const num = String(parentPhone || '').replace(/[^0-9]/g, '').slice(0, 15);
+    user.parentPhone = num || null;
+  }
+  save();
+  return user;
+}
+
+function setStudentListNumber(studentId, number) {
+  const user = getUserById(studentId);
+  if (!user || user.role !== 'student') return null;
+  const n = Number(number);
+  user.listNumber = Number.isFinite(n) && n > 0 ? Math.floor(n) : null;
+  save();
+  return user;
+}
+
+function findAttendance(studentId, date, classId) {
+  return cache.attendance.find(r =>
+    r.studentId === Number(studentId)
+    && r.date === date
+    && Number(r.classId || 0) === Number(classId || 0)
+  ) || null;
+}
+
+// Poner (o corregir) la marca de alguien en un día. Reescribe la que ya
+// hubiera en vez de apilar otra: un día tiene un solo estado.
+function markAttendance({ studentId, classId, schoolId, date, status, method, byId, byName }) {
+  const student = getUserById(studentId);
+  if (!student || student.role !== 'student') return null;
+
+  const dia = date || todayKey();
+  const estado = ATTENDANCE_STATUS.includes(status) ? status : 'present';
+  const ahora = new Date().toISOString();
+  let record = findAttendance(student.id, dia, classId);
+
+  if (!record) {
+    record = {
+      id: cache.meta.nextAttendanceId++,
+      studentId: student.id,
+      classId: classId != null ? Number(classId) : null,
+      schoolId: schoolId != null ? Number(schoolId) : student.schoolId || null,
+      date: dia,
+      status: estado,
+      method: method || 'manual',
+      at: ahora,
+      byId: byId || null,
+      byName: byName || null
+    };
+    cache.attendance.push(record);
+  } else {
+    record.status = estado;
+    record.method = method || record.method;
+    record.at = ahora;
+    record.byId = byId || record.byId;
+    record.byName = byName || record.byName;
+  }
+  save();
+  return record;
+}
+
+function getAttendance({ date, classId, studentId, schoolId } = {}) {
+  return cache.attendance.filter(r => {
+    if (date && r.date !== date) return false;
+    if (classId != null && Number(r.classId || 0) !== Number(classId)) return false;
+    if (studentId != null && r.studentId !== Number(studentId)) return false;
+    if (schoolId != null && Number(r.schoolId || 0) !== Number(schoolId)) return false;
+    return true;
+  });
+}
+
+// El historial de una persona, del día más reciente al más viejo.
+function attendanceHistory(studentId, limit = 30) {
+  return cache.attendance
+    .filter(r => r.studentId === Number(studentId))
+    .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
+    .slice(0, limit);
+}
+
+// Lo que necesita la pantalla del pase de lista: la gente que sí lleva
+// asistencia, con su número, su foto, su huella y lo que ya tenga marcado hoy.
+function attendanceRoster(students, date, classId) {
+  const dia = date || todayKey();
+  return students
+    .filter(attendanceAllowed)
+    .map(student => {
+      const marca = findAttendance(student.id, dia, classId);
+      return {
+        id: student.id,
+        fullName: student.fullName,
+        studentCode: student.studentCode || null,
+        level: student.level,
+        grade: student.grade,
+        listNumber: student.listNumber || null,
+        parentPhoneCode: student.parentPhoneCode || DEFAULT_PHONE_CODE,
+        parentPhone: student.parentPhone || null,
+        // Sin foto ni huella: eso lo pone el navegador desde su propio
+        // archivo de caras, justo después de recibir esta lista.
+        status: marca ? marca.status : null,
+        method: marca ? marca.method : null,
+        at: marca ? marca.at : null
+      };
+    })
+    .sort((a, b) => {
+      // Por número de lista; quien todavía no tiene número va al final por
+      // orden alfabético, para que la lista se parezca a la de papel.
+      if (a.listNumber && b.listNumber) return a.listNumber - b.listNumber;
+      if (a.listNumber) return -1;
+      if (b.listNumber) return 1;
+      return a.fullName.localeCompare(b.fullName, 'es');
+    });
+}
+
+// ---------------------------------------------------------------------------
+// Cuentas de familia
+// ---------------------------------------------------------------------------
+// Una cuenta de padre o madre no pertenece a la escuela: acompaña a una o
+// varias cuentas de estudiante. De cada hijo ve si llegó hoy y su historial de
+// asistencia — ni sus notas ni sus conversaciones con Robin, que son suyas.
+
+function getChildrenOf(parentId) {
+  const parent = getUserById(parentId);
+  if (!parent || parent.role !== 'parent') return [];
+  return (parent.childIds || []).map(id => getUserById(id)).filter(Boolean);
+}
+
+function linkChild(parentId, studentCode) {
+  const parent = getUserById(parentId);
+  if (!parent || parent.role !== 'parent') return { ok: false, reason: 'no-parent' };
+
+  const student = getUserByStudentCode(String(studentCode || '').trim());
+  if (!student) return { ok: false, reason: 'no-existe' };
+
+  parent.childIds = parent.childIds || [];
+  if (parent.childIds.includes(student.id)) return { ok: false, reason: 'repetido', student };
+
+  parent.childIds.push(student.id);
+  save();
+  return { ok: true, student };
+}
+
+function unlinkChild(parentId, studentId) {
+  const parent = getUserById(parentId);
+  if (!parent || parent.role !== 'parent') return false;
+  const antes = (parent.childIds || []).length;
+  parent.childIds = (parent.childIds || []).filter(id => id !== Number(studentId));
+  save();
+  return parent.childIds.length < antes;
+}
+
+function isParentOf(parentId, studentId) {
+  const parent = getUserById(parentId);
+  return Boolean(parent && parent.role === 'parent' && (parent.childIds || []).includes(Number(studentId)));
+}
+
+// El store necesita poder mirar el caché para subirlo, y engancha el apagado
+// ordenado: con Supabase, lo que esté sin subir se sube al recibir SIGTERM.
+store.conectar(() => cache);
+
+if (store.USA_SUPABASE) {
+  // Todavía no hay nada: lo pone listo(), y hasta entonces nadie atiende.
+  cache = emptyDB();
+} else {
+  loadDesdeArchivo();
+  listoPromesa = Promise.resolve(cache);
+}
 
 module.exports = {
+  // arranque y guardado
+  listo, guardar: () => store.vaciar(), almacen: store,
   LEVELS,
   ROLES,
   DEFAULT_ADMIN,
@@ -1550,5 +1830,11 @@ module.exports = {
   getActivityById, getAssignmentsForStudent, updateActivity, deleteActivity,
   // la escuela por dentro
   getSchoolStaff, getStudentsOfTeacher, teacherTeachesStudent, convertPersonalToStudent,
-  isLittleKid
+  isLittleKid,
+  // pase de lista
+  ATTENDANCE_LEVELS, ATTENDANCE_STATUS, DEFAULT_PHONE_CODE, attendanceAllowed,
+  setStudentListNumber, setStudentContact, markAttendance, getAttendance,
+  attendanceHistory, attendanceRoster,
+  // cuentas de familia
+  getChildrenOf, linkChild, unlinkChild, isParentOf
 };

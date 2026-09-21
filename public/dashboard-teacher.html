@@ -6,7 +6,10 @@
 <title>Panel del profesor — roboRobin</title>
 <link rel="icon" href="/images/robin.png" />
 <link rel="stylesheet" href="/css/style.css" />
+<link rel="stylesheet" href="/loading/style.css" />
+<link rel="stylesheet" href="/css/chat-tools.css" />
 <link rel="stylesheet" href="/css/consola.css" />
+<link rel="stylesheet" href="/css/asistencia.css" />
 </head>
 <body>
 
@@ -135,6 +138,28 @@
       <div id="codeList"></div>
     </section>
 
+
+
+    <!-- =====================================================================
+         ASISTENCIA
+         =====================================================================
+         Aquí había tres tarjetas: el pase de lista, el traductor y el
+         generador de actividades. Las dos de documentos se fueron al chat, que
+         es donde de verdad se usan —se eligen en el selector de al lado de la
+         caja de escribir—, y la del pase de lista sobraba: era un botón para
+         bajar a lo que ya estaba justo debajo.
+
+         Queda la pantalla haciendo una sola cosa.
+         ===================================================================== -->
+    <section class="rr-section" id="section-attendance" style="display:none">
+      <div class="rr-section-title"><h2>Asistencia</h2></div>
+      <p class="rr-section-lead">
+        De primaria en adelante. La primera vez hay trabajo: ponerle a cada quien su número, su
+        foto y el teléfono de su casa con el botón del lápiz. Después, encender la cámara y ya.
+      </p>
+      <div id="attendancePanel"></div>
+    </section>
+
     <!-- Avisos -->
     <section class="rr-section" id="section-announcements" style="display:none">
       <div class="rr-section-title">
@@ -204,18 +229,20 @@
 
         <div class="rr-profile-side">
           <div class="card rr-summary" id="profileSummary">
-            <div class="rr-loader"><div class="rr-spinner"></div></div>
+            <div class="rr-loader"><div class="spinner"></div></div>
           </div>
         </div>
       </div>
     </section>
 
+
+    
     <!-- Configuración -->
     <section class="rr-section" id="section-settings" style="display:none">
       <div class="rr-section-title"><h2>Configuración</h2></div>
 
       <div class="card rr-set-card rr-ai-card" id="aiSettings">
-        <div class="rr-loader"><div class="rr-spinner"></div></div>
+        <div class="rr-loader"><div class="spinner"></div></div>
       </div>
 
 
@@ -288,10 +315,14 @@
 
 <script src="/js/mascot.js"></script>
 <script src="/js/api.js"></script>
+<script src="/js/loading.js"></script>
 <script src="/js/chat.js"></script>
+<script src="/js/chat-tools.js"></script>
 <script src="/js/sidebar.js"></script>
 <script src="/js/tasks-panel.js"></script>
 <script src="/js/ai-settings.js"></script>
+<script src="/js/face-vault.js"></script>
+<script src="/js/attendance.js"></script>
 <script src="/js/teacher.js"></script>
 <script src="/js/consola.js"></script>
 </body>

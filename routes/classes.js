@@ -254,7 +254,9 @@ router.get('/:id/members', requireLogin, (req, res) => {
       grade: detallado ? student.grade : undefined,
       studentCode: detallado ? student.studentCode : undefined,
       email: detallado ? student.email : undefined,
-      profilePic: student.profilePic || null
+      // Su avatar está en SU navegador, no aquí; la pantalla pinta el
+      // muñequito gris. Ver rrFotoPropia() en public/js/api.js.
+      profilePic: null
     }));
 
   members.unshift({ fullName: classItem.teacherName, role: 'teacher' });

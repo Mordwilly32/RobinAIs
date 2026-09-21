@@ -1,0 +1,155 @@
+/* =============================================================================
+   roboRobin — los modos del chat
+   =============================================================================
+
+   El selector que vive encima de la caja de escribir. Tres posiciones: Robin,
+   Traducir y Actividad.
+
+   Va DENTRO del recuadro del compositor y no fuera, como una barra aparte:
+   elegir el modo es parte de escribir el mensaje, igual que adjuntar. Una
+   barra separada se lee como un menú de la aplicación y se deja de mirar.
+
+   Ojo con la herencia: .rr-composer button convierte en círculo rojo a
+   cualquier botón que caiga dentro (es el de enviar). Todo lo de aquí tiene
+   que deshacer eso explícitamente.
+   ============================================================================= */
+
+.rr-composer.has-tools { flex-wrap: wrap; padding-top: 8px; }
+
+.rr-composer-bar {
+  flex: 0 0 100%; order: -1;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 0 6px 8px 10px;
+  border-bottom: 1px solid var(--rr-line);
+  margin-bottom: 4px;
+}
+
+/* Aquí abajo hay varios display con !important (hacen falta para deshacer el
+   botón redondo del compositor), y un !important le gana a la regla de
+   [hidden] del navegador: sin esto, "Adjuntar" y la ficha del archivo se
+   quedaban a la vista aunque el JavaScript las diera por ocultas. */
+.rr-composer-bar [hidden] { display: none !important; }
+
+/* Deshacer el botón redondo rojo del compositor para todo lo de esta barra. */
+.rr-composer-bar button {
+  width: auto; height: auto; flex: 0 0 auto; align-self: auto; margin: 0;
+  border-radius: var(--rr-r-pill); background: transparent; color: inherit;
+  font-size: 13px; box-shadow: none;
+}
+.rr-composer-bar button:hover { background: var(--rr-paper-2); transform: none; box-shadow: none; }
+
+/* ---- El selector ----------------------------------------------------------- */
+
+.rr-tool-pick { position: relative; }
+
+.rr-tool-pick-btn {
+  display: inline-flex !important; align-items: center; gap: 7px;
+  padding: 7px 12px !important;
+  border: 1px solid var(--rr-line) !important;
+  font-weight: 650 !important; color: var(--rr-text) !important;
+  cursor: pointer;
+  transition: border-color var(--rr-fast) var(--rr-ease), background var(--rr-fast) var(--rr-ease) !important;
+}
+.rr-tool-pick-btn:hover { border-color: var(--rr-line-strong) !important; background: var(--rr-paper) !important; }
+.rr-tool-pick-btn .caret { font-size: 10px; opacity: .5; }
+/* En un modo de herramienta el botón se enciende: es la diferencia entre
+   «le pregunto a Robin» y «le doy un documento», y equivocarse cuesta un
+   mensaje del margen del día. */
+.rr-tool-pick-btn.working {
+  background: var(--rr-red-soft) !important;
+  border-color: var(--rr-red) !important;
+  color: var(--rr-red-dark) !important;
+}
+
+.rr-tool-menu {
+  position: absolute; bottom: calc(100% + 8px); left: 0; z-index: 40;
+  width: min(330px, 78vw);
+  background: var(--rr-white);
+  border: 1px solid var(--rr-line); border-radius: var(--rr-r-md);
+  box-shadow: var(--rr-sh-lg);
+  padding: 6px;
+  animation: rr-tool-menu-in .18s var(--rr-ease) both;
+}
+@keyframes rr-tool-menu-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+.rr-tool-opt {
+  display: flex !important; align-items: flex-start; gap: 11px;
+  width: 100% !important; text-align: left;
+  padding: 10px 12px !important; border: none !important;
+  border-radius: var(--rr-r-sm) !important;
+  cursor: pointer;
+}
+.rr-tool-opt:hover { background: var(--rr-paper-2) !important; }
+.rr-tool-opt.on { background: var(--rr-red-soft) !important; }
+.rr-tool-opt .ic { font-size: 17px; line-height: 1.3; }
+.rr-tool-opt strong { display: block; font-size: 14px; color: var(--rr-text); }
+.rr-tool-opt small { display: block; font-size: 12px; color: var(--rr-text-muted); margin-top: 2px; line-height: 1.4; }
+
+/* ---- Adjuntar --------------------------------------------------------------- */
+
+.rr-attach {
+  display: inline-flex !important; align-items: center; gap: 6px;
+  padding: 7px 12px !important;
+  border: 1px dashed var(--rr-line-strong) !important;
+  color: var(--rr-text-muted) !important; font-weight: 600 !important;
+  cursor: pointer;
+}
+.rr-attach:hover { border-color: var(--rr-red) !important; color: var(--rr-red) !important; }
+
+/* Soltar un archivo encima del compositor: el recuadro entero lo acepta. */
+.rr-composer.dropping {
+  border-color: var(--rr-red); border-style: dashed;
+  background: var(--rr-red-soft);
+}
+
+.rr-file-chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--rr-paper-2); border: 1px solid var(--rr-line);
+  border-radius: var(--rr-r-pill); padding: 5px 6px 5px 12px;
+  font-size: 13px; max-width: min(420px, 60vw);
+}
+.rr-file-chip .nm {
+  font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.rr-file-chip small { color: var(--rr-text-faint); font-size: 11.5px; white-space: nowrap; }
+.rr-file-chip button {
+  width: 22px !important; height: 22px !important;
+  display: grid !important; place-items: center;
+  border-radius: 50% !important; color: var(--rr-text-faint) !important;
+  font-size: 12px !important; cursor: pointer;
+}
+.rr-file-chip button:hover { background: var(--rr-danger-soft) !important; color: var(--rr-danger) !important; }
+
+/* ---- El resultado, dentro de la conversación -------------------------------- */
+/* Un documento traducido no es un mensaje de chat: es una hoja. Se le da
+   fondo, borde y un pie con qué hacer con ella. */
+
+.rr-bubble-doc .txt {
+  background: var(--rr-white);
+  border: 1px solid var(--rr-line);
+  border-radius: var(--rr-r-md);
+  padding: 18px 20px !important;
+  max-width: 82ch !important;
+  font-size: 14.5px; line-height: 1.6;
+  max-height: 460px; overflow-y: auto;
+  white-space: pre-wrap;
+}
+.rr-bubble-doc { flex-direction: column; gap: 10px; }
+
+.rr-doc-actions { width: 100%; max-width: 82ch; }
+.rr-doc-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.rr-doc-hint { display: block; margin-top: 8px; font-size: 12px; color: var(--rr-text-faint); }
+.rr-doc-warn {
+  margin: 0 0 10px; padding: 9px 13px;
+  background: var(--rr-gold-soft); border-radius: var(--rr-r-xs);
+  font-size: 13px; color: var(--rr-text);
+}
+
+@media (max-width: 620px) {
+  .rr-composer-bar { padding-left: 6px; }
+  .rr-file-chip { max-width: 100%; }
+  .rr-tool-pick-btn .lab { display: none; }
+}

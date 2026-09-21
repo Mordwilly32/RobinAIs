@@ -12,6 +12,7 @@ let gamesPanel = null;
 let aiPanel = null;      // la conexión con Claude
 let plansPanel = null;
 let chat = null;
+let chatTools = null;   // el selector de modo del compositor
 
 // El saludo del chat vacío. Se vuelve a poner cada vez que se empieza una
 // conversación nueva.
@@ -180,6 +181,16 @@ async function loadSummary() {
   });
   nuevaConversacion();
 
+  // Los modos del chat: traducir un documento y generar una actividad. Antes
+  // eran dos páginas sueltas en /herramientas; ahora se eligen aquí, como
+  // quien elige con qué modelo hablar. Ver public/js/chat-tools.js.
+  chatTools = rrMountChatTools(chat, {
+    form: document.getElementById('chatForm'),
+    input: document.getElementById('chatInput'),
+    body: document.getElementById('chatBody'),
+    user: currentUser
+  });
+
   // Pendientes
   taskPanel = rrMountTaskPanel(document.getElementById('taskPanel'), {
     title: 'Mis pendientes',
@@ -259,7 +270,7 @@ async function loadSummary() {
     errorBox.classList.remove('visible');
     const btn = document.getElementById('profileBtn');
     btn.disabled = true;
-    btn.textContent = 'Guardando…';
+    btn.innerHTML = rrLoadingHtml('Guardando', { size: 'inline' });
 
     try {
       const profilePic = await photoData();

@@ -25,13 +25,22 @@ const router = express.Router();
 const db = require('../src/db.js');
 const { ROLE_LABEL } = require('../src/permissions.js');
 
-// La consola está encendida salvo que config.json diga lo contrario.
+// La consola está encendida salvo que se diga lo contrario, y apagada en
+// producción salvo que se diga que sí.
+//
+// Ese giro es a propósito: la consola fabrica escuelas y cuentas de mentira de
+// un botonazo, que es justo lo que se quiere en una demostración y justo lo
+// que no se quiere en la escuela de verdad. En un servidor no hay config.json,
+// así que sin esta regla quedaría encendida por descuido.
 function consolaEncendida() {
+  if (process.env.RR_DEV_CONSOLE === '1') return true;
+  if (process.env.RR_DEV_CONSOLE === '0') return false;
+  if (process.env.NODE_ENV === 'production') return false;
   try {
     const config = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'config.json'), 'utf-8'));
     return config.devConsole !== false;
   } catch {
-    return true; // sin config.json, la demostración sigue siendo posible
+    return true; // en esta computadora, la demostración sigue siendo posible
   }
 }
 

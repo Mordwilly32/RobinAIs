@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mi espacio — roboRobin</title>
+<link rel="icon" href="images/robin.png" />
+<link rel="stylesheet" href="css/style.css" />
+<link rel="stylesheet" href="loading/style.css" />
+<link rel="stylesheet" href="css/chat-tools.css" />
+<link rel="stylesheet" href="css/consola.css" />
+</head>
+<body>
+
+<div class="rr-app" id="rrApp">
+  <main class="rr-main">
+    <div class="rr-topbar">
+      <div>
+        <button class="rr-menu-btn" id="rrMenuBtn" aria-label="Abrir menú">☰</button>
+        <h1 id="welcomeTitle">Hola</h1>
+        <div class="sub" id="welcomeSub">Preparando tu espacio…</div>
+      </div>
+    </div>
+
+    <!-- Robin. Es la sección de arranque: lo primero es poder preguntar. -->
+    <section class="rr-section rr-section-full" id="section-chat">
+      <div class="rr-chat" id="chat">
+        <div class="rr-chat-head">
+          <div>
+            <strong>Robin</strong>
+            <span>Tu asistente para estudiar, organizarte y resolver dudas</span>
+          </div>
+        </div>
+
+        <div class="rr-chat-body" id="chatBody"></div>
+
+        <form class="rr-composer" id="chatForm">
+          <textarea id="chatInput" rows="1" placeholder="Escribe aquí…  (Enter para enviar)"></textarea>
+          <button type="submit" id="chatSend" aria-label="Enviar">➤</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- Pendientes -->
+    <section class="rr-section" id="section-tasks" style="display:none">
+      <!-- Sin título aquí: el panel de pendientes dibuja el suyo dentro
+           (tasks-panel.js), y puesto encima quedaba el nombre repetido dos
+           veces seguidas. -->
+      <p class="rr-section-lead">Tu lista privada. También puedes decirle a Robin «recuérdame entregar el informe el viernes» y él la apunta solo — eso no gasta nada de tu límite diario.</p>
+      <div class="rr-tasks-wrap">
+        <div id="taskPanel"></div>
+        <div class="card rr-tasks-side" id="tasksSide"></div>
+      </div>
+    </section>
+
+    <!-- Minijuegos -->
+    <section class="rr-section" id="section-games" style="display:none">
+      <div id="gamesPanel"></div>
+    </section>
+
+    <!-- Planes -->
+    <section class="rr-section" id="section-plans" style="display:none">
+      <div id="plansPanel"></div>
+    </section>
+
+    <!-- Cuenta: quién eres, tu foto y tu resumen -->
+    <section class="rr-section" id="section-profile" style="display:none">
+      <div class="rr-section-title"><h2>Mi cuenta</h2></div>
+
+      <div class="rr-profile-grid">
+        <div class="card rr-profile-card">
+          <div class="rr-profile-top">
+            <label class="rr-photo" for="pPhoto" title="Cambiar foto">
+              <span id="photoPreview" class="rr-photo-empty">👤</span>
+              <span class="rr-photo-edit">Cambiar</span>
+            </label>
+            <div>
+              <h3 id="profileName">—</h3>
+              <span class="pill pill-personal" id="profileRole">Cuenta personal</span>
+              <p class="text-muted" id="profileSince"></p>
+            </div>
+          </div>
+
+          <div class="form-error" id="profileError"></div>
+          <form id="profileForm">
+            <input type="file" id="pPhoto" accept="image/*" hidden />
+            <div class="field">
+              <label for="pFullName">Nombre completo</label>
+              <input type="text" id="pFullName" required />
+            </div>
+            <div class="field">
+              <label for="pEmail">Correo</label>
+              <input type="text" id="pEmail" disabled />
+            </div>
+            <hr class="rr-rule" />
+            <div class="field">
+              <label for="pCurrentPassword">Contraseña actual <span class="text-muted">(solo si vas a cambiarla)</span></label>
+              <input type="password" id="pCurrentPassword" placeholder="Déjala vacía si solo cambias el nombre" />
+            </div>
+            <div class="field">
+              <label for="pNewPassword">Nueva contraseña</label>
+              <input type="password" id="pNewPassword" placeholder="Al menos 6 caracteres" />
+            </div>
+            <button type="submit" class="btn btn-primary" id="profileBtn">Guardar cambios</button>
+          </form>
+        </div>
+
+        <div class="rr-profile-side">
+          <div class="card rr-summary" id="profileSummary">
+            <div class="rr-loader"><div class="spinner"></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Configuración -->
+    <section class="rr-section" id="section-settings" style="display:none">
+      <div class="rr-section-title"><h2>Configuración</h2></div>
+
+      <div class="card rr-set-card">
+        <h3>Tu plan</h3>
+        <p id="setPlan" class="text-muted">—</p>
+        <button class="btn btn-sm btn-soft" data-go="plans">Ver los planes</button>
+      </div>
+
+      <div class="card rr-set-card rr-ai-card" id="aiSettings">
+        <div class="rr-loader"><div class="spinner"></div></div>
+      </div>
+
+      <div class="card rr-set-card">
+        <h3>Dónde están tus datos</h3>
+        <p class="text-muted">Todo lo tuyo — tus pendientes, tus conversaciones con Robin, tu foto — es privado: nadie más que tú lo ve dentro de roboRobin.</p>
+      </div>
+
+      <div class="card rr-set-card">
+        <h3>Historial de conversaciones</h3>
+        <p class="text-muted" id="setHistory">—</p>
+        <button class="btn btn-sm btn-danger" id="clearHistory">Borrar todo el historial</button>
+      </div>
+
+      <div class="card rr-set-card">
+        <h3>Guía y ayuda</h3>
+        <p class="text-muted">Cómo funciona todo: los planes, los minijuegos, qué hace Robin y qué no.</p>
+        <a class="btn btn-sm btn-outline" href="guia.html">Abrir la guía</a>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="js/rr-shell.js"></script>
+<script src="js/rr-runtime.js"></script>
+<script src="js/rr-modules.js"></script>
+<script src="js/rr-server.js"></script>
+<script src="js/mascot.js"></script>
+<script src="js/api.js"></script>
+<script src="js/loading.js"></script>
+<script src="js/chat.js"></script>
+<script src="js/chat-tools.js"></script>
+<script src="js/sidebar.js"></script>
+<script src="js/tasks-panel.js"></script>
+<script src="js/games-ui.js"></script>
+<script src="js/plans-ui.js"></script>
+<script src="js/ai-settings.js"></script>
+<script src="js/personal.js"></script>
+<script src="js/consola.js"></script>
+</body>
+</html>

@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Términos del servicio — roboRobin</title>
+<link rel="icon" href="images/robin.png" />
+<link rel="stylesheet" href="css/style.css" />
+<link rel="stylesheet" href="loading/style.css" />
+<link rel="stylesheet" href="css/landing.css" />
+<link rel="stylesheet" href="css/consola.css" />
+</head>
+<body class="rb-page">
+
+<nav class="rb-nav" id="rbNav">
+  <div class="rb-wrap rb-nav-inner">
+    <a href="index.html" class="rb-logo rb-logo-xl">
+      <span>Robo<b>Robin</b></span>
+    </a>
+    <div class="rb-nav-links" id="rbNavLinks">
+      <a href="index.html#funciones">Funciones</a>
+      <a href="index.html#como">Cómo funciona</a>
+      <a href="index.html#precios">Precios</a>
+      <a href="index.html#escuelas">Escuelas</a>
+    </div>
+    <div class="rb-nav-cta">
+      <a href="login.html" class="rb-login">Iniciar sesión</a>
+      <a href="register.html" class="rb-btn rb-btn-primary rb-btn-sm">Empezar gratis</a>
+      <button class="rb-burger" id="rbBurger" aria-label="Abrir menú"><span></span><span></span><span></span></button>
+    </div>
+  </div>
+</nav>
+
+<main class="rb-doc">
+  <div class="rb-wrap rb-doc-inner">
+    <span class="rb-tag" data-anim="up"><i class="dot"></i> Léelo antes que nada</span>
+    <h1 data-anim="up" data-delay="60">Términos del servicio</h1>
+    <p class="rb-updated" data-anim="up" data-delay="100">Última actualización: 3 de septiembre de 2026</p>
+
+    <div class="rb-warn" id="aviso" data-anim="up" data-delay="140">
+      <h3>⚠️ Todo lo que ves aquí es falso</h3>
+      <p>
+        roboRobin es un <strong>proyecto escolar hecho para una exposición</strong>. No es una empresa, no es un
+        servicio real y no hay nadie del otro lado. Las cifras, los precios, los testimonios, las escuelas aliadas,
+        los premios y las alianzas que aparecen en la página son <strong>inventados</strong> y están puestos
+        únicamente para mostrar cómo se vería un sitio real.
+      </p>
+    </div>
+
+    <h2 data-anim="up">1. Qué es esto en realidad</h2>
+    <p data-anim="up">
+      roboRobin es una aplicación de <strong>demostración</strong>. No hay una compañía detrás, no hay contratos y
+      no existe ningún equipo de soporte. Si estás viendo esta página en una feria, una clase o una presentación,
+      estás viendo una maqueta funcional, no un producto en venta.
+    </p>
+
+    <h2 data-anim="up">2. Datos que aparecen en la página</h2>
+    <ul data-anim="up">
+      <li><strong>Precios ($20/mes, $99/mes):</strong> inventados. <strong>No se cobra nada, nunca.</strong> No hay formularios de pago, no se piden tarjetas y no existe ninguna pasarela de cobro en este proyecto.</li>
+      <li><strong>«Disponible 24/7», «soporte prioritario»:</strong> inventados. El servicio solo funciona mientras alguien tenga el proyecto en marcha.</li>
+      <li><strong>Porcentajes de los planes:</strong> son comparaciones contra el plan Gratis; las cifras exactas están abajo, en el apartado 3.</li>
+      <li><strong>Nombres y logros de la conversación de ejemplo:</strong> escritos para la demostración.</li>
+    </ul>
+
+    <h2 id="limites" data-anim="up">3. Qué incluye cada plan, con números</h2>
+    <p data-anim="up">
+      En la página de precios los planes se comparan en porcentaje porque es lo que se entiende de un vistazo.
+      Aquí quedan las cifras exactas sobre las que se calculan esos porcentajes. Todas son <strong>por día</strong>
+      y se reinician solas cada jornada.
+    </p>
+    <div class="rb-doc-table-wrap" data-anim="up">
+      <table class="rb-doc-table">
+        <thead>
+          <tr><th>Concepto</th><th>Gratis</th><th>Pro</th><th>Max</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Mensajes al día con Robin</td><td>25</td><td>400 <em>(+1 500 %)</em></td><td>Sin límite</td></tr>
+          <tr><td>Pistas al día en los minijuegos</td><td>5</td><td>100 <em>(+1 900 %)</em></td><td>Sin límite</td></tr>
+          <tr><td>Tareas desarmadas paso a paso</td><td>5</td><td>100</td><td>Sin límite</td></tr>
+          <tr><td>Historial de conversaciones</td><td>30 días</td><td>1 año</td><td>Para siempre</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p data-anim="up">
+      Las cuentas de escuela (estudiantado, profesorado y dirección) <strong>no llevan plan ni se les cobra
+      nada</strong>. Parten de 60 mensajes, 15 pistas y 15 tareas al día, y la dirección de cada escuela puede
+      subir ese margen hasta el 500 % desde su panel, por separado para estudiantes, profesorado y dirección.
+    </p>
+    <p data-anim="up">
+      Cuando se acaba el margen del día, Robin lo dice y lo que se pierde es la conversación con la IA: el
+      organizador de tareas, las clases, los avisos y los minijuegos siguen funcionando igual.
+    </p>
+
+    <h2 data-anim="up">4. La inteligencia artificial</h2>
+    <p data-anim="up">
+      Robin trae un <strong>modo propio</strong>: entiende órdenes sencillas sobre tus pendientes («recuérdame
+      estudiar mañana») y responde con una base de consejos escrita a mano. No es un modelo de lenguaje entrenado
+      por este proyecto.
+    </p>
+    <p data-anim="up">
+      Quien administre la instalación puede, si quiere, configurar una clave de la API de Anthropic para que las
+      preguntas abiertas las responda Claude. En ese caso —y solo en ese caso— el texto que escribas se envía a
+      Anthropic para obtener la respuesta. Las respuestas de una IA pueden equivocarse: <strong>no las uses como
+      fuente única</strong> para tareas, decisiones médicas, legales ni financieras.
+    </p>
+
+    <h2 id="privacidad" data-anim="up">5. Privacidad: aquí no se guarda nada</h2>
+    <div class="rb-warn" data-anim="up">
+      <h3>🗑️ Al cerrar la pestaña, todo desaparece</h3>
+      <p>
+        Esta versión <strong>no tiene servidor ni base de datos</strong>. No hay un
+        <code>db.json</code>, no hay nube y no hay ningún archivo donde se apunte lo que haces. Todo
+        —cuentas, escuelas, códigos, pendientes, avisos, conversaciones con Robin, fotos, marcas de los
+        minijuegos y tu clave de la API— vive únicamente en la memoria de esta pestaña mientras la tengas
+        abierta. <strong>En el momento en que cierres la ventana o la recargues, se borra entero y no
+        queda copia en ninguna parte.</strong>
+      </p>
+    </div>
+    <p data-anim="up">
+      Para que quede claro qué es lo que <em>no</em> se usa:
+    </p>
+    <ul data-anim="up">
+      <li><strong>Sin base de datos.</strong> Nada se escribe en disco, ni en tu equipo ni en el de nadie.</li>
+      <li><strong>Sin cookies, sin <code>localStorage</code>, sin <code>sessionStorage</code>, sin IndexedDB.</strong> El sitio no deja rastro en el navegador.</li>
+      <li><strong>Sin cuentas reales.</strong> Los usuarios que crees existen solo dentro de esta pestaña; nadie más los ve y mañana no estarán.</li>
+      <li><strong>Sin analítica ni rastreadores.</strong> No se mide quién entra ni qué hace.</li>
+      <li><strong>Sin subida de archivos.</strong> Las fotos de perfil, las del pase de lista y los PDF que le des a Robin se procesan dentro del navegador y se van con la pestaña.</li>
+    </ul>
+    <p data-anim="up">
+      Lo único que sale de tu navegador es lo que tú provoques a propósito: si pegas una clave de la API de
+      Anthropic, las preguntas que le hagas a Robin viajan a Anthropic para que Claude las conteste (apartado 4).
+      Fuera de eso, el sitio no habla con ningún servidor.
+    </p>
+    <p data-anim="up">
+      Aun así, como es una demostración pública: <strong>no escribas datos personales de verdad</strong> ni
+      información sensible, y usa contraseñas que no uses en ningún otro sitio. Los códigos de ingreso son de
+      4 caracteres para poder dictarlos en voz alta: son cómodos, no son seguridad de verdad.
+    </p>
+
+    <h2 data-anim="up">6. Cuentas y roles</h2>
+    <p data-anim="up">
+      Las cuentas de estudiante y profesor se crean con un código que reparte el director de cada escuela, y ese
+      código es el que decide el rol. Dentro del proyecto la separación funciona, pero está pensada para una
+      demostración: no la uses para administrar datos reales de menores de edad ni de una institución.
+    </p>
+
+    <h2 data-anim="up">7. Garantías</h2>
+    <p data-anim="up">
+      Ninguna. El software se entrega «tal cual», sin garantía de ningún tipo. Quien lo administra es responsable
+      de lo que haga con él. Al ser un trabajo escolar, puede tener errores, puede perder datos y
+      puede dejar de funcionar sin aviso.
+    </p>
+
+    <h2 data-anim="up">8. Marcas y contenido de terceros</h2>
+    <p data-anim="up">
+      «Claude» y «Anthropic» son marcas de Anthropic; se mencionan solo porque la aplicación puede conectarse a su
+      API de forma opcional. «GitHub» es una marca de GitHub, Inc. Este proyecto no está afiliado, patrocinado ni respaldado por Anthropic ni por
+      ninguna otra empresa.
+    </p>
+
+    <h2 data-anim="up">9. Contacto</h2>
+    <p data-anim="up">
+      No hay un correo de soporte porque no hay soporte. Si estás viendo esto en una exposición, pregúntale
+      directamente a la persona que hizo el proyecto: para eso está ahí. El código vive en
+      <a href="https://github.com/Mordwilly32/RoboRobinAI" target="_blank" rel="noopener">GitHub</a>. 🐦
+    </p>
+
+    <div style="margin-top:48px;display:flex;gap:12px;flex-wrap:wrap" data-anim="up">
+      <a href="index.html" class="rb-btn rb-btn-primary">← Volver al inicio</a>
+      <a href="register.html" class="rb-btn rb-btn-white">Probar la demostración</a>
+    </div>
+  </div>
+</main>
+
+<footer class="rb-footer">
+  <div class="rb-wrap">
+    <div class="rb-footer-legal" style="border-top:none;margin-top:0">
+      <span>© 2026 roboRobin — proyecto escolar de exposición, sin fines comerciales.</span>
+      <span class="socials"><a href="index.html">Inicio</a><a href="login.html">Entrar</a><a href="https://github.com/Mordwilly32/RoboRobinAI" target="_blank" rel="noopener">Proyecto en GitHub ↗</a></span>
+    </div>
+  </div>
+</footer>
+
+<script src="js/rr-shell.js"></script>
+<script src="js/rr-runtime.js"></script>
+<script src="js/rr-modules.js"></script>
+<script src="js/rr-server.js"></script>
+<script src="js/api.js"></script>
+<script src="js/loading.js"></script>
+<script src="js/mascot.js"></script>
+<script src="js/landing.js"></script>
+<script src="js/consola.js"></script>
+</body>
+</html>

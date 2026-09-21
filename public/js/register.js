@@ -4,8 +4,9 @@
 
 rrRedirectIfSignedIn();
 
-let accountType = null;   // 'personal' | 'join' | 'school'
+let accountType = null;   // 'personal' | 'parent' | 'join' | 'school'
 let joinInfo = null;      // { school, role } cuando el código ya se verificó
+let childInfo = null;     // el estudiante al que acompaña una cuenta de familia
 let selectedLevel = null;
 let createdSchool = null;
 
@@ -39,8 +40,10 @@ function setStep(id, { title, subtitle, dot }) {
 const STEPS = {
   type: { title: 'Crea tu cuenta', subtitle: '¿Qué tipo de cuenta necesitas?', dot: 0 },
   code: { title: 'Únete a tu escuela', subtitle: 'Escribe el código que te dio tu director', dot: 1 },
+  child: { title: 'Cuenta de familia', subtitle: '¿A quién vas a acompañar?', dot: 1 },
   school: { title: 'Inscribe tu escuela', subtitle: 'Tú quedas como director de la escuela', dot: 1 },
   personalForm: { title: 'Tu cuenta personal', subtitle: 'Solo faltan tus datos', dot: 1 },
+  parentForm: { title: 'Tus datos', subtitle: 'Ya casi estás dentro', dot: 2 },
   joinForm: { title: 'Tus datos', subtitle: 'Ya casi estás dentro', dot: 2 },
   codes: { title: '¡Escuela inscrita!', subtitle: 'Guarda bien estos dos códigos', dot: 2 }
 };
@@ -62,6 +65,9 @@ document.querySelectorAll('.rr-choice').forEach(card => {
         document.getElementById('emailOptional').textContent = '';
         document.getElementById('email').required = true;
         setStep('step-form', STEPS.personalForm);
+      } else if (accountType === 'parent') {
+        setStep('step-child', STEPS.child);
+        document.getElementById('childCode').focus();
       } else if (accountType === 'join') {
         setStep('step-code', STEPS.code);
         document.getElementById('joinCode').focus();
@@ -78,8 +84,66 @@ document.querySelectorAll('[data-back]').forEach(btn => {
 
 document.getElementById('backFromForm').addEventListener('click', () => {
   if (accountType === 'join') setStep('step-code', STEPS.code);
+  else if (accountType === 'parent') setStep('step-child', STEPS.child);
   else setStep('step-type', STEPS.type);
 });
+
+// ---- Paso 2 (familia): buscar al hijo por su ID ---------------------------
+// Se busca ANTES de crear la cuenta y se enseña el nombre: agregar a un
+// desconocido por una letra mal puesta es de las cosas que no se pueden
+// deshacer con una disculpa.
+
+const childInput = document.getElementById('childCode');
+const childResult = document.getElementById('childResult');
+
+async function checkChild() {
+  const code = childInput.value.trim().toUpperCase();
+  clearError();
+  if (!code) return showError('Escribe el ID de estudiante de tu hijo o hija.');
+
+  const btn = document.getElementById('checkChild');
+  btn.disabled = true;
+  btn.innerHTML = rrLoadingHtml('Buscando', { size: 'inline' });
+  childResult.innerHTML = '';
+
+  try {
+    const data = await rrApi(`/api/family/lookup/${encodeURIComponent(code)}`);
+    childInfo = Object.assign({ studentCode: code }, data);
+
+    childResult.innerHTML = `
+      <div class="card" style="border-left:4px solid var(--rr-gold);animation:rr-pop-in .35s var(--rr-spring) both">
+        <div class="pill pill-student">Estudiante</div>
+        <h3 style="margin:10px 0 4px;font-size:18px">${rrEscapeHtml(data.fullName)}</h3>
+        <p class="text-muted" style="margin:0;font-size:14px">
+          ${rrEscapeHtml([data.schoolName, data.level, data.grade].filter(Boolean).join(' · ') || 'Sin escuela registrada')}
+        </p>
+        <p class="hint" style="margin:8px 0 0">¿Es esta la persona? Si no, corrige el ID y vuelve a buscar.</p>
+      </div>`;
+
+    // La cuenta de familia no tiene nivel, ni grado, ni edad: no estudia aquí.
+    document.getElementById('levelSection').style.display = 'none';
+    document.getElementById('gradeFieldWrap').style.display = 'none';
+    document.getElementById('ageFieldWrap').style.display = 'none';
+    document.getElementById('age').required = false;
+    document.getElementById('emailOptional').textContent = '';
+    document.getElementById('email').required = true;
+
+    setTimeout(() => {
+      setStep('step-form', {
+        ...STEPS.parentForm,
+        subtitle: `Vas a seguir la asistencia de ${data.fullName.split(' ')[0]}`
+      });
+    }, 700);
+  } catch (err) {
+    showError(err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Buscar a mi hijo';
+  }
+}
+
+document.getElementById('checkChild').addEventListener('click', checkChild);
+childInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); checkChild(); } });
 
 // ---- Paso 2 (unirse): verificar el código ---------------------------------
 
@@ -93,7 +157,7 @@ async function checkCode() {
 
   const btn = document.getElementById('checkCode');
   btn.disabled = true;
-  btn.textContent = 'Verificando…';
+  btn.innerHTML = rrLoadingHtml('Verificando', { size: 'inline' });
   codeResult.innerHTML = '';
 
   try {
@@ -200,17 +264,23 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
     if (edad < 4 || edad > 120) return showError('Esa edad no parece real. Escríbela en años.');
   }
 
+  if (accountType === 'parent' && !childInfo) {
+    return showError('Busca primero a tu hijo o hija por su ID.');
+  }
+
   const btn = document.getElementById('registerBtn');
   btn.disabled = true;
-  btn.textContent = 'Creando cuenta…';
+  btn.innerHTML = rrLoadingHtml('Creando tu cuenta', { size: 'inline' });
 
+  const MODO = { personal: 'personal', parent: 'parent' };
   const payload = {
-    mode: accountType === 'personal' ? 'personal' : 'join',
+    mode: MODO[accountType] || 'join',
     fullName: document.getElementById('fullName').value.trim(),
     email: document.getElementById('email').value.trim() || undefined,
     password: document.getElementById('password').value
   };
   if (accountType === 'personal') payload.age = edad;
+  if (accountType === 'parent') payload.studentCode = childInfo.studentCode;
   if (accountType === 'join') {
     payload.code = codeInput.value.trim().toUpperCase();
     if (isStudent) {
@@ -241,7 +311,7 @@ document.getElementById('schoolForm').addEventListener('submit', async (e) => {
 
   const btn = document.getElementById('schoolBtn');
   btn.disabled = true;
-  btn.textContent = 'Inscribiendo…';
+  btn.innerHTML = rrLoadingHtml('Inscribiendo', { size: 'inline' });
 
   try {
     const { school } = await rrApi('/api/register', {

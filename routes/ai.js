@@ -29,12 +29,24 @@ const { requireLogin } = require('../src/auth');
 
 const CONFIG_PATH = path.join(__dirname, '..', 'config.json');
 
+// La clave del proyecto sale del entorno o de config.json, en ese orden.
+//
+// El entorno manda porque es lo único que existe en un servidor: config.json
+// está en el .gitignore y nunca llega al despliegue. Y la clave no se guarda
+// en la base de datos ni en Supabase a propósito — una clave de API paga con
+// tu tarjeta, y no tiene por qué estar donde están los datos de la escuela.
 function loadConfig() {
+  let archivo = {};
   try {
-    return JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
-  } catch {
-    return { anthropicApiKey: '', aiModel: 'claude-sonnet-5' };
-  }
+    archivo = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
+  } catch { /* en un servidor no hay config.json, y está bien */ }
+
+  return {
+    ...archivo,
+    anthropicApiKey: (process.env.ANTHROPIC_API_KEY || archivo.anthropicApiKey || '').trim(),
+    aiModel: process.env.RR_AI_MODEL || archivo.aiModel || 'claude-sonnet-5',
+    aiModelMax: process.env.RR_AI_MODEL_MAX || archivo.aiModelMax || 'claude-opus-5'
+  };
 }
 
 // Los modelos entre los que se puede elegir en la pantalla de configuración.
@@ -117,7 +129,9 @@ function extractDue(text) {
     { re: /\btoday\b/i, get: () => addDays(0) },
     { re: /\bnext\s+week\b/i, get: () => addDays(7) },
     {
-      re: /\b(?:para\s+|el\s+|este\s+|pr[oó]ximo\s+)?(domingo|lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado)\b/i,
+      // «del lunes» y «para el lunes» se llevan también la preposición: si no,
+      // el título se queda en «la reunión del» y suena a frase cortada.
+      re: /\b(?:(?:para|de|del)\s+)?(?:el\s+)?(?:este\s+|pr[oó]ximo\s+)?(domingo|lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado)\b/i,
       get: m => {
         const target = WEEKDAYS[m[1].toLowerCase()];
         const now = addDays(0);
@@ -153,6 +167,11 @@ function cleanTitle(text) {
     .replace(/^\s*(?:que\s+|de\s+|a\s+)?/i, '')
     .replace(/^(?:una?\s+)?tarea\s*(?:de|:)?\s*/i, '')
     .replace(/[\s.,;:!¡¿?]+$/g, '')
+    // Sacar la fecha de en medio deja preposiciones colgando al final
+    // («la reunión del» cuando «lunes» se fue a la fecha). Se quitan, y de
+    // paso los signos que puedan haber quedado detrás de ellas.
+    .replace(/\s+(?:de|del|el|la|los|las|para|en|a|al)$/i, '')
+    .replace(/[\s.,;:!¡¿?]+$/g, '')
     .trim();
 }
 
@@ -174,7 +193,29 @@ function formatDue(iso) {
 
 // Ojo: en español la frase puede empezar con «¿» o «¡», así que todas las
 // expresiones toleran esos signos al inicio.
-const CREATE_RE = /^[¿¡\s]*(?:por favor,?\s+)?(?:me\s+)?(?:puedes\s+)?(?:agr[ée]ga(?:me)?|agregar|a[ñn]ade|a[ñn]adir|ap[uú]nta(?:me)?|an[oó]ta(?:me)?|recu[ée]rdame|recordarme|crea(?:r)?\s+(?:una\s+)?tarea|nueva\s+tarea|tarea\s*:|pendiente\s*:|add\s+(?:a\s+)?task|remind\s+me\s+to|todo\s*:)\s*[:,\-–]?\s*/i;
+// Las tres formas en que la gente pide de verdad que se le apunte algo. Están
+// separadas a propósito, porque el riesgo de cada una es distinto:
+//
+//   A  verbos que ya significan «apúntalo» ellos solos («recuérdame …»).
+//   B  verbos ambiguos que SOLO cuentan si va detrás la palabra tarea,
+//      pendiente o recordatorio. Sin esa condición, «ponme un ejemplo de
+//      fracciones» se convertiría en una tarea llamada «un ejemplo de
+//      fracciones», que es peor que no entenderlo.
+//   C  el atajo de escribir «tarea:» y ya.
+const CREATE_A = String.raw`(?:recu[ée]rda(?:me|lo)?|recordarme|ap[uú]nta(?:me|lo)?|an[oó]ta(?:me|lo)?|agr[ée]ga(?:me)?|a[ñn][aá]de(?:me)?|a[ñn]adir|agregar|apuntar|anotar|necesito\s+(?:recordar|acordarme\s+de)|no\s+(?:se\s+)?me\s+(?:vaya\s+a\s+)?olvide(?:s)?|remind\s+me\s+to|add\s+(?:a\s+)?task)`;
+const CREATE_B = String.raw`(?:p[oó]n(?:me|le|er)?|h[aá]z(?:me)?|hacer(?:me)?|crea(?:r|me)?|cr[ée]a(?:me)?|nuev[ao]|mete(?:me)?|met[eé]r(?:me)?|guarda(?:me)?|agenda(?:me|r)?|quiero\s+(?:agregar|a[ñn]adir|apuntar|anotar|crear|poner)|necesito\s+(?:apuntar|anotar))\s+(?:un[ao]?\s+)?(?:nuev[ao]\s+)?(?:tarea|pendiente|recordatorio|to-?do)s?`;
+const CREATE_C = String.raw`(?:tarea|pendiente|to-?do|recordatorio)s?\s*:`;
+
+const CREATE_RE = new RegExp(
+  `^[¿¡\\s]*(?:por favor,?\\s+)?(?:me\\s+)?(?:puedes\\s+)?(?:${CREATE_A}|${CREATE_B}|${CREATE_C})\\s*[:,\\-–]?\\s*`,
+  'i'
+);
+
+// Lo que queda pegado delante del título después de quitar el verbo y que no
+// forma parte de la tarea: «agrégame UNA TAREA: estudiar» -> «estudiar»,
+// «apúntame QUE tengo examen» -> «tengo examen», «mete A MIS PENDIENTES
+// llamar al banco» -> «llamar al banco».
+const CREATE_RELLENO_RE = /^(?:\s*(?:una?|el|la|los|las)\s+)?(?:\s*(?:a\s+)?(?:mi|mis)\s+(?:lista\s+de\s+)?(?:tareas?|pendientes?)\s*)?(?:\s*(?:nueva?\s+)?(?:tareas?|pendientes?|recordatorios?|to-?dos?)\s*)?(?:\s*[:,\-–]\s*)?(?:\s*(?:de|que|para|sobre)\s+)?/i;
 
 const LIST_RE = /^[¿¡\s]*(?:(?:qu[eé]|cu[aá]les)\s+(?:son\s+)?(?:mis\s+)?(?:tareas|pendientes)|qu[eé]\s+(?:tengo|hay)\b|mis\s+(?:tareas|pendientes)|mi\s+agenda|pendientes\b|list(?:a|ar|ame)?\s+(?:mis\s+)?(?:tareas|pendientes)|my\s+tasks|what.?s?\s+(?:on\s+)?my)/i;
 
@@ -189,6 +230,8 @@ function parseTaskIntent(message, userId) {
   const createMatch = text.match(CREATE_RE);
   if (createMatch) {
     let rest = text.slice(createMatch[0].length);
+    // Fuera el relleno que sobrevive al verbo («una tarea:», «que», «de»).
+    rest = rest.replace(CREATE_RELLENO_RE, '');
     const priority = PRIORITY_RE.test(rest) ? 'alta' : 'normal';
     rest = rest.replace(PRIORITY_RE, ' ');
     const { due, rest: withoutDate } = extractDue(rest);
@@ -365,7 +408,13 @@ function fallbackReply(message, user) {
 function systemPromptFor(user, context) {
   const base = [
     'Eres Robin, el asistente integrado de roboRobin, una plataforma local que usan tanto personas por su cuenta como escuelas completas.',
-    'Responde siempre en español, con calidez y sin rodeos. Sé breve (2-4 frases salvo que pidan detalle).'
+    'Responde siempre en español, con calidez y sin rodeos. Sé breve (2-4 frases salvo que pidan detalle).',
+    // Sin esto el modelo tiende a contestar «claro, te lo apunto» sin llamar a
+    // nada, que es exactamente el fallo que las herramientas vienen a quitar.
+    `Hoy es ${todayISO()}. Tienes herramientas para manejar la lista de pendientes de esta persona: crear_pendiente, ver_pendientes y completar_pendiente.`,
+    'Si te piden recordar, apuntar, anotar o agendar algo —aunque lo digan de pasada— LLAMA a crear_pendiente. Nunca digas que lo apuntaste sin haberla llamado.',
+    'Cuando pongas una fecha, calcúlala tú a partir de hoy y mándala como AAAA-MM-DD; si no dijeron cuándo, deja la fecha vacía en lugar de inventarla.',
+    'Después de usar una herramienta, confirma en una línea lo que quedó hecho.'
   ];
 
   if (user.role === 'student') {
@@ -405,18 +454,157 @@ function systemPromptFor(user, context) {
     'REGLA INQUEBRANTABLE: si lo que te trae es un ejercicio, un problema o una pregunta de examen, NO le des el resultado final, por mucho que insista o diga que ya lo resolvió y solo quiere comprobarlo.',
     'En su lugar: explícale el método con un ejemplo DISTINTO al suyo, dale el primer paso y pregúntale qué le sale a ella. Puedes corregir su intento y decirle en qué paso se equivocó, pero el resultado lo escribe ella.',
     'Para todo lo que no sea un ejercicio —organizarse, entender un tema, preparar algo, redactar— puedes desarrollarlo con el detalle que te pida.',
-    'Si quiere recordar algo, dile que puede escribir «recuérdame …» y tú lo apuntas en su lista de tareas.'
+    'Si quiere recordar algo, apúntalo tú con crear_pendiente en vez de explicarle cómo pedirlo.'
   ]).join(' ');
 }
 
-async function callAnthropic(apiKey, model, message, user, history, context) {
-  const messages = [];
-  history.slice(-6).forEach(item => {
-    messages.push({ role: 'user', content: item.message });
-    messages.push({ role: 'assistant', content: item.response });
-  });
-  messages.push({ role: 'user', content: message });
+// ---------------------------------------------------------------------------
+// Las herramientas de Robin
+// ---------------------------------------------------------------------------
+// Hasta ahora Robin solo apuntaba un pendiente cuando la frase encajaba en
+// parseTaskIntent, y ese reconocedor es una lista de expresiones: acierta con
+// «recuérdame …» y se queda mirando con «oye, ¿me lo puedes dejar anotado para
+// el viernes?». Cuando eso pasaba, la respuesta sonaba a que lo había hecho y
+// en la lista no aparecía nada — lo peor de los dos mundos.
+//
+// Con esto Claude ya no tiene que adivinarse a sí mismo: se le declaran las
+// tres operaciones de la lista y las llama él cuando hace falta. El
+// reconocedor local sigue delante, porque es lo único que funciona sin clave
+// de API y porque una orden clara no merece gastar una llamada.
+//
+// Lo que Claude manda NO se cree a ciegas: el título se recorta, la fecha se
+// valida contra el formato y el id se comprueba contra las tareas de esa
+// persona. Un modelo puede inventarse un id igual que puede inventarse
+// cualquier otra cosa.
 
+const HERRAMIENTAS = [
+  {
+    name: 'crear_pendiente',
+    description:
+      'Apunta un pendiente en la lista de tareas de la persona con la que hablas. ' +
+      'Úsala siempre que te pidan recordar, apuntar, anotar o agendar algo, aunque lo pidan de forma indirecta ' +
+      '(«que no se me olvide llamar al banco», «tengo que entregar el informe el viernes»). ' +
+      'No la uses para hablar de tareas escolares que ya existen ni para responder preguntas.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        titulo: {
+          type: 'string',
+          description: 'Qué hay que hacer, en pocas palabras y empezando por el verbo. Ejemplo: "Entregar el informe de biología".'
+        },
+        fecha: {
+          type: 'string',
+          description: 'Para cuándo es, en formato AAAA-MM-DD. Omítela si no dijeron cuándo. No te la inventes.'
+        },
+        prioridad: {
+          type: 'string',
+          enum: ['normal', 'alta'],
+          description: 'Pon "alta" solo si dijeron que es urgente o importante.'
+        },
+        notas: {
+          type: 'string',
+          description: 'Detalle extra, solo si lo dieron. Opcional.'
+        }
+      },
+      required: ['titulo']
+    }
+  },
+  {
+    name: 'ver_pendientes',
+    description:
+      'Devuelve los pendientes sin terminar de la persona. Úsala cuando pregunten qué tienen que hacer, ' +
+      'qué tienen hoy o cómo va su lista, y también antes de completar uno para saber su número.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        solo_hoy: {
+          type: 'boolean',
+          description: 'true para quedarte solo con los que vencen hoy o antes.'
+        }
+      },
+      required: []
+    }
+  },
+  {
+    name: 'completar_pendiente',
+    description:
+      'Marca un pendiente como hecho. Necesitas su id: si no lo sabes, llama antes a ver_pendientes. ' +
+      'No adivines el id.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'number', description: 'El id que devolvió ver_pendientes.' }
+      },
+      required: ['id']
+    }
+  }
+];
+
+const FECHA_ISO_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+// Ejecuta una herramienta y devuelve qué contestarle a Claude, más la señal
+// que necesita el navegador para refrescar el panel de pendientes.
+function ejecutarHerramienta(nombre, input, user) {
+  const args = input && typeof input === 'object' ? input : {};
+
+  if (nombre === 'crear_pendiente') {
+    const titulo = capitalize(cleanTitle(String(args.titulo || '').trim())).slice(0, 200);
+    if (!titulo) {
+      return { resultado: 'No creé nada: el título venía vacío. Pregúntale qué quiere apuntar.', error: true };
+    }
+    // La fecha solo se acepta si de verdad es una fecha. Un modelo que se
+    // equivoca de formato no puede acabar metiendo "el viernes" en un campo
+    // que el resto de la aplicación lee como AAAA-MM-DD.
+    const fecha = FECHA_ISO_RE.test(String(args.fecha || '')) ? args.fecha : null;
+    const prioridad = args.prioridad === 'alta' ? 'alta' : 'normal';
+
+    const task = db.createTask({
+      userId: user.id,
+      title: titulo,
+      notes: args.notas ? String(args.notas).slice(0, 500) : undefined,
+      due: fecha,
+      priority: prioridad
+    });
+    return {
+      resultado: `Apuntado. id=${task.id}, título="${task.title}"${fecha ? `, para ${fecha}` : ', sin fecha'}${prioridad === 'alta' ? ', urgente' : ''}.`,
+      action: { type: 'task.created', taskId: task.id }
+    };
+  }
+
+  if (nombre === 'ver_pendientes') {
+    let tareas = db.getTasks(user.id).filter(t => !t.done);
+    if (args.solo_hoy) tareas = tareas.filter(t => t.due && t.due <= todayISO());
+
+    if (!tareas.length) {
+      return { resultado: args.solo_hoy ? 'No tiene nada pendiente para hoy.' : 'Su lista está vacía.', action: { type: 'task.listed' } };
+    }
+    const lineas = tareas.slice(0, 25).map(t =>
+      `id=${t.id} | ${t.title}${t.due ? ` | para ${t.due}` : ' | sin fecha'}${t.priority === 'alta' ? ' | urgente' : ''}`);
+    return {
+      resultado: `${tareas.length} pendiente(s):\n${lineas.join('\n')}`,
+      action: { type: 'task.listed' }
+    };
+  }
+
+  if (nombre === 'completar_pendiente') {
+    const id = Number(args.id);
+    // Que el id sea de ESTA persona lo garantiza getTasks(user.id): si el
+    // modelo se inventa uno, no aparece y no se toca nada de nadie.
+    const tarea = db.getTasks(user.id).find(t => t.id === id && !t.done);
+    if (!tarea) {
+      return { resultado: `No hay ningún pendiente sin terminar con id=${args.id}. Llama a ver_pendientes para ver los que sí existen.`, error: true };
+    }
+    db.updateTask(user.id, tarea.id, { done: true });
+    return {
+      resultado: `Tachado "${tarea.title}".`,
+      action: { type: 'task.completed', taskId: tarea.id }
+    };
+  }
+
+  return { resultado: `No existe ninguna herramienta llamada "${nombre}".`, error: true };
+}
+
+async function pedirAAnthropic(apiKey, model, cuerpo) {
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -424,12 +612,7 @@ async function callAnthropic(apiKey, model, message, user, history, context) {
       'x-api-key': apiKey,
       'anthropic-version': '2023-06-01'
     },
-    body: JSON.stringify({
-      model,
-      max_tokens: 600,
-      system: systemPromptFor(user, context),
-      messages
-    })
+    body: JSON.stringify(Object.assign({ model }, cuerpo))
   });
 
   if (!response.ok) {
@@ -439,10 +622,68 @@ async function callAnthropic(apiKey, model, message, user, history, context) {
     err.apiBody = errText;
     throw err;
   }
+  return response.json();
+}
 
-  const data = await response.json();
-  const textBlock = (data.content || []).find(b => b.type === 'text');
-  return textBlock ? textBlock.text : 'No se me ocurrió una respuesta esta vez, ¿puedes replantear la pregunta?';
+// Cuántas veces se le deja pedir herramientas antes de cortar. Tres alcanza de
+// sobra para el caso más largo (mirar la lista, tachar una, confirmar); un
+// tope existe para que un modelo atascado en un bucle no se coma la espera de
+// quien está mirando la pantalla.
+const MAX_VUELTAS = 3;
+
+async function callAnthropic(apiKey, model, message, user, history, context) {
+  const messages = [];
+  history.slice(-6).forEach(item => {
+    messages.push({ role: 'user', content: item.message });
+    messages.push({ role: 'assistant', content: item.response });
+  });
+  messages.push({ role: 'user', content: message });
+
+  const system = systemPromptFor(user, context);
+  const acciones = [];
+
+  for (let vuelta = 0; vuelta <= MAX_VUELTAS; vuelta++) {
+    // En la última vuelta se le quitan las herramientas: así está obligado a
+    // contestar con palabras en vez de pedir una llamada más que ya no se le
+    // va a ejecutar.
+    const ultima = vuelta === MAX_VUELTAS;
+    const data = await pedirAAnthropic(apiKey, model, {
+      max_tokens: 2000,
+      system,
+      messages,
+      tools: ultima ? undefined : HERRAMIENTAS
+    });
+
+    const bloques = data.content || [];
+    const texto = bloques.filter(b => b.type === 'text').map(b => b.text).join('\n\n').trim();
+    const usos = bloques.filter(b => b.type === 'tool_use');
+
+    if (data.stop_reason !== 'tool_use' || !usos.length) {
+      return {
+        text: texto || 'No se me ocurrió una respuesta esta vez, ¿puedes replantear la pregunta?',
+        actions: acciones
+      };
+    }
+
+    // La respuesta con los tool_use se devuelve tal cual, sin tocarla: es lo
+    // que ata cada resultado a su petición.
+    messages.push({ role: 'assistant', content: bloques });
+
+    // TODOS los resultados van en UN SOLO mensaje de usuario. Repartirlos en
+    // varios le enseña al modelo a dejar de pedir cosas en paralelo.
+    const resultados = usos.map(uso => {
+      const r = ejecutarHerramienta(uso.name, uso.input, user);
+      if (r.action) acciones.push(r.action);
+      const bloque = { type: 'tool_result', tool_use_id: uso.id, content: r.resultado };
+      // Un fallo se devuelve marcado, no se calla: si no, el modelo da por
+      // hecho que salió bien y se lo cuenta a la persona.
+      if (r.error) bloque.is_error = true;
+      return bloque;
+    });
+    messages.push({ role: 'user', content: resultados });
+  }
+
+  return { text: 'Me enredé con tu lista y mejor paro aquí. ¿Me lo dices otra vez, más corto?', actions: acciones };
 }
 
 // Los últimos turnos de la conversación abierta, en el formato que espera la
@@ -529,10 +770,14 @@ router.post('/chat', requireLogin, async (req, res) => {
 
   let reply;
   let mode;
+  // Lo que Robin haya tocado de la lista durante su turno. El navegador lo usa
+  // para refrescar el panel de pendientes sin recargar la página.
+  let acciones = [];
+
   try {
     const conexion = conexionDe(me, config);
     if (conexion.key) {
-      reply = await callAnthropic(
+      const salida = await callAnthropic(
         conexion.key,
         conexion.model,
         message,
@@ -540,6 +785,8 @@ router.post('/chat', requireLogin, async (req, res) => {
         historyOf(me, chat),
         context || chat.context
       );
+      reply = salida.text;
+      acciones = salida.actions || [];
       mode = 'live';
     } else {
       reply = fallbackReply(message, me);
@@ -557,7 +804,10 @@ router.post('/chat', requireLogin, async (req, res) => {
   res.json({
     reply,
     mode,
-    action: null,
+    // La última es la que manda: si creó dos pendientes seguidos, refrescar
+    // una vez ya los enseña los dos.
+    action: acciones.length ? acciones[acciones.length - 1] : null,
+    actions: acciones,
     chatId: chat.id,
     chat: db.chatSummary(db.getChat(me.id, chat.id)),
     usage: db.usageSummary(db.getUserById(me.id))
@@ -619,10 +869,13 @@ router.post('/homework', requireLogin, async (req, res) => {
   try {
     const conexion = conexionDe(me, config);
     if (conexion.key) {
-      plan = await callAnthropic(
+      // Aquí solo interesa el texto: ayudar con una asignación no toca la
+      // lista de pendientes, así que las acciones que pudiera traer se
+      // ignoran a propósito.
+      plan = (await callAnthropic(
         conexion.key, conexion.model,
         peticion, me, [], 'homework'
-      );
+      )).text;
       mode = 'live';
     } else {
       plan = planLocal(activity, question);
@@ -842,6 +1095,228 @@ router.post('/test', requireLogin, async (req, res) => {
     };
     res.status(200).json(db.recordAiTest(me.id, resultado));
   }
+});
+
+// ---------------------------------------------------------------------------
+// Las dos herramientas de documentos
+// ---------------------------------------------------------------------------
+// Antes eran dos páginas sueltas en /herramientas que se abrían en otra
+// pestaña y no sabían quién eras. Ahora son dos modos del propio chat, como
+// quien elige con qué modelo hablar: se elige «Traducir» o «Generar
+// actividad», se suelta el PDF y la respuesta baja en el mismo sitio.
+//
+// El PDF lo lee el navegador (pdf.js) y lo vuelve a armar el navegador
+// (jsPDF): aquí solo viaja texto. Un archivo nunca se guarda en el servidor.
+//
+// Un documento largo no cabe en una sola petición, así que se parte en trozos
+// por párrafos y se manda uno detrás de otro. Cada trozo es una llamada de
+// verdad a la API, así que cada trozo gasta un mensaje del día: cobrar uno
+// solo por traducir cuarenta páginas sería mentirle a la barra del menú.
+
+const TOOL_MAX_CHARS = 120000;   // ~60 páginas. Más que eso, se pide recortar
+const TOOL_CHUNK = 7000;         // por petición, con margen para la respuesta
+
+function partirTexto(texto, tope = TOOL_CHUNK) {
+  const parrafos = String(texto).split(/\n\s*\n/);
+  const trozos = [];
+  let actual = '';
+
+  parrafos.forEach(p => {
+    // Un párrafo más largo que el tope entero se parte por frases; si ni así
+    // cabe (una tabla, una lista sin puntos), se corta a lo bruto.
+    if (p.length > tope) {
+      if (actual) { trozos.push(actual); actual = ''; }
+      let resto = p;
+      while (resto.length > tope) {
+        const corte = resto.lastIndexOf('. ', tope);
+        const donde = corte > tope * 0.5 ? corte + 1 : tope;
+        trozos.push(resto.slice(0, donde));
+        resto = resto.slice(donde);
+      }
+      if (resto.trim()) actual = resto;
+      return;
+    }
+    if ((actual + '\n\n' + p).length > tope) { trozos.push(actual); actual = p; }
+    else actual = actual ? `${actual}\n\n${p}` : p;
+  });
+
+  if (actual.trim()) trozos.push(actual);
+  return trozos.filter(t => t.trim());
+}
+
+const IDIOMAS = {
+  es: 'español', en: 'inglés', fr: 'francés', pt: 'portugués',
+  it: 'italiano', de: 'alemán'
+};
+
+function promptTraduccion(opciones) {
+  const destino = IDIOMAS[opciones.to] || 'español';
+  const origen = opciones.from && IDIOMAS[opciones.from]
+    ? `Está en ${IDIOMAS[opciones.from]}.`
+    : 'Detecta tú en qué idioma está.';
+  return [
+    `Eres un traductor profesional. Traduce al ${destino} el texto que te manden.`,
+    origen,
+    'Devuelve ÚNICAMENTE la traducción: sin saludos, sin explicaciones, sin comillas alrededor y sin decir "aquí tienes".',
+    'Respeta los saltos de línea, la numeración, los títulos y las listas tal como vienen.',
+    'No traduzcas nombres propios, fórmulas, código ni unidades.',
+    'Si un fragmento ya está en el idioma de destino, déjalo tal cual.'
+  ].join(' ');
+}
+
+function promptActividad(user, opciones) {
+  const cantidad = Math.min(30, Math.max(1, Number(opciones.cantidad) || 10));
+  const tipo = {
+    mixta: 'mezcla preguntas de opción múltiple, de respuesta corta y de desarrollo',
+    opcion: 'usa solo preguntas de opción múltiple con cuatro opciones (A, B, C, D)',
+    corta: 'usa solo preguntas de respuesta corta',
+    desarrollo: 'usa solo preguntas de desarrollo',
+    verdadero: 'usa solo afirmaciones de verdadero o falso'
+  }[opciones.tipo] || 'mezcla preguntas de opción múltiple, de respuesta corta y de desarrollo';
+
+  // La hoja de respuestas es para quien da la clase. A un estudiante se le
+  // entrega la actividad sola, que es justo el punto de que exista.
+  const conClave = ['teacher', 'admin', 'subdirector', 'secretary'].includes(user.role);
+
+  return [
+    'Eres un docente que prepara material de clase a partir de un texto.',
+    `A partir del texto que te manden, escribe una actividad de ${cantidad} preguntas.`,
+    `Formato: ${tipo}.`,
+    opciones.nivel ? `Va dirigida a estudiantes de nivel ${opciones.nivel}.` : '',
+    'Todas las preguntas deben poder responderse con el texto: no inventes datos que no estén.',
+    'Empieza con un título y una instrucción de una línea. Numera las preguntas.',
+    conClave
+      ? 'Al final, separada por una línea que diga exactamente "--- HOJA DE RESPUESTAS ---", incluye la respuesta de cada pregunta.'
+      : 'NO incluyas las respuestas: quien la resuelve es quien la recibe.',
+    'Devuelve solo la actividad, en texto plano, sin comentarios tuyos alrededor.'
+  ].filter(Boolean).join(' ');
+}
+
+async function llamarConSistema(apiKey, model, system, contenido, maxTokens = 4000) {
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01'
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: maxTokens,
+      system,
+      messages: [{ role: 'user', content: contenido }]
+    })
+  });
+
+  if (!response.ok) {
+    const cuerpo = await response.text();
+    const err = new Error(explicarError(response.status, cuerpo));
+    err.status = response.status;
+    throw err;
+  }
+
+  const data = await response.json();
+  const bloque = (data.content || []).find(b => b.type === 'text');
+  return bloque ? bloque.text.trim() : '';
+}
+
+router.post('/tool', requireLogin, async (req, res) => {
+  const me = db.getUserById(req.session.userId);
+  const { tool, text, fileName } = req.body || {};
+  const opciones = (req.body || {}).options || {};
+
+  if (!['translate', 'activity'].includes(tool)) {
+    return res.status(400).json({ error: 'Esa herramienta no existe.' });
+  }
+
+  const contenido = String(text || '').trim();
+  if (!contenido) {
+    return res.status(400).json({ error: 'No encontré texto que trabajar. Si el PDF es una foto escaneada, no trae letras que leer.' });
+  }
+  if (contenido.length > TOOL_MAX_CHARS) {
+    return res.status(413).json({
+      error: 'Ese documento es demasiado largo.',
+      hint: `Puedo con unas 60 páginas de una vez (${TOOL_MAX_CHARS.toLocaleString('es')} caracteres). Pártelo y mándame una parte.`
+    });
+  }
+
+  const config = loadConfig();
+  const conexion = conexionDe(me, config);
+  if (!conexion.key) {
+    // Sin llave no hay nada que hacer: esto no se puede fingir en local como
+    // se finge una charla. Se dice dónde se pone, y ya.
+    return res.status(503).json({
+      error: 'Para esto necesito estar conectado a Claude.',
+      hint: 'Pega tu clave de la API en Configuración → Robin y vuelve a intentarlo. Todo lo demás sigue funcionando sin ella.',
+      needsKey: true
+    });
+  }
+
+  // Generar actividades con clave de respuestas es trabajo de quien enseña.
+  // Un estudiante sí puede generarse una actividad para practicar, pero sin
+  // la hoja de respuestas (ver promptActividad).
+  const system = tool === 'translate'
+    ? promptTraduccion(opciones)
+    : promptActividad(me, opciones);
+
+  // La actividad se arma de una sola vez aunque el texto sea largo: partirla
+  // daría diez actividades sueltas en vez de una. Se recorta la fuente a lo
+  // que cabe y se avisa.
+  const trozos = tool === 'translate'
+    ? partirTexto(contenido)
+    : [contenido.slice(0, TOOL_CHUNK * 2)];
+  const recortado = tool === 'activity' && contenido.length > TOOL_CHUNK * 2;
+
+  // Se cobra por adelantado todo lo que se va a gastar. Si a mitad se acaba,
+  // se devuelve lo que ya salió en vez de perderlo.
+  const partes = [];
+  let gastados = 0;
+  let cortadoPorLimite = false;
+
+  try {
+    for (const trozo of trozos) {
+      const gasto = db.consumeUsage(me.id, 'aiMessages');
+      if (!gasto.ok) { cortadoPorLimite = true; break; }
+      gastados++;
+      partes.push(await llamarConSistema(conexion.key, conexion.model, system, trozo));
+    }
+  } catch (err) {
+    console.error('[roboRobin][IA][herramienta]', err.message);
+    return res.status(502).json({
+      error: err.message,
+      // Lo que sí salió no se tira: puede ser la mitad de un documento largo.
+      partial: partes.join('\n\n') || null
+    });
+  }
+
+  if (!partes.length) {
+    return res.status(429).json({
+      error: 'Ya gastaste el 100 % de tu margen con Robin por hoy.',
+      hint: 'Mañana vuelves a empezar de cero.',
+      upgrade: me.role === 'personal',
+      usage: db.usageSummary(db.getUserById(me.id))
+    });
+  }
+
+  const salida = partes.join('\n\n');
+  db.logAiChat({
+    userId: me.id,
+    message: `[${tool === 'translate' ? 'Traducción' : 'Actividad'}] ${fileName || 'texto pegado'}`,
+    response: salida.slice(0, 400)
+  });
+
+  res.json({
+    tool,
+    result: salida,
+    fileName: fileName || null,
+    chunks: trozos.length,
+    spent: gastados,
+    truncated: cortadoPorLimite || recortado,
+    truncatedReason: cortadoPorLimite
+      ? 'Se acabó tu margen de hoy a mitad del documento. Esto es lo que alcanzó a salir.'
+      : (recortado ? 'El texto era muy largo: la actividad salió de la primera parte.' : null),
+    usage: db.usageSummary(db.getUserById(me.id))
+  });
 });
 
 // Un 401 diciendo «invalid x-api-key» no le dice nada a quien no programa.

@@ -107,7 +107,7 @@ function inicio() {
 // ---- Pantalla 2: los juegos ------------------------------------------------
 
 async function pantallaJuegos() {
-  stage().innerHTML = '<div class="rr-loader"><div class="rr-spinner"></div></div>';
+  stage().innerHTML = '<div class="rr-loader"><div class="spinner"></div></div>';
   try {
     const data = await rrApi('/api/games');
     juegos = data.games;
@@ -141,7 +141,7 @@ async function pantallaJuegos() {
 
 async function empezarJuego(gameId) {
   jugando = juegos.find(g => g.id === gameId);
-  stage().innerHTML = '<div class="rr-loader"><div class="rr-spinner"></div></div>';
+  stage().innerHTML = '<div class="rr-loader"><div class="spinner"></div></div>';
   try {
     const data = await rrApi(`/api/games/${gameId}/round`, { method: 'POST' });
     reto = data.round;

@@ -13,8 +13,10 @@
 let currentUser = null;
 let taskPanel = null;
 let chat = null;
+let chatTools = null;   // el selector de modo del compositor
 let misClases = [];
 let claseActiva = null;   // la clase para la que se está creando una asignación
+let attendancePanel = null;  // el pase de lista (ver public/js/attendance.js)
 
 // ---------------------------------------------------------------------------
 // Clases
@@ -181,7 +183,7 @@ async function toggleMembers(classId, btn) {
 
   box.hidden = false;
   btn.textContent = 'Ocultar la lista';
-  box.innerHTML = '<div class="rr-loader"><div class="rr-spinner"></div></div>';
+  box.innerHTML = '<div class="rr-loader"><div class="spinner"></div></div>';
 
   try {
     const { members } = await rrApi(`/api/classes/${classId}/members`);
@@ -285,7 +287,7 @@ async function toggleSubmissions(activityId, btn) {
   if (!box.hidden) { box.hidden = true; return; }
 
   box.hidden = false;
-  box.innerHTML = '<div class="rr-loader"><div class="rr-spinner"></div></div>';
+  box.innerHTML = '<div class="rr-loader"><div class="spinner"></div></div>';
 
   try {
     const { activity, submissions, missing } = await rrApi(`/api/activities/${activityId}/submissions`);
@@ -361,7 +363,7 @@ function abrirModalActividad(classId) {
 
 async function loadRoster() {
   const box = document.getElementById('rosterList');
-  box.innerHTML = '<div class="rr-loader"><div class="rr-spinner"></div></div>';
+  box.innerHTML = '<div class="rr-loader"><div class="spinner"></div></div>';
 
   const params = new URLSearchParams();
   const level = document.getElementById('rosterLevel').value;
@@ -675,6 +677,16 @@ function nuevaConversacion() {
   chat.reset(helloHtml());
   wireChips();
 
+  // Los modos del chat: traducir un documento y generar una actividad. Antes
+  // eran dos páginas sueltas en /herramientas; ahora se eligen aquí, como
+  // quien elige con qué modelo hablar. Ver public/js/chat-tools.js.
+  chatTools = rrMountChatTools(chat, {
+    form: document.getElementById('chatForm'),
+    input: document.getElementById('chatInput'),
+    body: document.getElementById('chatBody'),
+    user: currentUser
+  });
+
   taskPanel = rrMountTaskPanel(document.getElementById('taskPanel'), {});
   window.rrTaskPanel = taskPanel;
 
@@ -704,7 +716,21 @@ function nuevaConversacion() {
     if (id === 'classes' && !cargado.codes) { cargado.codes = true; loadCodes(); }
     if (id === 'announcements' && !cargado.ann) { cargado.ann = true; loadAnnouncements(); }
     if (id === 'profile') loadSummary();
+
+    // El pase de lista se monta la primera vez que se abre y se vuelve a
+    // traer cada vez después: el día pudo cambiar, o alguien pudo marcar
+    // desde otra pantalla.
+    if (id === 'attendance') {
+      if (!attendancePanel) attendancePanel = rrMountAttendance(document.getElementById('attendancePanel'));
+      else attendancePanel.reload();
+    } else if (attendancePanel) {
+      // Salir de la pantalla apaga la cámara. Dejarla encendida en segundo
+      // plano es una luz verde encendida sin motivo y una cara grabándose
+      // mientras nadie mira — las dos cosas están mal.
+      attendancePanel.cerrarCamara();
+    }
   });
+
 
   // ---- Crear clase ----
   const classCard = document.getElementById('classFormCard');
@@ -747,7 +773,7 @@ function nuevaConversacion() {
     e.preventDefault();
     const btn = document.getElementById('activityBtn');
     btn.disabled = true;
-    btn.textContent = 'Publicando…';
+    btn.innerHTML = rrLoadingHtml('Publicando', { size: 'inline' });
     try {
       await rrApi(`/api/activities/class/${claseActiva}`, {
         method: 'POST',
@@ -776,7 +802,7 @@ function nuevaConversacion() {
     e.preventDefault();
     const btn = document.getElementById('codeBtn');
     btn.disabled = true;
-    btn.textContent = 'Generando…';
+    btn.innerHTML = rrLoadingHtml('Generando', { size: 'inline' });
 
     try {
       const { code } = await rrApi('/api/codes', {
@@ -824,7 +850,7 @@ function nuevaConversacion() {
     e.preventDefault();
     const btn = document.getElementById('announceBtn');
     btn.disabled = true;
-    btn.textContent = 'Publicando…';
+    btn.innerHTML = rrLoadingHtml('Publicando', { size: 'inline' });
     try {
       await rrApi('/api/announcements', {
         method: 'POST',
@@ -864,7 +890,7 @@ function nuevaConversacion() {
     errorBox.classList.remove('visible');
     const btn = document.getElementById('profileBtn');
     btn.disabled = true;
-    btn.textContent = 'Guardando…';
+    btn.innerHTML = rrLoadingHtml('Guardando', { size: 'inline' });
     try {
       const profilePic = await photoData();
       const { user } = await rrApi('/api/profile', {

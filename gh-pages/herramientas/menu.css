@@ -1,0 +1,201 @@
+/* =========================================================
+   LAS TRES HERRAMIENTAS
+   =========================================================
+
+   Antes eran tres enlaces pequeños que abrían tres páginas
+   sueltas en otra pestaña. Ahora son tres tarjetas grandes
+   que abren lo que corresponde DENTRO del panel:
+
+     asistencia.png   -> el pase de lista, aquí mismo
+     traductor.png    -> el chat en modo traducir
+     actividades.png  -> el chat en modo generar actividad
+
+   Las imágenes se cambian reemplazando los archivos .png de
+   esta misma carpeta. No hace falta tocar nada más: el
+   tamaño y el recorte los pone la tarjeta.
+========================================================= */
+
+#section-attendance,
+#section-tools {
+    width: 100%;
+    max-width: 1320px;
+}
+
+
+/* ---------------------------------------------------------
+   ENCABEZADO
+--------------------------------------------------------- */
+
+.rr-tools-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 18px;
+    flex-wrap: wrap;
+    margin-bottom: 22px;
+}
+
+.rr-tools-header h2 {
+    margin: 0 0 6px 0;
+    font-size: clamp(24px, 2.4vw, 32px);
+    font-weight: 700;
+    color: var(--rr-text, #181515);
+    letter-spacing: -.02em;
+}
+
+.rr-tools-header p {
+    margin: 0;
+    color: var(--rr-text-muted, #746d68);
+    font-size: 15px;
+    max-width: 68ch;
+}
+
+
+/* ---------------------------------------------------------
+   GRID
+   Tres tarjetas, tres por fila. Con cuatro columnas cada
+   imagen quedaba del tamaño de un sello y no se distinguía
+   una herramienta de otra.
+--------------------------------------------------------- */
+
+.rr-tools-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 22px;
+    width: 100%;
+}
+
+
+/* ---------------------------------------------------------
+   CARD
+--------------------------------------------------------- */
+
+.rr-tool-card {
+    position: relative;
+    min-width: 0;
+    background: var(--rr-white, #ffffff);
+    border: 1px solid var(--rr-line, #e7e2df);
+    border-radius: var(--rr-r-md, 20px);
+    overflow: hidden;
+    cursor: pointer;
+    text-align: left;
+    padding: 0;
+    font: inherit;
+    color: inherit;
+    display: block;
+    width: 100%;
+    transition:
+        transform .22s var(--rr-ease, ease),
+        box-shadow .22s var(--rr-ease, ease),
+        border-color .22s var(--rr-ease, ease);
+    box-shadow: var(--rr-sh-xs, 0 2px 8px rgba(0, 0, 0, 0.04));
+}
+
+.rr-tool-card:hover,
+.rr-tool-card:focus-visible {
+    transform: translateY(-5px);
+    border-color: var(--rr-line-strong, #d8d0cc);
+    box-shadow: var(--rr-sh-md, 0 8px 22px rgba(0, 0, 0, 0.10));
+    outline: none;
+}
+
+/* La que está abierta ahora mismo se queda marcada: sin esto,
+   al bajar al pase de lista no se sabe de dónde salió. */
+.rr-tool-card.on {
+    border-color: var(--rr-red, #e9361b);
+    box-shadow: 0 0 0 3px var(--rr-red-soft, #FFE9E3), var(--rr-sh-sm, 0 8px 22px rgba(0,0,0,.08));
+}
+
+
+/* ---------------------------------------------------------
+   IMAGEN
+--------------------------------------------------------- */
+
+.rr-tool-image {
+    width: 100%;
+    /* Más alta que antes: es la mitad del mensaje de la tarjeta. */
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    background: var(--rr-paper-2, #f2efed);
+}
+
+.rr-tool-image img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+    transition: transform .35s var(--rr-ease, ease);
+}
+
+.rr-tool-card:hover .rr-tool-image img {
+    transform: scale(1.05);
+}
+
+/* Una etiqueta encima de la foto para los que no abren una
+   pantalla nueva, sino un modo del chat. */
+.rr-tool-badge {
+    position: absolute;
+    top: 12px; left: 12px;
+    background: rgba(20, 16, 14, .78);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    padding: 5px 10px;
+    border-radius: 999px;
+    backdrop-filter: blur(4px);
+}
+
+
+/* ---------------------------------------------------------
+   INFORMACIÓN
+--------------------------------------------------------- */
+
+.rr-tool-info {
+    padding: 16px 18px 19px;
+}
+
+.rr-tool-name {
+    display: block;
+    color: var(--rr-text, #211d1b);
+    font-size: 17.5px;
+    font-weight: 750;
+    line-height: 1.3;
+    letter-spacing: -.01em;
+    text-decoration: none;
+    margin-bottom: 5px;
+    transition: color .2s ease;
+}
+
+.rr-tool-card:hover .rr-tool-name {
+    color: var(--rr-red, #e9361b);
+}
+
+.rr-tool-desc {
+    margin: 0;
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--rr-text-muted, #746d68);
+}
+
+
+/* ---------------------------------------------------------
+   PANTALLAS MÁS CHICAS
+--------------------------------------------------------- */
+
+@media (max-width: 1000px) {
+    .rr-tools-grid { gap: 18px; }
+    .rr-tool-name { font-size: 16px; }
+}
+
+@media (max-width: 760px) {
+    .rr-tools-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    /* La primera manda, así que se queda con la fila entera. */
+    .rr-tools-grid .rr-tool-card:first-child { grid-column: 1 / -1; }
+}
+
+@media (max-width: 520px) {
+    .rr-tools-grid { grid-template-columns: 1fr; }
+    .rr-tool-image { aspect-ratio: 16 / 8; }
+}

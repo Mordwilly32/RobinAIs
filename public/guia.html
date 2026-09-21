@@ -6,6 +6,7 @@
 <title>Guía — roboRobin</title>
 <link rel="icon" href="/images/robin.png" />
 <link rel="stylesheet" href="/css/style.css" />
+<link rel="stylesheet" href="/loading/style.css" />
 <link rel="stylesheet" href="/css/guia.css" />
 <link rel="stylesheet" href="/css/consola.css" />
 </head>
@@ -23,14 +24,16 @@
   <!-- Índice. Se queda pegado al lado mientras se lee. -->
   <nav class="rr-guide-nav" id="guideNav">
     <div class="rr-guide-nav-title">En esta guía</div>
-    <a href="#empezar">Los dos caminos</a>
+    <a href="#empezar">Los caminos</a>
     <a href="#personal">Cuenta personal</a>
     <a href="#planes">Planes y margen diario</a>
     <a href="#minijuegos">Minijuegos</a>
     <a href="#estudiante">Si tu escuela te dio una cuenta</a>
     <a href="#peques">Para los más peques</a>
     <a href="#robin">Qué hace Robin y qué no</a>
+    <a href="#familia">Para la familia</a>
     <a href="#profesor">Para el profesorado</a>
+    <a href="#asistencia">El pase de lista</a>
     <a href="#direccion">Para la dirección</a>
     <a href="#dudas">Dudas rápidas</a>
   </nav>
@@ -47,8 +50,8 @@
 
     <!-- ===================================================================== -->
     <section id="empezar">
-      <h2>Los dos caminos</h2>
-      <p>roboRobin es un solo programa con dos formas de usarse, y en cuál estás lo decide cómo creaste tu cuenta.</p>
+      <h2>Los caminos</h2>
+      <p>roboRobin es un solo programa con varias formas de usarse, y en cuál estás lo decide cómo creaste tu cuenta.</p>
 
       <div class="rr-guide-two">
         <div class="card">
@@ -60,6 +63,11 @@
           <h3>🏫 Cuenta de escuela</h3>
           <p>Te la da tu institución con un código. Según el código que escribas entras como estudiante o como profesor — nadie elige su propio rol.</p>
           <p class="text-muted">No lleva plan ni se le cobra nada: lo que puedes hacer lo decide tu escuela.</p>
+        </div>
+        <div class="card">
+          <h3>👪 Cuenta de familia</h3>
+          <p>La creas tú con el ID de estudiante de tu hijo. No hace falta código ni permiso de la escuela, y no te mete en ella: solo ves <a href="#familia">si llegó a clase</a>.</p>
+          <p class="text-muted">Se crea desde «Soy padre o madre», junto a la cuenta personal.</p>
         </div>
       </div>
 
@@ -241,6 +249,31 @@
     </section>
 
     <!-- ===================================================================== -->
+    <section id="familia">
+      <h2>Para la familia</h2>
+      <p>Una cuenta de padre o madre contesta una sola pregunta, y la contesta bien: <strong>¿llegó hoy a clase?</strong></p>
+
+      <h3>Cómo se crea</h3>
+      <p>En «Crear cuenta» eliges <strong>Soy padre o madre</strong> y escribes el <strong>ID de estudiante</strong> de tu hijo — el mismo con el que él entra, se parece a <code>STU-00007</code>. Te enseña su nombre antes de crear nada, para que no agregues a otra persona por una letra mal puesta. Si tienes más hijos, los agregas después desde tu propio panel.</p>
+
+      <h3>Qué ves</h3>
+      <p>De cada hijo: si llegó, a qué hora, quién lo marcó y los últimos catorce días con registro. Son <strong>cuatro</strong> respuestas posibles y conviene no confundirlas:</p>
+      <ul class="rr-guide-list">
+        <li><strong>Llegó</strong> — está en clase.</li>
+        <li><strong>Llegó tarde</strong> — llegó, pero después de la hora.</li>
+        <li><strong>No llegó</strong> — su profesor lo marcó ausente.</li>
+        <li><strong>Sin pasar lista</strong> — todavía no han pasado lista hoy. <em>No</em> quiere decir que haya faltado.</li>
+      </ul>
+
+      <h3>Qué NO ves</h3>
+      <p>Sus notas, sus entregas y sus conversaciones con Robin. Son suyas. Una cuenta de familia no es una cuenta de dirección, y tu hijo recibe un aviso de que estás siguiendo su asistencia: no pasa a sus espaldas.</p>
+
+      <div class="rr-guide-note">
+        <strong>Si crees que hay un error</strong> —aparece ausente y sabes que fue— háblalo con su profesor: él es quien lo puede corregir, y al corregirlo lo ves cambiar aquí.
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
     <section id="profesor">
       <h2>Para el profesorado</h2>
 
@@ -265,6 +298,49 @@
 
       <h3>Robin contigo</h3>
       <p>Pídele actividades, otra forma de explicar un tema, una rúbrica o ideas para quien se quedó atrás. Contigo sí desarrolla el contenido completo.</p>
+
+      <h3>Los modos del chat</h3>
+      <p>Al lado de la caja de escribir hay un selector con tres posiciones, como el que elige con qué modelo hablar:</p>
+      <ul class="rr-guide-list">
+        <li><strong>Robin</strong> — la conversación de siempre.</li>
+        <li><strong>Traducir</strong> — sueltas un PDF y baja traducido. Si lo que entró era un PDF, lo que sale también.</li>
+        <li><strong>Actividad</strong> — de un texto o un PDF sale una actividad numerada, con su hoja de respuestas al final para que la recortes antes de repartir.</li>
+      </ul>
+      <p class="text-muted">El archivo lo lee tu propio navegador y el PDF de vuelta lo arma tu propio navegador: al servidor solo viaja texto. Los dos modos necesitan que Robin esté conectado a Claude (Configuración → Robin) y gastan del margen del día.</p>
+    </section>
+
+    <!-- ===================================================================== -->
+    <section id="asistencia">
+      <h2>El pase de lista</h2>
+      <p>Está en <strong>Asistencia</strong>, en el panel del profesorado. Va de <strong>primaria en adelante</strong>: en parvularia el pase de lista lo hace la maestra mirando, no una cámara.</p>
+
+      <h3>El día se detecta solo</h3>
+      <p>Arriba se lee el día entero —«martes 17 de marzo de 2026»— y la marca se guarda con esa fecha. Se puede cambiar la fecha para arreglar un día anterior, y avisa si es fin de semana.</p>
+
+      <h3>Primero la lista, una sola vez</h3>
+      <p>Aparecen tus estudiantes, ordenados por su número de lista. Lo que se hace al principio del año, y no se vuelve a tocar:</p>
+      <ul class="rr-guide-list">
+        <li><strong>El número</strong> — se escribe en la casilla de la izquierda y se guarda solo. Es como se busca a alguien cuando hay treinta y cinco nombres.</li>
+        <li><strong>El botón del lápiz</strong> — abre su ficha, y ahí va lo demás. También se llega pulsando su foto.</li>
+      </ul>
+
+      <p>Dentro de la ficha hay dos cosas:</p>
+      <ul class="rr-guide-list">
+        <li><strong>La foto</strong> — de frente y bien iluminada. Si en la miniatura sale un punto verde, la cámara ya puede reconocer a esa persona; si no, se le sigue pudiendo marcar a mano.</li>
+        <li><strong>El número del padre o la madre</strong> — el código de país viene puesto en <strong>503</strong> y se puede cambiar. Es a quien se llama el día que alguien no llega, y una vez puesto se ve en su fila sin abrir nada.</li>
+      </ul>
+
+      <h3>Después, la cámara</h3>
+      <p>La cámara es un <strong>interruptor</strong>, no un botón: se enciende y se queda encendido mientras pasas lista. Hay días que se pasa con cámara y días que se pasa a mano —falta luz, son cinco personas—, y el interruptor dice en cuál estás. Si no se puede encender (nadie tiene foto todavía, o no diste permiso), vuelve solo a apagado y te dice por qué.</p>
+      <p>Con ella encendida, cuando reconoce a alguien de tu lista le pone un recuadro verde con su nombre, lo marca y lo dice. Quien llega después de las 8:15 se marca <strong>tarde</strong>, y siempre se puede corregir a mano en su fila.</p>
+      <p><strong>La cara no sale de esta computadora.</strong> El reconocimiento corre entero en tu navegador; lo que se guarda es una huella de 128 números sacada de la foto, una sola vez por estudiante. Los fotogramas del vídeo no se guardan ni se mandan a ningún lado, y la cámara se apaga sola al salir de la pantalla.</p>
+
+      <h3>Cerrar el pase</h3>
+      <p>El botón de abajo marca como ausentes a los que quedaron sin marcar. Pide un segundo clic, porque es la parte que no conviene hacer por error.</p>
+
+      <div class="rr-guide-note">
+        <strong>La familia lo ve.</strong> Cada marca le llega a la cuenta de padre o madre de esa persona, si la tiene. Ver <a href="#familia">Para la familia</a>.
+      </div>
     </section>
 
     <!-- ===================================================================== -->
@@ -357,6 +433,7 @@
 
 <script src="/js/mascot.js"></script>
 <script src="/js/api.js"></script>
+<script src="/js/loading.js"></script>
 <script src="/js/guia.js"></script>
 <script src="/js/consola.js"></script>
 </body>

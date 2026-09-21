@@ -1107,12 +1107,202 @@ function conceptoRound(d) {
   };
 }
 
+// ---- Completar el código que falta -----------------------------------------
+// El programa ya está escrito y le falta una pieza, marcada con ___. Es el
+// reto que más se parece a programar de verdad: casi nunca se empieza de la
+// nada, casi siempre se mira código que ya existe y se ve qué le falta.
+//
+// El enunciado dice QUÉ tiene que hacer el programa, no dónde está el hueco:
+// encontrar por qué ese hueco es ese y no otro es medio ejercicio.
+
+const CODIGO_COMPLETA = {
+  2: [
+    {
+      que: 'sumar dos números y mostrar el resultado',
+      code: 'a = 5\nb = 3\nmostrar ___',
+      ok: 'a + b', bad: ['a b', '"a + b"', '5 + 3 = 8'],
+      hint: 'Ya tienes los dos números guardados con un nombre. Úsalos por su nombre, no vuelvas a escribir los números.'
+    },
+    {
+      que: 'saludar tres veces',
+      code: 'para i desde 1 hasta ___\n    mostrar "hola"',
+      ok: '3', bad: ['1', '"hola"', 'i'],
+      hint: 'Cuenta cuántas vueltas quieres que dé. El "hasta" marca la última.'
+    }
+  ],
+  3: [
+    {
+      que: 'contar hasta cuánto suman los números del 1 al 10',
+      code: 'total = ___\npara i desde 1 hasta 10\n    total = total + i\nmostrar total',
+      ok: '0', bad: ['1', '10', 'i'],
+      hint: 'El acumulador arranca en el valor que no cambia nada al sumarle el primero. Si empieza en 1, el resultado sale uno de más.'
+    },
+    {
+      que: 'decir si un número es par',
+      code: 'si numero ___ 2 == 0\n    mostrar "par"\nsi no\n    mostrar "impar"',
+      ok: '%', bad: ['/', '*', '+'],
+      hint: 'Par significa que al dividirlo entre dos no sobra nada. ¿Qué signo da lo que sobra?'
+    },
+    {
+      que: 'recorrer todas las palabras de una lista',
+      code: 'palabras = ["sol", "mar", "pan"]\npara cada p ___ palabras\n    mostrar p',
+      ok: 'en', bad: ['de', 'con', 'hasta'],
+      hint: 'Se lee como una frase: "para cada p ___ palabras". ¿Cuál suena bien?'
+    }
+  ],
+  4: [
+    {
+      que: 'quedarse con el número más grande de una lista',
+      code: 'mayor = lista[0]\npara cada n en lista\n    si n ___ mayor\n        mayor = n\nmostrar mayor',
+      ok: '>', bad: ['<', '==', '>='],
+      hint: 'Solo hay que reemplazar al campeón cuando aparece alguien que lo supera de verdad.'
+    },
+    {
+      que: 'una función que devuelve el doble de un número',
+      code: 'funcion doble(n)\n    ___ n * 2\n\nmostrar doble(7)',
+      ok: 'devolver', bad: ['mostrar', 'guardar', 'n ='],
+      hint: 'Mostrar lo pinta en pantalla y se acaba ahí. Para poder escribir doble(7) DENTRO de otra cosa, la función tiene que entregar el valor.'
+    },
+    {
+      que: 'sumar solo los números pares de una lista',
+      code: 'total = 0\npara cada n en lista\n    si n % 2 == 0\n        total = total ___ n\nmostrar total',
+      ok: '+', bad: ['*', '-', '='],
+      hint: 'El acumulador va creciendo con cada par que encuentra. ¿Qué operación hace crecer?'
+    },
+    {
+      que: 'parar el bucle en cuanto encuentra lo que busca',
+      code: 'para cada n en lista\n    si n == buscado\n        mostrar "lo encontré"\n        ___',
+      ok: 'romper', bad: ['seguir', 'devolver n', 'mostrar n'],
+      hint: 'Ya lo encontraste: seguir recorriendo el resto de la lista es trabajo tirado.'
+    }
+  ]
+};
+
+// ---- ¿Está bien este código? -----------------------------------------------
+// Se enseña un programa que PARECE correcto y hay que decir qué le pasa. Uno
+// de cada tres está bien de verdad, y esa es la gracia: si siempre hubiera un
+// error, la respuesta se acertaría sin leer el código.
+//
+// Es lo que de verdad se hace al programar —mirar código ajeno y encontrar por
+// qué no hace lo que dice— y no sale con ningún otro tipo de reto.
+
+const CODIGO_REVISA = {
+  3: [
+    {
+      que: 'sumar los números del 1 al 5',
+      code: 'total = 0\npara i desde 1 hasta 5\n    total = i\nmostrar total',
+      ok: 'Pisa el total en vez de sumarle',
+      bad: ['Está bien', 'El bucle empieza en el número equivocado', 'Falta mostrar el total'],
+      hint: 'Mira la línea de dentro del bucle. ¿Suma, o reemplaza lo que había?'
+    },
+    {
+      que: 'mostrar los números del 1 al 3',
+      code: 'para i desde 1 hasta 3\n    mostrar i',
+      ok: 'Está bien',
+      bad: ['El bucle no termina nunca', 'Falta crear la variable i', 'Muestra un número de más'],
+      hint: 'Recórrelo con el dedo: i vale 1, luego 2, luego 3. ¿Sale algo raro?'
+    },
+    {
+      que: 'decir si alguien es mayor de edad',
+      code: 'si edad > 18\n    mostrar "mayor"\nsi no\n    mostrar "menor"',
+      ok: 'Con 18 exactos dice "menor"',
+      bad: ['Está bien', 'Falta pedir la edad al principio', 'Las dos ramas dicen lo mismo'],
+      hint: 'Prueba con edad = 18. ¿Es 18 mayor que 18?'
+    },
+    {
+      que: 'contar cuántas veces aparece la letra a',
+      code: 'para cada letra en palabra\n    cuenta = 0\n    si letra == "a"\n        cuenta = cuenta + 1\nmostrar cuenta',
+      ok: 'El contador se reinicia en cada vuelta',
+      bad: ['Está bien', 'Compara con la letra equivocada', 'Le falta el bucle'],
+      hint: '¿Dónde está el "cuenta = 0"? Si está dentro del bucle, ¿cuántas veces se ejecuta?'
+    }
+  ],
+  4: [
+    {
+      que: 'recorrer una lista de 5 elementos',
+      code: 'i = 0\nmientras i <= largo(lista)\n    mostrar lista[i]\n    i = i + 1',
+      ok: 'Se pasa del último elemento',
+      bad: ['Está bien', 'Nunca entra al bucle', 'Empieza por el segundo'],
+      hint: 'Si la lista tiene 5, sus posiciones son 0, 1, 2, 3 y 4. ¿Hasta dónde llega ese <=?',
+      steps: ['Anota qué vale i en cada vuelta.', 'Escribe las posiciones que existen de verdad en la lista.', 'Compara la última vuelta con la última posición: ahí está el fallo.']
+    },
+    {
+      que: 'dividir dos números',
+      code: 'funcion dividir(a, b)\n    devolver a / b\n\nmostrar dividir(10, 0)',
+      ok: 'Revienta al dividir entre cero',
+      bad: ['Está bien', 'Le faltan los paréntesis', 'Devuelve el resto en vez del cociente'],
+      hint: 'Mira con qué se está llamando a la función, no solo lo que hay dentro de ella.'
+    },
+    {
+      que: 'buscar un nombre en una lista',
+      code: 'encontrado = falso\npara cada n en lista\n    si n == buscado\n        encontrado = verdadero\nsi encontrado\n    mostrar "sí está"',
+      ok: 'Está bien',
+      bad: ['Nunca llega a ser verdadero', 'Le falta el si no', 'Compara mal los nombres'],
+      hint: 'Es lento —recorre la lista entera aunque ya lo encontró— pero lento no es incorrecto. ¿Da la respuesta buena?'
+    },
+    {
+      que: 'invertir el orden de una lista',
+      code: 'nueva = []\ni = largo(lista) - 1\nmientras i >= 0\n    agregar(nueva, lista[i])\nmostrar nueva',
+      ok: 'El bucle nunca termina',
+      bad: ['Está bien', 'Empieza por el primero en vez del último', 'La lista nueva no se crea'],
+      hint: '¿Quién cambia el valor de i dentro del bucle? Busca bien: nadie.'
+    }
+  ]
+};
+
+function completaRound(d) {
+  const item = pick(CODIGO_COMPLETA[Math.min(4, Math.max(2, d))]);
+  return {
+    kind: 'choice',
+    prompt: `Este programa sirve para ${item.que}, pero le falta una pieza. ¿Cuál va en el hueco?\n\n${item.code}`,
+    lead: 'El hueco está marcado con ___',
+    answer: item.ok,
+    options: choices(item.ok, item.bad),
+    hint: item.hint,
+    steps: [
+      'Lee primero qué tiene que hacer el programa, antes de mirar el hueco.',
+      'Tapa el hueco y pregúntate qué falta ahí para que eso pase.',
+      `Pista de Robin: ${item.hint}`
+    ]
+  };
+}
+
+function revisaRound(d) {
+  const item = pick(CODIGO_REVISA[d >= 4 ? 4 : 3]);
+  return {
+    kind: 'choice',
+    prompt: `Este programa debería ${item.que}. ¿Está bien?\n\n${item.code}`,
+    lead: 'Cuidado: a veces sí está bien.',
+    answer: item.ok,
+    options: choices(item.ok, item.bad),
+    hint: item.hint,
+    steps: item.steps || [
+      'Recórrelo línea por línea como si fueras la computadora.',
+      'Anota cuánto vale cada variable después de cada línea.',
+      `Pista de Robin: ${item.hint}`
+    ]
+  };
+}
+
 function codeRound(d) {
-  // Antes de saber leer código hay que saber ordenar pasos: los dos niveles
-  // de abajo juegan solo a eso, sin una sola línea de programa.
+  // Antes de saber leer código hay que saber ordenar pasos: el nivel de abajo
+  // juega solo a eso, sin una sola línea de programa.
   if (d <= 1) return algoritmoRound(d);
-  if (d === 2) return Math.random() < 0.6 ? algoritmoRound(d) : salidaRound(d);
-  return pick([programaRound, salidaRound, conceptoRound, programaRound])(d);
+
+  // De aquí arriba el juego subió de nivel. Antes solo había tres cosas que
+  // hacer —ordenar líneas, adivinar la salida y contestar una definición— y
+  // ninguna se parecía a programar: nadie escribe un programa poniendo en
+  // orden líneas que ya existen. Las dos nuevas sí:
+  //
+  //   completar  hay código escrito y le falta una pieza
+  //   revisar    hay código escrito y hay que decir qué le pasa (o que no le
+  //              pasa nada, que también sale)
+  //
+  // Se reparten a propósito: las de mirar código pesan más que las de
+  // recitar definiciones, que son las que menos enseñan.
+  if (d === 2) return pick([algoritmoRound, completaRound, salidaRound, completaRound])(d);
+  if (d === 3) return pick([completaRound, revisaRound, salidaRound, programaRound, completaRound, conceptoRound])(d);
+  return pick([revisaRound, completaRound, programaRound, salidaRound, revisaRound, conceptoRound])(d);
 }
 
 // ---- Catálogo --------------------------------------------------------------

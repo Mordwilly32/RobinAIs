@@ -1,0 +1,404 @@
+/* =============================================================================
+   roboRobin — pase de lista y pantalla de familia
+   =============================================================================
+
+   Los dos lados de lo mismo: el profesor marca quién llegó, la familia lo ve.
+   Comparten los colores de estado, y eso importa: que «llegó tarde» sea del
+   mismo ámbar en las dos pantallas es lo que hace que no haya que aprenderse
+   dos códigos de color.
+
+   Cuatro estados, no dos:
+
+     present  verde   llegó
+     late     ámbar   llegó, pero tarde
+     absent   rojo    no llegó
+     (nada)   gris    todavía no le han pasado lista
+
+   El cuarto es el que más se olvida y el que más falta hace: «sin pasar lista»
+   NO es «faltó», y pintarlos igual sería mentir.
+   ============================================================================= */
+
+/* ---- La tira del día ------------------------------------------------------
+   El día se detecta solo y se escribe entero («martes 17 de marzo de 2026»),
+   no en cifras. Una fecha en cifras hay que descifrarla; el nombre del día se
+   lee de un vistazo y es justo lo que se quiere confirmar antes de marcar a
+   treinta personas. */
+
+.rr-day-strip {
+  display: flex; align-items: center; gap: 14px;
+  background: var(--rr-white); border: 1px solid var(--rr-line);
+  border-radius: var(--rr-r-md); padding: 14px 18px;
+  margin-bottom: 20px;
+  box-shadow: var(--rr-sh-xs);
+}
+.rr-day-ic { font-size: 26px; line-height: 1; }
+.rr-day-strip strong { display: block; font-size: 16.5px; letter-spacing: -.01em; }
+.rr-day-strip small { display: block; font-size: 13px; color: var(--rr-text-muted); margin-top: 2px; }
+.rr-day-strip > div { flex: 1; min-width: 0; }
+.rr-day-strip .rr-day-date { max-width: 168px; }
+.rr-day-strip.weekend { border-color: var(--rr-gold); background: var(--rr-gold-soft); }
+
+/* ---- El marcador de arriba ------------------------------------------------ */
+
+.rr-att-tally {
+  display: grid; gap: 12px; margin-bottom: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+}
+.rr-att-tally > div {
+  background: var(--rr-white); border: 1px solid var(--rr-line);
+  border-radius: var(--rr-r-sm); padding: 13px 16px;
+  border-left-width: 4px;
+}
+.rr-att-tally strong { display: block; font-size: 25px; line-height: 1.1; letter-spacing: -.02em; }
+.rr-att-tally span { display: block; font-size: 12.5px; color: var(--rr-text-muted); margin-top: 3px; }
+.rr-att-tally .t-ok { border-left-color: var(--rr-green); }
+.rr-att-tally .t-warn { border-left-color: var(--rr-gold); }
+.rr-att-tally .t-bad { border-left-color: var(--rr-danger); }
+.rr-att-tally .t-wait { border-left-color: var(--rr-line-strong); }
+
+/* ---- La cámara ------------------------------------------------------------ */
+
+.rr-cam {
+  background: var(--rr-ink); border-radius: var(--rr-r-lg);
+  overflow: hidden; margin-bottom: 22px;
+  box-shadow: var(--rr-sh-md);
+}
+.rr-cam-stage { position: relative; aspect-ratio: 16 / 9; background: #000; }
+.rr-cam-stage video,
+.rr-cam-stage canvas {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+}
+/* La cámara se ve en espejo, como un espejo de verdad: verse invertido al
+   colocarse delante es desconcertante y la gente se mueve al revés. */
+.rr-cam-stage video { transform: scaleX(-1); }
+.rr-cam-stage canvas { transform: scaleX(-1); pointer-events: none; }
+
+.rr-cam-veil {
+  position: absolute; inset: 0; z-index: 2;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; text-align: center; padding: 24px;
+  background: rgba(20, 16, 14, .78); color: #fff;
+}
+.rr-cam-veil .rr-wait-text { color: #fff; }
+.rr-cam-veil p { margin: 0; font-size: 14px; color: rgba(255, 255, 255, .74); max-width: 42ch; }
+
+.rr-cam-bar {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 13px 18px; background: var(--rr-ink-soft); color: #fff;
+}
+.rr-cam-bar .rr-cam-live {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 12.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  color: rgba(255, 255, 255, .8);
+}
+.rr-cam-bar .rr-cam-live i {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--rr-danger);
+  animation: rr-cam-pulse 1.4s ease-in-out infinite;
+}
+@keyframes rr-cam-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
+.rr-cam-bar .rr-cam-msg { flex: 1; min-width: 160px; font-size: 13.5px; color: rgba(255, 255, 255, .72); }
+
+/* Quién se acaba de reconocer. Sale por encima del vídeo y se va solo: es una
+   confirmación, no un registro — el registro es la lista de abajo. */
+.rr-cam-hit {
+  position: absolute; z-index: 3; left: 50%; bottom: 18px; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 11px;
+  background: var(--rr-white); border-radius: var(--rr-r-pill);
+  padding: 8px 18px 8px 8px; box-shadow: var(--rr-sh-lg);
+  animation: rr-hit-in .32s var(--rr-spring) both;
+  max-width: calc(100% - 32px);
+}
+.rr-cam-hit img, .rr-cam-hit span.rr-avatar {
+  width: 38px; height: 38px; flex: 0 0 38px; border-radius: 50%; object-fit: cover;
+}
+.rr-cam-hit strong { display: block; font-size: 14.5px; }
+.rr-cam-hit small { display: block; font-size: 12px; color: var(--rr-green); font-weight: 700; }
+@keyframes rr-hit-in {
+  from { opacity: 0; transform: translate(-50%, 16px) scale(.94); }
+  to { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+
+/* ---- La lista -------------------------------------------------------------
+   Una fila por persona, con su número a la izquierda como en la lista de
+   papel. El número no es decorativo: es como se busca a alguien cuando hay
+   treinta y cinco nombres. */
+
+.rr-att-list { display: grid; gap: 10px; }
+
+.rr-att-row {
+  display: grid; align-items: center; gap: 14px;
+  grid-template-columns: 52px 56px minmax(0, 1fr) auto;
+  background: var(--rr-white); border: 1px solid var(--rr-line);
+  border-left: 4px solid var(--rr-line-strong);
+  border-radius: var(--rr-r-sm); padding: 11px 14px;
+  transition: border-color var(--rr-fast) var(--rr-ease), box-shadow var(--rr-fast) var(--rr-ease);
+}
+.rr-att-row:hover { box-shadow: var(--rr-sh-xs); }
+.rr-att-row.is-present { border-left-color: var(--rr-green); background: linear-gradient(90deg, var(--rr-green-soft) 0%, var(--rr-white) 42%); }
+.rr-att-row.is-late { border-left-color: var(--rr-gold); background: linear-gradient(90deg, var(--rr-gold-soft) 0%, var(--rr-white) 42%); }
+.rr-att-row.is-absent { border-left-color: var(--rr-danger); background: linear-gradient(90deg, var(--rr-danger-soft) 0%, var(--rr-white) 42%); }
+
+/* Se acaba de reconocer por la cámara: un destello y ya. */
+.rr-att-row.flash { animation: rr-att-flash 1.1s var(--rr-ease) both; }
+@keyframes rr-att-flash {
+  0% { box-shadow: 0 0 0 0 var(--rr-green); }
+  30% { box-shadow: 0 0 0 5px rgba(46, 139, 87, .3); }
+  100% { box-shadow: 0 0 0 0 rgba(46, 139, 87, 0); }
+}
+
+/* El número, editable en el sitio. */
+.rr-att-num {
+  width: 52px; height: 42px;
+  text-align: center; font-family: var(--rr-mono); font-size: 16px; font-weight: 700;
+  border: 1px dashed var(--rr-line-strong); border-radius: var(--rr-r-xs);
+  background: var(--rr-paper); color: var(--rr-text);
+  padding: 0;
+}
+.rr-att-num:focus { outline: none; border-style: solid; border-color: var(--rr-red); background: var(--rr-white); }
+.rr-att-num::placeholder { color: var(--rr-text-faint); font-weight: 400; }
+/* Fuera las flechitas del campo numérico: aquí se escribe un número, no se
+   sube de uno en uno hasta el 35. */
+.rr-att-num::-webkit-outer-spin-button,
+.rr-att-num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.rr-att-num { -moz-appearance: textfield; }
+
+/* La foto. Es un botón: se pulsa y se elige la imagen. */
+.rr-att-face {
+  position: relative; width: 56px; height: 56px; flex: 0 0 56px;
+  border-radius: var(--rr-r-sm); overflow: hidden; cursor: pointer;
+  border: 1px solid var(--rr-line); background: var(--rr-paper-2);
+  display: grid; place-items: center; padding: 0;
+  transition: border-color var(--rr-fast) var(--rr-ease);
+}
+.rr-att-face:hover { border-color: var(--rr-red); }
+.rr-att-face img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.rr-att-face .rr-att-face-empty { font-size: 22px; opacity: .45; }
+.rr-att-face .rr-att-face-edit {
+  position: absolute; inset: auto 0 0 0;
+  background: rgba(20, 16, 14, .72); color: #fff;
+  font-size: 9.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  padding: 2px 0; opacity: 0; transition: opacity var(--rr-fast) var(--rr-ease);
+}
+.rr-att-face:hover .rr-att-face-edit { opacity: 1; }
+/* Con huella guardada lleva un punto verde: es la diferencia entre "tiene
+   foto" y "la cámara lo puede reconocer". */
+.rr-att-face.has-face::after {
+  content: ""; position: absolute; top: 4px; right: 4px;
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--rr-green); border: 2px solid var(--rr-white);
+}
+
+.rr-att-who { min-width: 0; }
+.rr-att-who strong { display: block; font-size: 15px; letter-spacing: -.01em; }
+.rr-att-who small { display: block; font-size: 12.5px; color: var(--rr-text-muted); margin-top: 2px; }
+.rr-att-who .rr-att-when { color: var(--rr-green); font-weight: 650; }
+
+.rr-att-marks { display: flex; gap: 6px; flex-wrap: wrap; }
+.rr-att-mark {
+  border: 1px solid var(--rr-line); background: var(--rr-white);
+  border-radius: var(--rr-r-pill); padding: 7px 13px;
+  font-size: 13px; font-weight: 650; color: var(--rr-text-muted);
+  cursor: pointer; white-space: nowrap;
+  transition: all var(--rr-fast) var(--rr-ease);
+}
+.rr-att-mark:hover { border-color: var(--rr-line-strong); color: var(--rr-text); }
+.rr-att-mark.on[data-mark="present"] { background: var(--rr-green); border-color: var(--rr-green); color: #fff; }
+.rr-att-mark.on[data-mark="late"] { background: var(--rr-gold); border-color: var(--rr-gold); color: var(--rr-ink); }
+.rr-att-mark.on[data-mark="absent"] { background: var(--rr-danger); border-color: var(--rr-danger); color: #fff; }
+
+@media (max-width: 720px) {
+  .rr-att-row { grid-template-columns: 44px 48px minmax(0, 1fr); row-gap: 10px; }
+  .rr-att-marks { grid-column: 1 / -1; }
+  .rr-att-num { width: 44px; }
+  .rr-att-face { width: 48px; height: 48px; flex-basis: 48px; }
+}
+
+/* ---- La barra de acciones de abajo ---------------------------------------- */
+
+.rr-att-actions {
+  display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+  margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--rr-line);
+}
+.rr-att-actions .rr-att-note { font-size: 13px; color: var(--rr-text-muted); flex: 1; min-width: 200px; }
+
+/* =============================================================================
+   La pantalla de familia
+   ============================================================================= */
+
+.rr-child-grid {
+  display: grid; gap: 16px; margin-bottom: 30px;
+  grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+}
+
+.rr-child { border-left: 5px solid var(--rr-line-strong); }
+.rr-child.ok { border-left-color: var(--rr-green); }
+.rr-child.warn { border-left-color: var(--rr-gold); }
+.rr-child.bad { border-left-color: var(--rr-danger); }
+.rr-child.wait { border-left-color: var(--rr-line-strong); }
+
+.rr-child-top { display: flex; align-items: flex-start; gap: 14px; }
+.rr-child-face { width: 56px; height: 56px; flex: 0 0 56px; }
+.rr-child-id { flex: 1; min-width: 0; }
+.rr-child-id h3 { margin: 0 0 3px; font-size: 18px; letter-spacing: -.01em; }
+.rr-child-id p { margin: 0 0 8px; font-size: 13px; color: var(--rr-text-muted); }
+.rr-child-tags { display: flex; gap: 5px; flex-wrap: wrap; }
+.rr-child-x { padding: 4px 9px; color: var(--rr-text-faint); }
+.rr-child-x:hover { color: var(--rr-danger); }
+
+/* El estado de hoy: lo que se viene a ver, en grande y con su explicación
+   debajo. Sin la explicación, «sin pasar lista» se lee como «faltó». */
+.rr-child-state {
+  display: flex; align-items: center; gap: 14px;
+  margin: 16px 0 0; padding: 14px 16px;
+  border-radius: var(--rr-r-sm); background: var(--rr-paper-2);
+}
+.rr-child.ok .rr-child-state { background: var(--rr-green-soft); }
+.rr-child.warn .rr-child-state { background: var(--rr-gold-soft); }
+.rr-child.bad .rr-child-state { background: var(--rr-danger-soft); }
+.rr-child-ic { font-size: 28px; line-height: 1; }
+.rr-child-state strong { display: block; font-size: 16px; }
+.rr-child-state small { display: block; font-size: 12.5px; color: var(--rr-text-muted); margin-top: 3px; line-height: 1.45; }
+
+.rr-child-run { margin-top: 14px; }
+.rr-child-run small { display: block; font-size: 12px; color: var(--rr-text-muted); margin-top: 7px; }
+.rr-dots { display: flex; gap: 5px; }
+.rr-dot {
+  width: 15px; height: 15px; border-radius: 5px; display: block;
+  background: var(--rr-line-strong);
+}
+.rr-dot.ok { background: var(--rr-green); }
+.rr-dot.warn { background: var(--rr-gold); }
+.rr-dot.bad { background: var(--rr-danger); }
+.rr-dot.wait { background: var(--rr-line); }
+
+/* ---- El interruptor de la cámara ------------------------------------------
+   Era un botón que había que pulsar cada vez. Como opción que se queda puesta
+   se lee mejor: dice en qué modo estás sin que haya que deducirlo de si hay
+   vídeo en pantalla. */
+
+.rr-switch {
+  display: inline-flex; align-items: center; gap: 10px;
+  cursor: pointer; user-select: none;
+  padding: 7px 14px 7px 10px;
+  border: 1px solid var(--rr-line); border-radius: var(--rr-r-pill);
+  background: var(--rr-white);
+  transition: border-color var(--rr-fast) var(--rr-ease), background var(--rr-fast) var(--rr-ease);
+}
+.rr-switch:hover { border-color: var(--rr-line-strong); }
+.rr-switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+
+.rr-switch-track {
+  position: relative; flex: 0 0 38px;
+  width: 38px; height: 22px; border-radius: 999px;
+  background: var(--rr-line-strong);
+  transition: background var(--rr-mid) var(--rr-ease);
+}
+.rr-switch-track i {
+  position: absolute; top: 3px; left: 3px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--rr-white); box-shadow: var(--rr-sh-xs);
+  transition: transform var(--rr-mid) var(--rr-spring);
+}
+.rr-switch-text { font-size: 13.5px; font-weight: 650; color: var(--rr-text-muted); white-space: nowrap; }
+
+.rr-switch input:checked ~ .rr-switch-track { background: var(--rr-green); }
+.rr-switch input:checked ~ .rr-switch-track i { transform: translateX(16px); }
+.rr-switch input:checked ~ .rr-switch-text { color: var(--rr-text); }
+.rr-switch:has(input:checked) { border-color: var(--rr-green); background: var(--rr-green-soft); }
+/* El foco del teclado se ve en la pastilla entera, porque la casilla de
+   verdad está escondida. */
+.rr-switch:has(input:focus-visible) { outline: 2px solid var(--rr-red); outline-offset: 2px; }
+
+/* ---- La ficha de cada persona ---------------------------------------------
+   Dos pisos: la fila de cada mañana y, plegado debajo, lo que se rellena una
+   vez al año. */
+
+.rr-att-item { display: block; }
+.rr-att-item.editing .rr-att-row {
+  border-bottom-left-radius: 0; border-bottom-right-radius: 0;
+  border-bottom-color: transparent;
+}
+
+/* El lápiz. Va al final de la fila, junto a los tres estados, porque es de la
+   misma familia: cosas que se le hacen a esa persona. */
+.rr-att-pencil {
+  border: 1px solid var(--rr-line); background: var(--rr-white);
+  border-radius: var(--rr-r-pill); padding: 7px 11px;
+  font-size: 14px; line-height: 1; cursor: pointer;
+  transition: all var(--rr-fast) var(--rr-ease);
+}
+.rr-att-pencil:hover { border-color: var(--rr-red); background: var(--rr-red-soft); }
+.rr-att-item.editing .rr-att-pencil { border-color: var(--rr-red); background: var(--rr-red-soft); }
+
+.rr-att-edit {
+  border: 1px solid var(--rr-line); border-top: none;
+  border-left: 4px solid var(--rr-line-strong);
+  border-radius: 0 0 var(--rr-r-sm) var(--rr-r-sm);
+  background: var(--rr-paper);
+  padding: 18px 20px;
+  animation: rr-fade-up .22s var(--rr-ease) both;
+}
+.rr-att-edit[hidden] { display: none; }
+
+.rr-att-edit-grid {
+  display: grid; gap: 22px; align-items: start;
+  grid-template-columns: 132px minmax(0, 1fr);
+}
+@media (max-width: 620px) { .rr-att-edit-grid { grid-template-columns: 1fr; } }
+
+.rr-att-edit-photo { text-align: center; }
+.rr-att-edit-photo small {
+  display: block; margin-top: 8px;
+  font-size: 11.5px; line-height: 1.45; color: var(--rr-text-muted);
+}
+/* La foto grande del editor: aquí sí se ve si salió movida o a contraluz, que
+   es lo que decide si la cámara la va a reconocer. */
+.rr-att-face.big { width: 132px; height: 132px; flex-basis: 132px; border-radius: var(--rr-r-md); }
+.rr-att-face.big .rr-att-face-empty { font-size: 44px; }
+.rr-att-face.big .rr-att-face-edit { opacity: 1; font-size: 10.5px; padding: 5px 0; }
+
+.rr-att-edit-tel label {
+  display: block; margin-bottom: 7px;
+  font-size: 13.5px; font-weight: 700; color: var(--rr-text);
+}
+.rr-att-edit-tel small {
+  display: block; margin-top: 8px;
+  font-size: 12px; line-height: 1.5; color: var(--rr-text-muted); max-width: 56ch;
+}
+
+/* El teléfono, partido en dos casillas. El código de país es una casilla
+   aparte y no un prefijo pegado al número porque se corrige por separado: el
+   código se pone una vez y el número cambia con cada persona. */
+.rr-phone {
+  display: inline-flex; align-items: stretch; max-width: 340px; width: 100%;
+  border: 1px solid var(--rr-line); border-radius: var(--rr-r-xs);
+  background: var(--rr-white); overflow: hidden;
+  transition: border-color var(--rr-fast) var(--rr-ease);
+}
+.rr-phone:focus-within { border-color: var(--rr-red); }
+.rr-phone-plus {
+  display: grid; place-items: center; padding: 0 4px 0 12px;
+  font-size: 15px; font-weight: 700; color: var(--rr-text-faint);
+}
+.rr-phone input { border: none; background: none; border-radius: 0; box-shadow: none; }
+.rr-phone input:focus { outline: none; border: none; box-shadow: none; }
+.rr-phone-code {
+  width: 58px; flex: 0 0 58px;
+  font-family: var(--rr-mono); font-size: 15px; font-weight: 700;
+  padding: 11px 0; color: var(--rr-text);
+  border-right: 1px solid var(--rr-line) !important;
+}
+.rr-phone-num { flex: 1; min-width: 0; font-size: 15px; padding: 11px 13px; letter-spacing: .02em; }
+
+.rr-att-edit-actions { display: flex; gap: 9px; margin-top: 14px; }
+
+/* El teléfono, cuando ya está puesto, se ve en la fila: es el dato que se
+   busca con prisa justo cuando alguien no llegó. */
+.rr-att-tel { color: var(--rr-text-muted); font-weight: 650; white-space: nowrap; }
+
+/* El piso de abajo hereda el color del estado de la fila: abierta la ficha, la
+   raya de la izquierda tiene que seguir siendo la misma o parece otro bloque
+   pegado debajo. */
+.rr-att-item.editing .rr-att-row.is-present + .rr-att-edit { border-left-color: var(--rr-green); }
+.rr-att-item.editing .rr-att-row.is-late + .rr-att-edit { border-left-color: var(--rr-gold); }
+.rr-att-item.editing .rr-att-row.is-absent + .rr-att-edit { border-left-color: var(--rr-danger); }

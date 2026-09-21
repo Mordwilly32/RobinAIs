@@ -18,7 +18,7 @@ function rrMountAiSettings(container) {
   if (!container) return null;
   let estado = null;
 
-  container.innerHTML = '<div class="rr-loader"><div class="rr-spinner"></div></div>';
+  container.innerHTML = rrLoadingHtml('Mirando cómo tienes conectado a Robin');
 
   function render() {
     const t = estado.lastTest;
@@ -155,7 +155,7 @@ function rrMountAiSettings(container) {
 
     btn.disabled = true;
     const original = btn.textContent;
-    btn.textContent = 'Guardando…';
+    btn.innerHTML = rrLoadingHtml('Guardando', { size: 'inline' });
 
     try {
       const data = await rrApi('/api/ai/settings', { method: 'PUT', body: cuerpo });
@@ -173,8 +173,10 @@ function rrMountAiSettings(container) {
     const caja = container.querySelector('#aiResult');
     error('');
     btn.disabled = true;
-    btn.textContent = 'Probando…';
-    caja.innerHTML = '<div class="rr-loader"><div class="rr-spinner"></div></div>';
+    btn.innerHTML = rrLoadingHtml('Probando', { size: 'inline' });
+    caja.innerHTML = rrLoadingHtml('Hablando con la API de Anthropic', {
+      sub: 'Se le manda un mensaje de una línea para ver si tu clave contesta. Puede tardar unos segundos.'
+    });
 
     try {
       const t = await rrApi('/api/ai/test', { method: 'POST' });

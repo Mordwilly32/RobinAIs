@@ -4,19 +4,37 @@ rrRedirectIfSignedIn();
 const form = document.getElementById('loginForm');
 const errorBox = document.getElementById('formError');
 const btn = document.getElementById('loginBtn');
+const passInput = document.getElementById('password');
+
+// Ver lo que se está escribiendo. Sin esto, una contraseña mal tecleada en un
+// teléfono se confunde con una contraseña equivocada, y el mensaje de error
+// es el mismo para las dos cosas.
+const eye = document.getElementById('togglePw');
+if (eye) {
+  eye.addEventListener('click', () => {
+    const viendo = passInput.type === 'text';
+    passInput.type = viendo ? 'password' : 'text';
+    eye.classList.toggle('on', !viendo);
+    eye.textContent = viendo ? '👁' : '🙈';
+    eye.setAttribute('aria-label', viendo ? 'Ver la contraseña' : 'Ocultar la contraseña');
+    passInput.focus();
+  });
+}
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
   errorBox.classList.remove('visible');
   btn.disabled = true;
-  btn.textContent = 'Entrando…';
+  // El botón se convierte en la espera. Es donde está mirando quien acaba de
+  // pulsarlo, así que es donde tiene que aparecer que algo está pasando.
+  btn.innerHTML = rrLoadingHtml('Entrando', { size: 'inline' });
 
   try {
     const { user } = await rrApi('/api/login', {
       method: 'POST',
       body: {
         email: document.getElementById('email').value.trim(),
-        password: document.getElementById('password').value
+        password: passInput.value
       }
     });
     // Robin celebra antes de soltar la pantalla: la espera se siente más corta.

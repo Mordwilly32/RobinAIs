@@ -122,6 +122,37 @@ router.post('/register', (req, res) => {
     return res.status(201).json({ user: db.publicUser(user) });
   }
 
+  // --- Cuenta de padre o madre ---------------------------------------------
+  // Vive en el mismo camino que la cuenta personal, porque es lo que es: una
+  // cuenta de alguien de fuera de la escuela. Lo único distinto es a quién
+  // acompaña, y eso se dice con el ID de estudiante de su hijo — el mismo
+  // que ya usa para entrar, así que no hay un código nuevo que repartir.
+  if (mode === 'parent') {
+    if (!email) return res.status(400).json({ error: 'El correo es necesario para una cuenta de familia.' });
+
+    const code = String(body.studentCode || '').trim().toUpperCase();
+    if (!code) return res.status(400).json({ error: 'Escribe el ID de estudiante de tu hijo o hija.' });
+    if (!db.getUserByStudentCode(code)) {
+      return res.status(400).json({ error: 'No hay ningún estudiante con ese ID. Se parece a STU-00007.' });
+    }
+
+    const user = db.createUser({ fullName, email, password, role: 'parent', plan: 'free' });
+    const enlace = db.linkChild(user.id, code);
+    if (enlace.ok) {
+      db.addNotification(enlace.student.id, {
+        type: 'family',
+        title: 'Tu familia sigue tu asistencia',
+        message: `${fullName} podrá ver si llegaste a clase cada día.`
+      });
+    }
+
+    startSession(req, user);
+    return res.status(201).json({
+      user: db.publicUser(db.getUserById(user.id)),
+      child: enlace.ok ? { fullName: enlace.student.fullName } : null
+    });
+  }
+
   // --- Inscribir una escuela (el que la crea queda como director) -----------
   if (mode === 'school') {
     const schoolName = String(body.schoolName || '').trim();

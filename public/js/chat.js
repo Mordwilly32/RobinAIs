@@ -64,13 +64,15 @@ function rrCreateChat({ body, form, input, send, hello, mode, onAction, onChat, 
     return el;
   }
 
-  // Mientras piensa, Robin aparece con el pico abierto al lado de los puntitos:
-  // así se nota que está armando la respuesta y no que se quedó colgado.
+  // Mientras piensa. Es la MISMA animación de espera que en todo lo demás —la
+  // de loading.css— y no unos puntitos propios del chat: que esperar a Robin
+  // se vea igual aquí que al entrar o al guardar una foto es lo que hace que
+  // se reconozca sin leer nada.
   function showTyping() {
     const el = document.createElement('div');
     el.className = 'rr-typing-row';
     el.dataset.typing = 'true';
-    el.innerHTML = '<div class="rr-typing"><span></span><span></span><span></span></div>';
+    el.innerHTML = rrLoadingHtml('Robin lo está pensando', { size: 'inline' });
     body.appendChild(el);
     scrollDown();
     return el;
@@ -176,6 +178,13 @@ function rrCreateChat({ body, form, input, send, hello, mode, onAction, onChat, 
 
   form.addEventListener('submit', (e) => {
     e.preventDefault();
+    // Con un modo de herramienta puesto (traducir, generar actividad) manda
+    // chat-tools.js: eso no es una pregunta para Robin, es otra petición con
+    // su propio camino y su propio resultado. Se mira el atributo del
+    // formulario en vez de fiarse del orden en que se engancharon los dos
+    // manejadores, que es de las cosas que se rompen solas.
+    if (form.dataset.tool && form.dataset.tool !== 'chat') return;
+
     const message = input.value.trim();
     if (!message) return;
     input.value = '';

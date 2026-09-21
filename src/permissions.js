@@ -90,6 +90,11 @@ const PERMISSIONS = {
   personal: [
     'games.play',
     'plans.manage'
+  ],
+  // Familia. No pertenece a la escuela: acompaña a una o varias cuentas de
+  // estudiante, y de ellas solo ve el pase de lista — si llegó y cuándo.
+  parent: [
+    'children.view'
   ]
 };
 
@@ -104,7 +109,8 @@ const ROLE_LABEL = {
   secretary: 'Secretaría',
   teacher: 'Profesor',
   student: 'Estudiante',
-  personal: 'Cuenta personal'
+  personal: 'Cuenta personal',
+  parent: 'Padre o madre'
 };
 
 function can(role, permission) {

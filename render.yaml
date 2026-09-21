@@ -1,0 +1,51 @@
+# render.yaml — cómo se despliega roboRobin
+# ---------------------------------------------------------------------------
+# Render lee este archivo solo. En su panel: New → Blueprint, se elige este
+# repositorio y ya. Los tres secretos de abajo los pide una vez, por pantalla,
+# porque llevan sync: false y eso significa "esto no está en el repositorio, lo
+# tecleas tú".
+#
+# Por qué Render y no GitHub Pages: GitHub Pages solo sabe servir archivos, y
+# roboRobin tiene un servidor detrás (sesiones, permisos, la conexión con
+# Claude). El repositorio vive en GitHub; lo que corre, aquí.
+# ---------------------------------------------------------------------------
+
+services:
+  - type: web
+    name: roborobin
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /health
+
+    # UNA sola instancia, y no es por ahorrar.
+    #
+    # roboRobin trabaja con toda la base en memoria y la vuelca a Supabase.
+    # Dos instancias serían dos memorias distintas creyendo cada una que la
+    # suya es la buena, y la última en guardar pisaría a la otra. Si algún día
+    # hace falta crecer, lo que hay que cambiar no es este número: es que las
+    # rutas lean y escriban contra Postgres en vez de contra el caché.
+    numInstances: 1
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+      # Render la genera y no la enseña. Si la cambias, todo el mundo tiene
+      # que volver a entrar.
+      - key: SESSION_SECRET
+        generateValue: true
+
+      # Las dos de Supabase. Project Settings → API.
+      - key: SUPABASE_URL
+        sync: false
+      # La service_role key. No la anon. Ver docs/supabase.md.
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+
+      # Opcional: sin ella Robin contesta en su modo local, que sabe de tareas
+      # y recordatorios pero no conversa.
+      - key: ANTHROPIC_API_KEY
+        sync: false

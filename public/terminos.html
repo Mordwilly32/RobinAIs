@@ -6,6 +6,7 @@
 <title>Términos del servicio — roboRobin</title>
 <link rel="icon" href="/images/robin.png" />
 <link rel="stylesheet" href="/css/style.css" />
+<link rel="stylesheet" href="/loading/style.css" />
 <link rel="stylesheet" href="/css/landing.css" />
 <link rel="stylesheet" href="/css/consola.css" />
 </head>
@@ -103,16 +104,38 @@
       fuente única</strong> para tareas, decisiones médicas, legales ni financieras.
     </p>
 
-    <h2 id="privacidad" data-anim="up">5. Privacidad</h2>
+    <h2 id="privacidad" data-anim="up">5. Privacidad: aquí no se guarda nada</h2>
+    <div class="rb-warn" data-anim="up">
+      <h3>🗑️ Al cerrar la pestaña, todo desaparece</h3>
+      <p>
+        Esta versión <strong>no tiene servidor ni base de datos</strong>. No hay un
+        <code>db.json</code>, no hay nube y no hay ningún archivo donde se apunte lo que haces. Todo
+        —cuentas, escuelas, códigos, pendientes, avisos, conversaciones con Robin, fotos, marcas de los
+        minijuegos y tu clave de la API— vive únicamente en la memoria de esta pestaña mientras la tengas
+        abierta. <strong>En el momento en que cierres la ventana o la recargues, se borra entero y no
+        queda copia en ninguna parte.</strong>
+      </p>
+    </div>
     <p data-anim="up">
-      Todo (cuentas, contraseñas encriptadas, escuelas, códigos, pendientes, avisos e historial del chat) se guarda
-      en el almacén de datos del proyecto. Quien administre la instalación tiene acceso a ese almacén. Por eso:
+      Para que quede claro qué es lo que <em>no</em> se usa:
     </p>
     <ul data-anim="up">
-      <li>No escribas datos personales de verdad ni información sensible dentro de la demostración.</li>
-      <li>Usa contraseñas que no uses en ningún otro sitio.</li>
-      <li>Los códigos de ingreso son de 4 caracteres para poder dictarlos en voz alta: son cómodos, no son seguridad de verdad.</li>
+      <li><strong>Sin base de datos.</strong> Nada se escribe en disco, ni en tu equipo ni en el de nadie.</li>
+      <li><strong>Sin cookies, sin <code>localStorage</code>, sin <code>sessionStorage</code>, sin IndexedDB.</strong> El sitio no deja rastro en el navegador.</li>
+      <li><strong>Sin cuentas reales.</strong> Los usuarios que crees existen solo dentro de esta pestaña; nadie más los ve y mañana no estarán.</li>
+      <li><strong>Sin analítica ni rastreadores.</strong> No se mide quién entra ni qué hace.</li>
+      <li><strong>Sin subida de archivos.</strong> Las fotos de perfil, las del pase de lista y los PDF que le des a Robin se procesan dentro del navegador y se van con la pestaña.</li>
     </ul>
+    <p data-anim="up">
+      Lo único que sale de tu navegador es lo que tú provoques a propósito: si pegas una clave de la API de
+      Anthropic, las preguntas que le hagas a Robin viajan a Anthropic para que Claude las conteste (apartado 4).
+      Fuera de eso, el sitio no habla con ningún servidor.
+    </p>
+    <p data-anim="up">
+      Aun así, como es una demostración pública: <strong>no escribas datos personales de verdad</strong> ni
+      información sensible, y usa contraseñas que no uses en ningún otro sitio. Los códigos de ingreso son de
+      4 caracteres para poder dictarlos en voz alta: son cómodos, no son seguridad de verdad.
+    </p>
 
     <h2 data-anim="up">6. Cuentas y roles</h2>
     <p data-anim="up">

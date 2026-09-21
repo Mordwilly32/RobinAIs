@@ -1,0 +1,221 @@
+/* =============================================================================
+   roboRobin — la espera
+   =============================================================================
+
+   Esta es TU animación, la que estaba en
+   public/herramientas/asistencia wapp.html. Está copiada tal cual, sin tocar
+   un solo valor: el velo, el aro de 40 px, los colores #493f3a y #ef3b1f, y
+   el giro de 1s lineal.
+
+   Lo ÚNICO añadido son los tamaños del final (.spinner.sm y .spinner.xs), que
+   solo cambian el ancho, el alto y el grosor del borde para que el mismo aro
+   quepa dentro de un botón o de una fila. Ni colores, ni velocidad, ni forma.
+
+   Este archivo es el que carga la aplicación entera: server.js sirve esta
+   carpeta en /loading, y todas las páginas enlazan /loading/style.css. No hay
+   una segunda copia en ningún sitio — si tocas esto, cambia en todas partes.
+   ============================================================================= */
+
+
+
+
+/* =========================================================
+   LOADING
+========================================================= */
+
+.loading {
+
+    position:
+        fixed;
+
+    inset:
+        0;
+
+    background:
+        rgba(21, 17, 16, 0.97);
+
+    z-index:
+        9999;
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    flex-direction:
+        column;
+
+    gap:
+        15px;
+
+    color:
+        #ffffff;
+}
+
+
+.spinner {
+
+    width:
+        40px;
+
+    height:
+        40px;
+
+    border:
+        4px solid #493f3a;
+
+    border-top-color:
+        #ef3b1f;
+
+    border-radius:
+        50%;
+
+    animation:
+        spin 1s linear infinite;
+}
+
+
+@keyframes spin {
+
+    to {
+        transform:
+            rotate(360deg);
+    }
+}
+
+
+.hidden {
+
+    display:
+        none !important;
+}
+
+
+/* =========================================================
+   LO ÚNICO AÑADIDO: TAMAÑOS
+   =========================================================
+
+   El mismo aro de arriba, más chico, para cuando no ocupa
+   la pantalla entera: dentro de un botón que está
+   guardando, o en la línea donde Robin está pensando.
+
+   Solo cambian width, height y border-width. El color, la
+   velocidad y la animación son los de .spinner.
+========================================================= */
+
+.spinner.sm {
+
+    width:
+        22px;
+
+    height:
+        22px;
+
+    border-width:
+        3px;
+}
+
+
+.spinner.xs {
+
+    width:
+        16px;
+
+    height:
+        16px;
+
+    border-width:
+        2px;
+}
+
+
+/* La espera en línea: el aro y un texto al lado. Es
+   colocación, no animación — el aro sigue siendo .spinner. */
+
+.rr-wait {
+
+    display:
+        inline-flex;
+
+    align-items:
+        center;
+
+    gap:
+        9px;
+}
+
+
+.rr-wait-text {
+
+    font-size:
+        13.5px;
+
+    font-weight:
+        650;
+}
+
+
+/* Dos colocaciones más que usa public/js/loading.js. Tampoco animan nada:
+   .rr-wait-box centra el aro dentro de una tarjeta que se está llenando, y
+   .rr-wait-sub es la segunda línea del velo, debajo de #loadingText. */
+
+.rr-wait-box {
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    padding:
+        42px 0;
+}
+
+
+.rr-wait-sub {
+
+    font-size:
+        13px;
+
+    opacity:
+        0.7;
+
+    max-width:
+        42ch;
+
+    text-align:
+        center;
+
+    line-height:
+        1.5;
+}
+
+
+/* Dentro de un botón el aro toma el color del texto del botón, para que no
+   se vea un aro gris sobre un botón rojo. */
+
+.btn .rr-wait-text {
+
+    font-size:
+        inherit;
+
+    font-weight:
+        inherit;
+}
+
+
+.btn .spinner {
+
+    border-color:
+        rgba(255, 255, 255, 0.35);
+
+    border-top-color:
+        currentColor;
+}

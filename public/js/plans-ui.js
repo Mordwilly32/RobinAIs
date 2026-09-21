@@ -17,7 +17,7 @@ function rrMountPlans(container, { user, onChange } = {}) {
   let planActual = (user && user.plan) || 'free';
   let ciclo = (user && user.planCycle) || 'monthly';
 
-  container.innerHTML = '<div class="rr-loader"><div class="rr-spinner"></div></div>';
+  container.innerHTML = '<div class="rr-loader"><div class="spinner"></div></div>';
 
   function render() {
     const { cycles, plans } = catalogo;
@@ -102,7 +102,7 @@ function rrMountPlans(container, { user, onChange } = {}) {
 
     btn.disabled = true;
     const original = btn.textContent;
-    btn.textContent = 'Un momento…';
+    btn.innerHTML = rrLoadingHtml('Un momento', { size: 'inline' });
 
     try {
       const data = await rrApi('/api/plans/choose', { method: 'POST', body: { plan: planId, cycle: ciclo } });

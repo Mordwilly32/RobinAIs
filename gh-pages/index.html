@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>roboRobin — tu compañero de aprendizaje con IA</title>
+<link rel="icon" href="images/robin.png" />
+<link rel="stylesheet" href="css/style.css" />
+<link rel="stylesheet" href="loading/style.css" />
+<link rel="stylesheet" href="css/landing.css" />
+<link rel="stylesheet" href="css/consola.css" />
+</head>
+<body class="rb-page">
+
+<!-- ===================== Barra ===================== -->
+<nav class="rb-nav" id="rbNav">
+  <div class="rb-wrap rb-nav-inner">
+    <a href="index.html" class="rb-logo rb-logo-xl">
+      <span>Robo<b>Robin</b></span>
+    </a>
+
+    <div class="rb-nav-links" id="rbNavLinks">
+      <a href="#funciones">Funciones</a>
+      <a href="#como">Cómo funciona</a>
+      <a href="#precios">Precios</a>
+      <a href="#escuelas">Escuelas</a>
+    </div>
+
+    <div class="rb-nav-cta">
+      <a href="login.html" class="rb-login">Iniciar sesión</a>
+      <a href="register.html" class="rb-btn rb-btn-primary rb-btn-sm">Empezar gratis</a>
+      <button class="rb-burger" id="rbBurger" aria-label="Abrir menú">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<!-- ===================== Héroe ===================== -->
+<header class="rb-hero">
+  <div class="rb-wrap rb-hero-grid">
+    <div>
+      <span class="rb-tag" data-anim="up"><i class="dot"></i> Tu compañero de aprendizaje con IA</span>
+
+      <h1 data-anim="up" data-delay="80">
+        <span>Aprende más</span>
+        <span class="rb-red">con Robin</span>
+        <span>a tu lado.</span>
+      </h1>
+
+      <p class="rb-hero-lead" data-anim="up" data-delay="160">
+        roboRobin es la IA que te ayuda a entender cualquier tema, resolver dudas al instante y crecer en tu
+        aprendizaje — ya sea en casa o en el salón de clases.
+      </p>
+
+      <div class="rb-hero-actions" data-anim="up" data-delay="240">
+        <a href="register.html" class="rb-btn rb-btn-primary">Probar gratis — sin tarjeta</a>
+        <a href="#como" class="rb-btn rb-btn-white">Ver demo ▶</a>
+      </div>
+
+      <div class="rb-hero-note" data-anim="up" data-delay="320">
+        <span>Empiezas gratis · sin tarjeta · sin anuncios</span>
+      </div>
+    </div>
+
+    <!-- Robin con sus tarjetas flotantes -->
+    <div class="rb-scene" data-anim="zoom" data-delay="140">
+      <div class="rb-scene-ring"></div>
+      <span class="rr-galeria rb-scene-robin" data-rr-galeria data-bob></span>
+
+      <div class="rb-float rb-float-1" data-parallax="18">
+        <small>Pregunta resuelta</small>
+        <strong>¿Qué es la fotosíntesis? ✅</strong>
+      </div>
+      <div class="rb-float rb-float-2" data-parallax="-24">
+        <small>Racha activa 🔥</small>
+        <strong>12 días</strong>
+      </div>
+      <div class="rb-float rb-float-3" data-parallax="26">
+        <small>Progreso de hoy</small>
+        <div class="rb-dots">
+          <i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i>
+          <span>4/5</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ===================== Funciones (zona anclada) ===================== -->
+<!-- La sección se queda pegada mientras se hace scroll: la zona se abre y las
+     tarjetas van saliendo una por una. Ver initShowcase() en landing.js. -->
+<section class="rb-showcase" id="funciones">
+  <div class="rb-showcase-track" id="rbShowcase">
+    <div class="rb-showcase-stage">
+      <div class="rb-wrap">
+        <div class="rb-showcase-zone">
+          <div class="rb-section-head">
+            <span class="rb-tag">Todo lo que necesitas</span>
+            <h2>Robin tiene todo para ti</h2>
+            <p>No es solo un chatbot. roboRobin es un compañero de aprendizaje completo que se adapta a cada persona.</p>
+          </div>
+
+          <div class="rb-features-grid">
+            <div class="rb-feature tinted">
+              <div class="rb-feature-ic">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                  <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3.5 2" />
+                </svg>
+              </div>
+              <h3>Respuestas en tiempo real</h3>
+              <p>roboRobin responde al instante con información clara, adaptada a tu nivel y a lo que necesitas.</p>
+            </div>
+
+            <div class="rb-feature">
+              <div class="rb-feature-ic">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                  <path d="M4 7h16M4 12h11M4 17h7" />
+                </svg>
+              </div>
+              <h3>Tutor personalizado</h3>
+              <p>Aprende a tu ritmo. Robin se adapta a tu estilo de aprendizaje y ajusta el nivel automáticamente.</p>
+            </div>
+
+            <div class="rb-feature">
+              <div class="rb-feature-ic">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                  <rect x="3" y="3" width="7.5" height="7.5" rx="2" /><rect x="13.5" y="3" width="7.5" height="7.5" rx="2" opacity=".55" />
+                  <rect x="3" y="13.5" width="7.5" height="7.5" rx="2" opacity=".55" /><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2" />
+                </svg>
+              </div>
+              <h3>Multimaterias</h3>
+              <p>Matemáticas, ciencias, historia, idiomas y más. Robin cubre todas las áreas del conocimiento.</p>
+            </div>
+
+            <div class="rb-feature">
+              <div class="rb-feature-ic">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2.5l2.9 5.9 6.6.9-4.8 4.6 1.2 6.5-5.9-3.1-5.9 3.1 1.2-6.5-4.8-4.6 6.6-.9z" />
+                </svg>
+              </div>
+              <h3>Tu avance, a la vista</h3>
+              <p>Robin lleva la cuenta de lo que terminas y lo que falta, para que sepas siempre por dónde vas.</p>
+            </div>
+
+            <div class="rb-feature">
+              <div class="rb-feature-ic">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                  <circle cx="12" cy="12" r="9" /><path d="M12 8v8M8 12h8" />
+                </svg>
+              </div>
+              <h3>Siempre disponible</h3>
+              <p>Sin descansos ni horarios. Robin está listo cuando tú lo necesites, de día o de noche.</p>
+            </div>
+
+            <div class="rb-feature tinted">
+              <div class="rb-feature-ic">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 16l5-5 4 4 8-8" /><path d="M15 7h5v5" />
+                </svg>
+              </div>
+              <h3>Para escuelas</h3>
+              <p>Panel del director y de profesores, con avisos, asignación de tareas y seguimiento por grupo.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== Cómo funciona ===================== -->
+<section class="rb-section rb-how" id="como">
+  <div class="rb-wrap">
+    <div class="rb-section-head">
+      <span class="rb-tag" data-anim="up">Simple como debe ser</span>
+      <h2 data-anim="up" data-delay="60">¿Cómo funciona?</h2>
+      <p data-anim="up" data-delay="120">Empieza a aprender en minutos. Sin configuraciones complicadas.</p>
+    </div>
+
+    <div class="rb-steps">
+      <div class="rb-step" data-anim="up">
+        <div class="rb-step-n">01</div>
+        <h3>Crea tu cuenta</h3>
+        <p>Regístrate en menos de 60 segundos. Sin tarjeta de crédito.</p>
+      </div>
+      <div class="rb-step" data-anim="up" data-delay="100">
+        <div class="rb-step-n">02</div>
+        <h3>Cuéntale qué necesitas</h3>
+        <p>Escribe tu duda, apunta un pendiente o elige una materia.</p>
+      </div>
+      <div class="rb-step" data-anim="up" data-delay="200">
+        <div class="rb-step-n">03</div>
+        <h3>Robin te guía</h3>
+        <p>Recibe explicaciones claras, ejemplos y práctica personalizada.</p>
+      </div>
+      <div class="rb-step" data-anim="up" data-delay="300">
+        <div class="rb-step-n">04</div>
+        <h3>Mide tu avance</h3>
+        <p>Ve cómo mejoras cada día con reportes detallados.</p>
+      </div>
+    </div>
+
+    <!-- Dos filas de materias corriendo en sentidos opuestos, sin parar. -->
+    <div class="rb-marquee" data-anim="up" data-delay="200">
+      <div class="rb-marquee-row">
+        <div class="rb-marquee-track">
+          <span>Matemáticas</span><span>Ciencias Naturales</span><span>Lenguaje</span>
+          <span>Historia</span><span>Inglés</span><span>Física</span>
+        </div>
+      </div>
+      <div class="rb-marquee-row reverse">
+        <div class="rb-marquee-track">
+          <span>Química</span><span>Biología</span><span>Estudios Sociales</span>
+          <span>Programación</span><span>Arte</span><span>Educación Física</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== Hecho para todos ===================== -->
+<section class="rb-section" id="escuelas">
+  <div class="rb-wrap">
+    <div class="rb-section-head">
+      <h2 data-anim="up">Hecho para todos</h2>
+    </div>
+
+    <div class="rb-tabs" data-anim="up">
+      <div class="rb-tabs-inner" id="rbTabs">
+        <div class="rb-tabs-pill" id="rbTabsPill"></div>
+        <button type="button" class="on" data-tab="personal">Uso Personal</button>
+        <button type="button" data-tab="escuelas">Escuelas</button>
+      </div>
+    </div>
+
+    <div class="rb-panel on" data-panel="personal">
+      <div>
+        <h3>Tu tutor personal, siempre listo</h3>
+        <p>
+          Estudia para un examen, aprende algo nuevo u organiza tu semana. Robin está disponible las 24 horas,
+          adaptándose exactamente a lo que necesitas.
+        </p>
+        <ul class="rb-checks">
+          <li><i>✓</i> Explicaciones claras paso a paso</li>
+          <li><i>✓</i> Apunta pendientes hablándole normal</li>
+          <li><i>✓</i> Seguimiento de tu progreso diario</li>
+          <li><i>✓</i> Soporte en más de 20 materias</li>
+        </ul>
+      </div>
+      <!-- El guion lo lleva initChatDemo() en landing.js: cambia de tema solo y
+           no se detiene. Lo que viene escrito aquí es la primera conversación,
+           para que la página no arranque con el chat en blanco. -->
+      <div class="rb-chat" data-chat="personal">
+        <div class="rb-chat-log">
+          <div class="rb-msg"><span data-rr-mascot data-small></span><p>¡Hola! Soy Robin 👋 ¿En qué te puedo ayudar hoy?</p></div>
+          <div class="rb-msg me"><p>No entiendo la ley de gravitación universal</p></div>
+          <div class="rb-msg"><span data-rr-mascot data-small></span><p>Imagina que dos objetos se atraen como imanes: mientras más pesados y más cerca, más se jalan. 🌍✨</p></div>
+        </div>
+        <div class="rb-chat-bar"><span data-chat-bar>Escríbele a Robin…</span><i>→</i></div>
+      </div>
+    </div>
+
+    <div class="rb-panel" data-panel="escuelas">
+      <div>
+        <h3>Toda la escuela, en un solo lugar</h3>
+        <p>
+          El director inscribe la escuela y reparte dos códigos de ingreso: uno para estudiantes y otro para
+          profesores. El código decide el rol, así que nadie entra donde no debe.
+        </p>
+        <ul class="rb-checks">
+          <li><i>✓</i> Códigos de ingreso que puedes regenerar</li>
+          <li><i>✓</i> Avisos por nivel y por grupo</li>
+          <li><i>✓</i> Clases, actividades y notificaciones</li>
+          <li><i>✓</i> Pase de lista con la cámara, y la familia lo ve en casa</li>
+          <li><i>✓</i> Panel del director con toda la escuela</li>
+        </ul>
+      </div>
+      <div class="rb-chat" data-chat="escuelas">
+        <div class="rb-chat-log">
+          <div class="rb-msg"><span data-rr-mascot data-small></span><p>Escuela inscrita 🏫 Estos son tus dos códigos de ingreso.</p></div>
+          <div class="rb-msg me"><p>Estudiantes: EST-4K7Q · Profesores: PRO-9XB2</p></div>
+          <div class="rb-msg"><span data-rr-mascot data-small></span><p>Repártelos y listo. Si alguno se filtra, generas otro y el viejo deja de servir. 🔑</p></div>
+        </div>
+        <div class="rb-chat-bar"><span data-chat-bar>Buscar una cuenta…</span><i>→</i></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== Precios ===================== -->
+<section class="rb-section rb-prices" id="precios">
+  <div class="rb-wrap">
+    <div class="rb-section-head">
+      <span class="rb-tag" data-anim="up">Planes y precios</span>
+      <h2 data-anim="up" data-delay="60">Empieza hoy, escala mañana</h2>
+
+      <!-- El selector manda sobre los tres planes a la vez: lo que se compara
+           no es "20 al mes" contra "54 cada 3 meses", es cuánto sale el mes en
+           cada caso. Los precios y los descuentos los pone /api/plans (ver
+           src/plans.js); aquí solo viene escrito el mensual para que la
+           sección no arranque en blanco. -->
+      <div class="rb-cycle-switch" id="rbCycles" role="tablist" data-anim="up" data-delay="120">
+        <button type="button" role="tab" class="on" data-cycle="monthly">Mensual</button>
+        <button type="button" role="tab" data-cycle="quarterly">Cada 4 meses<span class="rb-cycle-off">−5 %</span></button>
+        <button type="button" role="tab" data-cycle="semiannual">Cada medio año<span class="rb-cycle-off">−15 %</span></button>
+        <button type="button" role="tab" data-cycle="yearly">Anual<span class="rb-cycle-off">−25 %</span></button>
+      </div>
+    </div>
+
+    <div class="rb-price-grid">
+      <div class="rb-price" data-anim="left" data-plan="free">
+        <div class="who">Gratis</div>
+        <div class="amount" data-amount>Gratis</div>
+        <p class="for">Todo lo importante, sin pagar nada</p>
+        <ul>
+          <li>Organizador de tareas completo, con notificaciones</li>
+          <li>Los siete minijuegos, uno por materia</li>
+          <li>Conversación diaria con Robin: el punto de partida</li>
+          <li>Pistas en los minijuegos cuando te trabes</li>
+          <li>Historial de 30 días</li>
+        </ul>
+        <p class="rb-price-cycle" data-billing>Sin tarjeta y sin fecha de vencimiento.</p>
+        <a href="register.html" class="rb-btn rb-btn-primary rb-btn-block">Empezar gratis</a>
+      </div>
+
+      <div class="rb-price featured" data-anim="up" data-delay="100" data-plan="pro">
+        <div class="who">Robin Pro</div>
+        <div class="amount" data-amount>$20 <em>/mes</em></div>
+        <p class="for">Para cuando Robin se vuelve diario</p>
+        <ul>
+          <li>Todo lo del plan Gratis</li>
+          <li><span><strong>1 500 % más</strong> de conversación diaria con Robin que en Gratis</span></li>
+          <li><span><strong>1 900 % más</strong> de pistas en los minijuegos</span></li>
+          <li>Ayuda paso a paso con tus tareas, sin contar los usos</li>
+          <li>Historial de un año</li>
+        </ul>
+        <p class="rb-price-cycle" data-billing>Se paga cada mes. Sin permanencia.</p>
+        <a href="register.html" class="rb-btn rb-btn-onred rb-btn-block">Comenzar ahora</a>
+      </div>
+
+      <div class="rb-price" data-anim="right" data-delay="150" data-plan="max">
+        <div class="who">Robin Max</div>
+        <div class="amount" data-amount>$99 <em>/mes</em></div>
+        <p class="for">Sin techo, todo el día</p>
+        <ul>
+          <li>Todo lo del plan Pro</li>
+          <li><span><strong>Sin techo</strong>: conversación y pistas ilimitadas</span></li>
+          <li>Historial para siempre</li>
+          <li>Planes de estudio largos que Robin te ajusta</li>
+          <li>Acceso anticipado a los minijuegos nuevos</li>
+        </ul>
+        <p class="rb-price-cycle" data-billing>Se paga cada mes. Sin permanencia.</p>
+        <a href="register.html" class="rb-btn rb-btn-primary rb-btn-block">Comenzar ahora</a>
+      </div>
+    </div>
+
+    <div class="rb-price-schools" data-anim="up" data-delay="200">
+      <div>
+        <strong>¿Vienes de una escuela?</strong>
+        <p>Las cuentas de escuela no llevan plan ni se les cobra nada: lo que puede hacer cada quien lo decide su
+        institución. Dirección inscribe la escuela, reparte los códigos, y profesorado y estudiantado entran con ellos.</p>
+      </div>
+      <a href="register.html" class="rb-btn rb-btn-white">Inscribir mi escuela</a>
+    </div>
+
+    <p class="rb-price-note">
+      Estos precios son ficticios y no se cobra absolutamente nada: roboRobin es un proyecto escolar de exposición.
+      Los porcentajes se cuentan sobre el plan Gratis; las cifras exactas de cada plan están en los
+      <a href="terminos.html#limites">términos del servicio</a>.
+    </p>
+  </div>
+</section>
+
+<!-- ===================== Llamada final ===================== -->
+<section class="rb-cta">
+  <div class="rb-wrap">
+    <div class="rb-cta-band" data-anim="zoom">
+      <div class="rb-cta-bird"><span class="rr-galeria" data-rr-galeria data-bob></span></div>
+      <h2>¿Listo para aprender con Robin?</h2>
+      <p>Abre tu cuenta, escríbele tu primera duda y ve hasta dónde llegas. Es gratis para empezar.</p>
+      <div class="rb-cta-actions">
+        <a href="register.html" class="rb-btn rb-btn-onred">Crear cuenta gratis</a>
+        <a href="terminos.html" class="rb-btn rb-btn-ghost-white">Saber qué es este proyecto</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== Pie ===================== -->
+<footer class="rb-footer">
+  <div class="rb-wrap">
+    <div class="rb-footer-grid">
+      <div>
+        <a href="index.html" class="rb-logo rb-logo-xl">
+          <span>Robo<b>Robin</b></span>
+        </a>
+        <p>Tu compañero de aprendizaje con inteligencia artificial, para casa y para el salón de clases.</p>
+      </div>
+      <div>
+        <h4>Producto</h4>
+        <ul>
+          <li><a href="#funciones">Funciones</a></li>
+          <li><a href="#precios">Precios</a></li>
+          <li><a href="#como">Cómo funciona</a></li>
+          <li><a href="register.html">Crear cuenta</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Escuelas</h4>
+        <ul>
+          <li><a href="#escuelas">Para docentes</a></li>
+          <li><a href="#escuelas">Para directivos</a></li>
+          <li><a href="register.html">Inscribir escuela</a></li>
+          <li><a href="login.html">Entrar al panel</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Proyecto</h4>
+        <ul>
+          <li><a href="terminos.html">Términos del servicio</a></li>
+          <li><a href="terminos.html#privacidad">Privacidad</a></li>
+          <li><a href="terminos.html#aviso">Aviso de exposición</a></li>
+          <li><a href="404.html">Página de error</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="rb-footer-legal">
+      <span>© 2026 roboRobin — proyecto escolar de exposición, sin fines comerciales.</span>
+      <span class="socials">
+        <a href="https://github.com/Mordwilly32/RoboRobinAI" target="_blank" rel="noopener">Proyecto en GitHub ↗</a>
+      </span>
+    </div>
+  </div>
+</footer>
+
+<a href="terminos.html" class="rb-help" aria-label="¿Qué es este proyecto?">?</a>
+<span class="rb-help-tip">¿Qué es este proyecto?</span>
+
+<script src="js/rr-shell.js"></script>
+<script src="js/rr-runtime.js"></script>
+<script src="js/rr-modules.js"></script>
+<script src="js/rr-server.js"></script>
+<script src="js/api.js"></script>
+<script src="js/loading.js"></script>
+<script src="js/mascot.js"></script>
+<script src="js/landing.js"></script>
+<script src="js/consola.js"></script>
+</body>
+</html>

@@ -6,6 +6,7 @@
 <title>Crear cuenta — roboRobin</title>
 <link rel="icon" href="/images/robin.png" />
 <link rel="stylesheet" href="/css/style.css" />
+<link rel="stylesheet" href="/loading/style.css" />
 <link rel="stylesheet" href="/css/consola.css" />
 </head>
 <body>
@@ -27,11 +28,19 @@
 
     <!-- Paso 1: tipo de cuenta -->
     <div id="step-type" class="step-form active">
-      <div class="rr-choice-grid cols-3">
+      <div class="rr-choice-grid cols-2x2">
         <button type="button" class="rr-choice" data-type="personal">
           <span class="ic">✨</span>
           <div class="t">Cuenta personal</div>
           <div class="d">Para ti. Robin te ayuda a organizar tus tareas y tu día a día.</div>
+        </button>
+        <!-- La cuenta de familia va aquí, junto a la personal, porque es lo
+             que es: una cuenta de alguien de fuera de la escuela. No lleva
+             código de ingreso — se engancha al ID del hijo. -->
+        <button type="button" class="rr-choice" data-type="parent">
+          <span class="ic">👪</span>
+          <div class="t">Soy padre o madre</div>
+          <div class="d">Mira si tu hijo llegó a clase cada día, en cuanto su profesor pasa lista.</div>
         </button>
         <button type="button" class="rr-choice" data-type="join">
           <span class="ic">🎟️</span>
@@ -59,6 +68,26 @@
         <button type="button" class="btn btn-ghost" data-back="type">← Atrás</button>
         <button type="button" class="btn btn-primary" id="checkCode" style="flex:1">Verificar código</button>
       </div>
+    </div>
+
+    <!-- Paso 2 (familia): a quién vas a acompañar -->
+    <div id="step-child" class="step-form">
+      <div class="field">
+        <label for="childCode">ID de estudiante de tu hijo o hija</label>
+        <input type="text" id="childCode" placeholder="STU-00007"
+               style="text-transform:uppercase;font-family:var(--rr-mono);font-size:19px;letter-spacing:.1em" autocomplete="off" />
+        <div class="hint">Es el mismo ID con el que entra a roboRobin. Lo tiene en su panel, y la dirección de la escuela también. Si tienes más hijos, los agregas después desde tu cuenta.</div>
+      </div>
+      <div id="childResult"></div>
+      <div style="display:flex;gap:10px;margin-top:14px">
+        <button type="button" class="btn btn-ghost" data-back="type">← Atrás</button>
+        <button type="button" class="btn btn-primary" id="checkChild" style="flex:1">Buscar a mi hijo</button>
+      </div>
+      <p class="hint" style="margin-top:14px">
+        Con esta cuenta ves <strong>si llegó y a qué hora</strong>, y nada más. Sus notas y sus
+        conversaciones con Robin son suyas: no se asoman por aquí. Tu hijo recibe un aviso de que
+        estás siguiendo su asistencia.
+      </p>
     </div>
 
     <!-- Paso 2 (director): datos de la escuela -->
@@ -192,6 +221,7 @@
 
 <script src="/js/mascot.js"></script>
 <script src="/js/api.js"></script>
+<script src="/js/loading.js"></script>
 <script src="/js/auth-art.js"></script>
 <script src="/js/register.js"></script>
 <script src="/js/consola.js"></script>

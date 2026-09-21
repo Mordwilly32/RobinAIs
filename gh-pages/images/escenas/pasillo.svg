@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" preserveAspectRatio="xMidYMid slice" role="img" aria-label="El pasillo de una escuela con casilleros de colores y luz entrando por las ventanas">
+  <defs>
+    <linearGradient id="suelo" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#D9D2C6"/><stop offset="100%" stop-color="#B8AE9E"/>
+    </linearGradient>
+    <linearGradient id="rayo" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFF3D6" stop-opacity=".85"/>
+      <stop offset="100%" stop-color="#FFF3D6" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="800" height="1000" fill="#EDE6DA"/>
+  <rect y="640" width="800" height="360" fill="url(#suelo)"/>
+
+  <!-- baldosas en perspectiva -->
+  <g stroke="#A79C8B" stroke-width="2" opacity=".55">
+    <path d="M0 700 H800"/><path d="M0 780 H800"/><path d="M0 880 H800"/>
+    <path d="M400 640 L120 1000"/><path d="M400 640 L680 1000"/>
+    <path d="M400 640 L-40 940"/><path d="M400 640 L840 940"/>
+  </g>
+
+  <!-- casilleros izquierda -->
+  <g>
+    <rect x="0" y="230" width="230" height="420" fill="#2F8FA3"/>
+    <g fill="#247687">
+      <rect x="0" y="230" width="230" height="8"/>
+      <rect x="0" y="430" width="230" height="8"/>
+      <rect x="74" y="230" width="6" height="420"/>
+      <rect x="152" y="230" width="6" height="420"/>
+    </g>
+    <g fill="#F7F1E6">
+      <circle cx="60" cy="330" r="6"/><circle cx="136" cy="330" r="6"/><circle cx="212" cy="330" r="6"/>
+      <circle cx="60" cy="540" r="6"/><circle cx="136" cy="540" r="6"/><circle cx="212" cy="540" r="6"/>
+    </g>
+    <g fill="#E8DCCB" opacity=".8">
+      <rect x="22" y="290" width="36" height="6" rx="3"/><rect x="98" y="290" width="36" height="6" rx="3"/>
+      <rect x="174" y="290" width="36" height="6" rx="3"/>
+    </g>
+  </g>
+
+  <!-- casilleros derecha, más pequeños por la perspectiva -->
+  <g>
+    <rect x="620" y="280" width="180" height="340" fill="#E23A1B"/>
+    <g fill="#B92E14">
+      <rect x="620" y="280" width="180" height="7"/>
+      <rect x="620" y="450" width="180" height="7"/>
+      <rect x="680" y="280" width="5" height="340"/>
+      <rect x="740" y="280" width="5" height="340"/>
+    </g>
+    <g fill="#F7F1E6">
+      <circle cx="668" cy="368" r="5"/><circle cx="728" cy="368" r="5"/><circle cx="788" cy="368" r="5"/>
+      <circle cx="668" cy="540" r="5"/><circle cx="728" cy="540" r="5"/><circle cx="788" cy="540" r="5"/>
+    </g>
+  </g>
+
+  <!-- ventanas al fondo -->
+  <rect x="300" y="250" width="200" height="250" rx="8" fill="#CFE9EF"/>
+  <g stroke="#B7AB98" stroke-width="8">
+    <rect x="300" y="250" width="200" height="250" rx="8" fill="none"/>
+    <line x1="400" y1="250" x2="400" y2="500"/><line x1="300" y1="375" x2="500" y2="375"/>
+  </g>
+  <!-- la luz que entra -->
+  <path d="M300 500 L500 500 L640 1000 L120 1000 Z" fill="url(#rayo)"/>
+
+  <!-- cartel de bienvenida -->
+  <g transform="translate(290,120)">
+    <rect width="220" height="86" rx="12" fill="#F2A81B"/>
+    <rect x="8" y="8" width="204" height="70" rx="8" fill="none" stroke="#FBF6ED" stroke-width="4"/>
+    <g stroke="#8A5D00" stroke-width="7" stroke-linecap="round">
+      <path d="M40 40 h60"/><path d="M40 62 h140"/><path d="M120 40 h60"/>
+    </g>
+  </g>
+
+  <!-- planta en el pasillo -->
+  <g transform="translate(540,540)">
+    <path d="M14 60 h72 l-10 90 h-52 z" fill="#8A5D00"/>
+    <g fill="#3E7D4F">
+      <ellipse cx="30" cy="26" rx="20" ry="36" transform="rotate(-22 30 26)"/>
+      <ellipse cx="70" cy="24" rx="19" ry="34" transform="rotate(20 70 24)"/>
+      <ellipse cx="50" cy="4" rx="17" ry="38"/>
+    </g>
+  </g>
+</svg>

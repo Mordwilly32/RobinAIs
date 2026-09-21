@@ -11,6 +11,7 @@
 let currentUser = null;
 let miEscuela = null;
 let chat = null;
+let chatTools = null;   // el selector de modo del compositor
 
 function puedo(permiso) {
   return (currentUser.permissions || []).includes(permiso);
@@ -151,7 +152,7 @@ async function loadNominalCodes() {
 
 async function loadUsers() {
   const body = document.getElementById('usersBody');
-  body.innerHTML = '<tr><td colspan="7"><div class="rr-loader"><div class="rr-spinner"></div></div></td></tr>';
+  body.innerHTML = '<tr><td colspan="7"><div class="rr-loader"><div class="spinner"></div></div></td></tr>';
 
   const params = new URLSearchParams();
   ['searchQ:q', 'filterRole:role', 'filterLevel:level', 'filterStatus:status'].forEach(par => {
@@ -265,7 +266,7 @@ function pintarPistaDeRol() {
 
 async function loadAllClasses() {
   const box = document.getElementById('allClasses');
-  box.innerHTML = '<div class="rr-loader"><div class="rr-spinner"></div></div>';
+  box.innerHTML = '<div class="rr-loader"><div class="spinner"></div></div>';
 
   try {
     const { classes } = await rrApi('/api/schools/mine/classes');
@@ -307,7 +308,7 @@ async function loadAllClasses() {
 
 async function loadStaff() {
   const box = document.getElementById('staffList');
-  box.innerHTML = '<div class="rr-loader"><div class="rr-spinner"></div></div>';
+  box.innerHTML = '<div class="rr-loader"><div class="spinner"></div></div>';
 
   try {
     const { staff } = await rrApi('/api/admin/staff');
@@ -555,6 +556,16 @@ function wireChips() {
   chat.reset(helloHtml());
   wireChips();
 
+  // Los modos del chat: traducir un documento y generar una actividad. Antes
+  // eran dos páginas sueltas en /herramientas; ahora se eligen aquí, como
+  // quien elige con qué modelo hablar. Ver public/js/chat-tools.js.
+  chatTools = rrMountChatTools(chat, {
+    form: document.getElementById('chatForm'),
+    input: document.getElementById('chatInput'),
+    body: document.getElementById('chatBody'),
+    user: currentUser
+  });
+
   document.addEventListener('rr:open-chat', async (e) => {
     try {
       const { messages } = await rrApi(`/api/chats/${e.detail}`);
@@ -632,7 +643,7 @@ function wireChips() {
       const error = document.getElementById('limitsError');
       error.classList.remove('show');
       btn.disabled = true;
-      btn.textContent = 'Guardando…';
+      btn.innerHTML = rrLoadingHtml('Guardando', { size: 'inline' });
       try {
         const { aiLimits } = await rrApi('/api/schools/mine/limits', {
           method: 'PUT',
@@ -665,7 +676,7 @@ function wireChips() {
       e.preventDefault();
       const btn = document.getElementById('tcBtn');
       btn.disabled = true;
-      btn.textContent = 'Generando…';
+      btn.innerHTML = rrLoadingHtml('Generando', { size: 'inline' });
       try {
         const { code } = await rrApi('/api/codes', {
           method: 'POST',
@@ -718,7 +729,7 @@ function wireChips() {
     errBox.classList.remove('visible');
     const btn = document.getElementById('userBtn');
     btn.disabled = true;
-    btn.textContent = 'Guardando…';
+    btn.innerHTML = rrLoadingHtml('Guardando', { size: 'inline' });
 
     const id = document.getElementById('uId').value;
     const payload = {
@@ -773,7 +784,7 @@ function wireChips() {
     e.preventDefault();
     const btn = document.getElementById('announceBtn');
     btn.disabled = true;
-    btn.textContent = 'Publicando…';
+    btn.innerHTML = rrLoadingHtml('Publicando', { size: 'inline' });
     try {
       await rrApi('/api/announcements', {
         method: 'POST',
@@ -830,7 +841,7 @@ function wireChips() {
     errorBox.classList.remove('visible');
     const btn = document.getElementById('profileBtn');
     btn.disabled = true;
-    btn.textContent = 'Guardando…';
+    btn.innerHTML = rrLoadingHtml('Guardando', { size: 'inline' });
     try {
       const profilePic = await photoData();
       const { user } = await rrApi('/api/profile', {

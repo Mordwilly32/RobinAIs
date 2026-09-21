@@ -1,45 +1,86 @@
 // server.js
-// roboRobin — plataforma 100% local, para personas y para escuelas.
+// roboRobin — para personas y para escuelas.
 // Arranca con: npm install && npm start
 //
-// Todo (cuentas, escuelas, códigos, tareas, avisos, historial del chat) se
-// guarda en data/db.json, en esta computadora. Nada sale de aquí, salvo que
-// tú mismo pegues una clave de la API de Anthropic en config.json para que
-// Robin conteste con Claude en lugar de su modo local.
+// Dónde se guarda todo (cuentas, escuelas, códigos, tareas, avisos, historial
+// del chat) depende de la configuración:
+//
+//   sin configurar    data/db.json, en esta computadora. Nada sale de aquí.
+//   con Supabase      Postgres, si existen SUPABASE_URL y
+//                     SUPABASE_SERVICE_ROLE_KEY. Ver src/store.js y
+//                     docs/supabase.md.
+//
+// Lo que nunca sale de esta computadora en ninguno de los dos casos: las caras
+// del pase de lista y las fotos de perfil, que viven en el navegador de quien
+// las tomó. Ver public/js/face-vault.js.
+//
+// La clave de la API de Anthropic tampoco se guarda en la base: es una
+// variable de entorno (ANTHROPIC_API_KEY) o una línea de config.json, y ni una
+// ni otra se suben al repositorio.
 
 const fs = require('fs');
 const path = require('path');
 const express = require('express');
 const session = require('express-session');
 
-let config = { sessionSecret: 'roborobin-local-secret' };
+// .env solo si el archivo existe y el paquete está instalado; en un servidor
+// de verdad las variables vienen del panel, no de un archivo.
+try { require('dotenv').config(); } catch { /* opcional */ }
+
+const db = require('./src/db');
+
+// config.json es para trabajar en esta computadora. En un servidor mandan las
+// variables de entorno, que es donde sí se pueden guardar secretos.
+let config = {};
 try {
   config = JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json'), 'utf-8'));
 } catch {
-  console.warn('[roboRobin] No se pudo leer config.json, se usan los valores por defecto.');
+  if (!process.env.SESSION_SECRET) {
+    console.warn('[roboRobin] No hay config.json; se usan variables de entorno y valores por defecto.');
+  }
+}
+
+const SESSION_SECRET = process.env.SESSION_SECRET || config.sessionSecret || 'roborobin-local-secret';
+const EN_PRODUCCION = process.env.NODE_ENV === 'production';
+
+if (EN_PRODUCCION && SESSION_SECRET === 'roborobin-local-secret') {
+  console.error('[roboRobin] Falta SESSION_SECRET. Sin ella, cualquiera puede firmarse una sesión.');
+  process.exit(1);
 }
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Las fotos de perfil viajan como data URL, por eso el límite generoso.
-app.use(express.json({ limit: '2mb' }));
+// Render, Railway y Fly ponen un proxy delante. Sin esto, la cookie segura no
+// se manda nunca porque Express cree que la conexión es http.
+if (EN_PRODUCCION) app.set('trust proxy', 1);
+
+// Las fotos de perfil y las del pase de lista viajan como data URL, por eso
+// el límite generoso: una foto de cámara recién sacada pasa de 2 MB sin
+// despeinarse, y rebotarla con un 413 no le dice nada a quien la subió.
+app.use(express.json({ limit: '12mb' }));
 
 app.use(
   session({
     name: 'roborobin.sid',
-    secret: config.sessionSecret || 'roborobin-local-secret',
+    secret: SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
       sameSite: 'lax',
+      secure: EN_PRODUCCION,
       maxAge: 1000 * 60 * 60 * 8 // 8 horas
     }
   })
 );
 
 app.use(express.static(path.join(__dirname, 'public')));
+
+// La animación de espera vive en /loading y se sirve desde ahí, no copiada
+// dentro de public: así hay UN solo archivo. Todas las páginas enlazan
+// /loading/style.css y la carpeta se puede abrir también con doble clic.
+app.use('/loading', express.static(path.join(__dirname, 'loading')));
 
 app.use('/api', require('./routes/auth'));
 app.use('/api', require('./routes/users'));
@@ -53,11 +94,18 @@ app.use('/api/plans', require('./routes/plans'));
 app.use('/api/games', require('./routes/games'));
 app.use('/api/codes', require('./routes/codes'));
 app.use('/api/chats', require('./routes/chats'));
+app.use('/api/attendance', require('./routes/attendance'));
+app.use('/api/family', require('./routes/family'));
 // La consola de demostración (Ctrl + Alt + Shift + R en el navegador). Se
 // apaga entera con "devConsole": false en config.json; ver routes/dev.js.
 app.use('/api/dev', require('./routes/dev'));
 
-app.get('/health', (req, res) => res.json({ ok: true, service: 'roboRobin' }));
+app.get('/health', (req, res) => res.json({
+  ok: true,
+  service: 'roboRobin',
+  almacen: db.almacen.nombre,
+  guardadoPendiente: Boolean(db.almacen.ultimoError)
+}));
 
 // La misma página de error sirve para todos los casos; el motivo se le marca
 // en el <body> para que muestre el texto correcto.
@@ -92,9 +140,21 @@ app.use((err, req, res, next) => {
   sendErrorPage(res, 500, 'servidor');
 });
 
-app.listen(PORT, () => {
-  console.log('==============================================');
-  console.log('  roboRobin está corriendo localmente');
-  console.log(`  Abre: http://localhost:${PORT}`);
-  console.log('==============================================');
-});
+// La base primero. Con Supabase hay que ir a leerla por red, y abrir el puerto
+// antes de tenerla significaría atender la primera petición con la memoria en
+// blanco: alguien vería su escuela vacía y, peor, escribiríamos encima.
+db.listo()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log('==============================================');
+      console.log('  roboRobin está corriendo');
+      console.log(`  Abre: http://localhost:${PORT}`);
+      console.log(`  Base de datos: ${db.almacen.nombre}`);
+      if (db.almacen.USA_SUPABASE) console.log(`  Supabase: ${db.almacen.donde}`);
+      console.log('==============================================');
+    });
+  })
+  .catch(err => {
+    console.error('[roboRobin] No se pudo arrancar:', err.message);
+    process.exit(1);
+  });
