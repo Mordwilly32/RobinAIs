@@ -106,7 +106,10 @@ function rrToast(message, type = 'info') {
 
 // A dónde va cada quien al entrar. Subdirección y secretaría comparten el
 // panel de dirección (con menos botones), y los más peques tienen el suyo.
-function rrDashboardFor(role, user) {
+// El archivo que le toca a cada rol. Tiene que decir lo mismo que panelDe()
+// en routes/paginas.js: si no coinciden, el servidor manda una pantalla y el
+// JavaScript de esa pantalla rebota a otra, y se ve el parpadeo.
+function rrArchivoDelPanel(role, user) {
   if (['admin', 'subdirector', 'secretary'].includes(role)) return '/dashboard-admin.html';
   if (role === 'teacher') return '/dashboard-teacher.html';
   if (role === 'parent') return '/dashboard-parent.html';
@@ -114,6 +117,18 @@ function rrDashboardFor(role, user) {
     return user && user.isLittle ? '/dashboard-peques.html' : '/dashboard-student.html';
   }
   return '/dashboard-personal.html';
+}
+
+// A dónde ir después de entrar. Normalmente /dashboard/<id>, que es lo que se
+// ve en la barra de direcciones y lo que se puede guardar en favoritos.
+//
+// La versión de GitHub Pages no pasa por aquí: allá no hay servidor que sepa
+// qué es /dashboard/7, y cada panel vuelve a ser su archivo. La bandera la
+// pone web/js/rr-runtime.js, que solo existe en esa versión.
+function rrDashboardFor(role, user) {
+  if (window.RR_PAGINAS_ESTATICAS) return rrArchivoDelPanel(role, user);
+  if (user && user.id != null) return '/dashboard/' + user.id;
+  return '/dashboard';
 }
 
 const RR_ROLE_LABEL = {

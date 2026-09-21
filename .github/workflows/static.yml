@@ -43,7 +43,14 @@ jobs:
           node-version: '20'
 
       # Sin npm install: build-pages.js solo usa fs y path.
+      #
+      # RR_PAGES_DOMINIO es una variable del repositorio (Settings → Secrets
+      # and variables → Actions → Variables). Si está puesta, el build escribe
+      # el archivo CNAME y la demostración contesta en ese dominio. Si no
+      # está, se publica en la dirección de github.io de siempre.
       - name: Armar gh-pages/
+        env:
+          RR_PAGES_DOMINIO: ${{ vars.RR_PAGES_DOMINIO }}
         run: node tools/build-pages.js
 
       - name: Preparar Pages

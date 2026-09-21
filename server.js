@@ -55,6 +55,29 @@ const PORT = process.env.PORT || 3000;
 // se manda nunca porque Express cree que la conexión es http.
 if (EN_PRODUCCION) app.set('trust proxy', 1);
 
+// El dominio bueno, si hay uno.
+//
+// Un sitio con dominio propio acaba respondiendo en varias direcciones a la
+// vez: roborobin.site, www.roborobin.site y la de Render. Las tres funcionan y
+// las tres son la misma cosa, y eso trae dos problemas de verdad: la sesión se
+// guarda en la cookie del dominio por el que entraste, así que entrar por www
+// y volver por el otro es aparecer desconectado; y los buscadores cuentan tres
+// sitios distintos donde hay uno.
+//
+// Con RR_DOMINIO puesto, cualquier otra dirección manda un 301 a esta.
+const DOMINIO = (process.env.RR_DOMINIO || '').trim().replace(/^https?:\/\//, '').replace(/\/$/, '');
+
+if (DOMINIO) {
+  app.use((req, res, next) => {
+    const host = req.headers.host;
+    // Sin host, o ya es el bueno: seguir. Y las llamadas de /api no se
+    // redirigen nunca: un 301 a mitad de un fetch con method POST se convierte
+    // en un GET y la petición se pierde por el camino.
+    if (!host || host === DOMINIO || req.path.startsWith('/api')) return next();
+    res.redirect(301, 'https://' + DOMINIO + req.originalUrl);
+  });
+}
+
 // Las fotos de perfil y las del pase de lista viajan como data URL, por eso
 // el límite generoso: una foto de cámara recién sacada pasa de 2 MB sin
 // despeinarse, y rebotarla con un 413 no le dice nada a quien la subió.
@@ -75,7 +98,17 @@ app.use(
   })
 );
 
-app.use(express.static(path.join(__dirname, 'public')));
+// Las direcciones de las pantallas van ANTES de los archivos estáticos: si no,
+// express.static serviría /dashboard-teacher.html tal cual y no llegaría nunca
+// a la mudanza que lo manda a /dashboard/<id>. Ver routes/paginas.js.
+app.use(require('./routes/paginas'));
+
+app.use(express.static(path.join(__dirname, 'public'), {
+  // Que /login.html lo resuelva paginas.js y no el servidor de archivos: sin
+  // esto, escribir /login sin extensión encontraría el archivo y se saltaría
+  // la dirección nueva.
+  extensions: false
+}));
 
 // La animación de espera vive en /loading y se sirve desde ahí, no copiada
 // dentro de public: así hay UN solo archivo. Todas las páginas enlazan
@@ -151,6 +184,7 @@ db.listo()
       console.log(`  Abre: http://localhost:${PORT}`);
       console.log(`  Base de datos: ${db.almacen.nombre}`);
       if (db.almacen.USA_SUPABASE) console.log(`  Supabase: ${db.almacen.donde}`);
+      if (DOMINIO) console.log(`  Dominio: https://${DOMINIO}`);
       console.log('==============================================');
     });
   })

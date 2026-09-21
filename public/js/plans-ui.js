@@ -10,7 +10,7 @@
 //
 // Los planes se comparan en PORCENTAJE contra el plan Gratis, no en cifras de
 // mensajes: "1 500 % más" se entiende sin tener que saber de cuánto se partía.
-// Los números exactos están publicados en /terminos.html#limites.
+// Los números exactos están publicados en /terminos#limites.
 
 function rrMountPlans(container, { user, onChange } = {}) {
   let catalogo = null;
@@ -44,7 +44,7 @@ function rrMountPlans(container, { user, onChange } = {}) {
       <p class="rr-plans-note">
         No hay ningún cobro automático: al elegir un plan se activa su margen y queda anotada la elección. Puedes
         cambiarlo o volver a Gratis cuando quieras. Los porcentajes se cuentan sobre el plan Gratis; las cifras
-        exactas están en los <a href="/terminos.html#limites">términos del servicio</a>.
+        exactas están en los <a href="/terminos#limites">términos del servicio</a>.
       </p>`;
 
     container.querySelectorAll('[data-cycle]').forEach(btn => {

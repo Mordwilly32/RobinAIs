@@ -384,7 +384,7 @@ async function preguntar(mensaje) {
 
   document.getElementById('kidLogout').addEventListener('click', async () => {
     try { await rrApi('/api/logout', { method: 'POST' }); } catch {}
-    window.location.href = '/index.html';
+    window.location.href = '/';
   });
 
   inicio();

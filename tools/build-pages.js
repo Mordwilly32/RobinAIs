@@ -22,6 +22,14 @@ const path = require('path');
 const RAIZ = path.join(__dirname, '..');
 const SALIDA = path.join(RAIZ, 'gh-pages');
 
+// El dominio propio de la demostración, si lo hay: demo.roborobin.site.
+//
+// GitHub Pages lo lee de un archivo llamado CNAME dentro de lo que se publica.
+// Y como aquí lo que se publica es gh-pages/ —que se rehace de cero en cada
+// build— no vale con dejarlo puesto a mano en el repositorio: hay que
+// escribirlo aquí, o la primera publicación se lleva el dominio por delante.
+const DOMINIO_PAGES = (process.env.RR_PAGES_DOMINIO || '').trim();
+
 // Los scripts de public/js que son el guion de UNA pantalla: no le exportan
 // nada a nadie y se pueden volver a ejecutar enteros al regresar a ellos.
 // Todo lo demás es biblioteca y corre una sola vez.
@@ -29,6 +37,33 @@ const PANTALLAS = [
   'admin.js', 'landing.js', 'login.js', 'parent.js', 'peques.js',
   'personal.js', 'register.js', 'student.js', 'teacher.js'
 ];
+
+// Las direcciones limpias del sitio con servidor, y el archivo que las sirve.
+//
+// En GitHub Pages no hay nadie que resuelva /entrar: lo que hay es un archivo
+// llamado login.html. Así que antes de volver relativas las rutas, las
+// direcciones se deshacen hasta el archivo al que apuntan. Ver routes/paginas.js,
+// que es el que hace este mismo trabajo cuando sí hay servidor.
+//
+// /dashboard/<id> no está aquí porque no se puede: el id se sabe en marcha.
+// De eso se encarga rrDashboardFor() mirando window.RR_PAGINAS_ESTATICAS.
+const DIRECCIONES = {
+  '/entrar': '/login.html',
+  '/registro': '/register.html',
+  '/guia': '/guia.html',
+  '/terminos': '/terminos.html'
+};
+
+function deshacerDirecciones(texto) {
+  for (const [limpia, archivo] of Object.entries(DIRECCIONES)) {
+    // Con el final marcado: sin eso, /guia se comería el principio de
+    // /guia.html y quedaría /guia.html.html. Vale una comilla, una
+    // almohadilla o una interrogación — nunca un punto ni una letra.
+    const fin = '(?=[\'"`#?])';
+    texto = texto.replace(new RegExp(limpia + fin, 'g'), archivo);
+  }
+  return texto;
+}
 
 // Los prefijos de ruta absoluta que hay que volver relativos. /api queda
 // fuera a propósito: esas no son rutas de archivo, son las llamadas que
@@ -115,6 +150,7 @@ function empaquetarBackend() {
 // ---------------------------------------------------------------------------
 
 function arreglarRutasJS(codigo) {
+  codigo = deshacerDirecciones(codigo);
   return codigo.replace(
     new RegExp('([\'"`])/(' + RE_PREFIJOS + ')', 'g'),
     '$1$2'
@@ -123,6 +159,18 @@ function arreglarRutasJS(codigo) {
 
 function prepararScript(nombre, codigo) {
   codigo = arreglarRutasJS(codigo);
+
+  // La portada a secas: '/' y href="/". Con servidor es la raíz del sitio;
+  // aquí la raíz es la del dominio de GitHub, que no es este proyecto — sin
+  // esto, el logo de la barra lateral te saca de roboRobin.
+  //
+  // Va aquí y no en arreglarRutasJS() aunque parezca su sitio, porque esto
+  // solo vale para los scripts de public/js. En esos, las únicas cadenas que
+  // son una barra sola son las tres que van a la portada. En el runtime
+  // escrito a mano las hay a montones —path.join, split('/')— y este
+  // reemplazo se las llevaría por delante: lo hizo una vez, y el resultado
+  // fue un split('index.html') que dejó el sitio sin arrancar.
+  codigo = codigo.replace(/(['"`])\/\1/g, '$1index.html$1');
 
   // Navegar sin recargar. Una recarga de verdad borraría la sesión, que aquí
   // vive en memoria y en ningún otro lado.
@@ -182,7 +230,10 @@ const RUNTIME = [
 const SIEMPRE = ['js/api.js', 'js/loading.js'];
 
 function prepararPagina(html) {
-  html = html.replace(/(href|src)="\/"/g, '$1="index.html"');
+  html = deshacerDirecciones(html);
+  // La portada: "/" a secas y también "/#precios", que el reemplazo de abajo
+  // no tocaría porque no es una barra sola.
+  html = html.replace(/(href|src)="\/(#[^"]*)?"/g, (m, attr, hash) => attr + '="index.html' + (hash || '') + '"');
   html = html.replace(
     new RegExp('(href|src)="/(' + RE_PREFIJOS + ')', 'g'),
     '$1="$2'
@@ -247,7 +298,13 @@ function main() {
   // carpetas que empiezan por guion bajo y se entromete donde no debe.
   escribir(path.join(SALIDA, '.nojekyll'), '');
 
-  console.log('gh-pages/ listo.');
+  // 404.html en la raíz ya existe (viene de public/): GitHub Pages lo usa solo
+  // para las direcciones que no son ningún archivo, que es justo lo que hace
+  // falta cuando alguien teclea algo de memoria.
+
+  if (DOMINIO_PAGES) escribir(path.join(SALIDA, 'CNAME'), DOMINIO_PAGES + '\n');
+
+  console.log('gh-pages/ listo.' + (DOMINIO_PAGES ? ' Dominio: ' + DOMINIO_PAGES : ''));
 }
 
 main();

@@ -33,7 +33,8 @@ El resto del programa no se entera de cuál de las dos está puesta: todo pasa p
 [`src/store.js`](src/store.js).
 
 **Para poner la base en Supabase y el sitio en línea, la guía paso a paso está
-en [`docs/supabase.md`](docs/supabase.md).**
+en [`docs/supabase.md`](docs/supabase.md).** Para ponerle un dominio propio,
+[`docs/dominio.md`](docs/dominio.md).
 
 ---
 
@@ -74,11 +75,36 @@ pendientes y tacha tareas — lo que no hace es conversar.
 
 ---
 
+## Las direcciones
+
+```
+/                     la portada
+/entrar               entrar
+/registro             crear cuenta o inscribir escuela
+/dashboard/:id        el panel de esa cuenta
+/guia                 la guía
+/terminos             términos, privacidad y aviso
+```
+
+Las de antes (`/login.html`, `/dashboard-teacher.html`…) contestan un 301 a la
+nueva, así que un enlace guardado hace meses no se rompe. Quien las resuelve es
+[`routes/paginas.js`](routes/paginas.js).
+
+Sobre el id de `/dashboard/:id`: está para que la dirección diga de quién es el
+panel, no para decidir nada. Quien manda es la sesión — si el id no es el tuyo,
+el servidor te devuelve al tuyo, y los datos de la pantalla los sirve `/api/…`
+mirando la sesión y no la barra de direcciones. Cambiar el número a mano no
+enseña nada de nadie.
+
+---
+
 ## Cómo está armado
 
 ```
 server.js            arranque: sesiones, estáticos, rutas, apagado ordenado
-routes/              una ruta por tema: auth, users, schools, classes,
+routes/
+  paginas.js         las direcciones de las pantallas y las mudanzas de las viejas
+  …                  una ruta por tema: auth, users, schools, classes,
                      activities, attendance, family, ai, games, plans, codes…
 src/
   db.js              toda la base en memoria; cada cambio llama a save()

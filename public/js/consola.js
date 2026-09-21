@@ -181,8 +181,12 @@
   }
 
   function destinoDe(user) {
+    if (!window.RR_PAGINAS_ESTATICAS) return '/dashboard/' + user.id;
+    // Solo hace falta en la versión de GitHub Pages, que no tiene servidor
+    // que resuelva /dashboard/<id>. Ver rrDashboardFor() en public/js/api.js.
     if (['admin', 'subdirector', 'secretary'].includes(user.role)) return '/dashboard-admin.html';
     if (user.role === 'teacher') return '/dashboard-teacher.html';
+    if (user.role === 'parent') return '/dashboard-parent.html';
     if (user.role === 'student') return user.isLittle ? '/dashboard-peques.html' : '/dashboard-student.html';
     return '/dashboard-personal.html';
   }

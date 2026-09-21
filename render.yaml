@@ -49,3 +49,15 @@ services:
       # y recordatorios pero no conversa.
       - key: ANTHROPIC_API_KEY
         sync: false
+
+      # El dominio propio, si lo hay: roborobin.site
+      #
+      # Con esto puesto, www.roborobin.site y la dirección .onrender.com
+      # mandan un 301 al dominio bueno. Sin esto las tres contestan igual, y
+      # como la cookie de sesión es de un dominio, entrar por una y volver por
+      # otra es aparecer desconectado sin saber por qué.
+      #
+      # Déjala vacía hasta que el dominio apunte de verdad a Render: si no,
+      # redirige a un sitio que todavía no contesta.
+      - key: RR_DOMINIO
+        sync: false

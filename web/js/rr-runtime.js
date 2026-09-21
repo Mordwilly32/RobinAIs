@@ -215,6 +215,17 @@
   express.static = function () { return function (req, res, next) { next(); }; };
   express.urlencoded = express.json;
 
+  // ---- Las direcciones: aquí cada pantalla vuelve a ser su archivo --------
+  //
+  // Con servidor, el panel de alguien es /dashboard/<su id> y routes/paginas.js
+  // decide qué pantalla mandarle. Aquí no hay quien decida nada: GitHub Pages
+  // sirve archivos y punto, así que se vuelve a dashboard-teacher.html y
+  // compañía. Quien mira esta bandera es rrDashboardFor(), en public/js/api.js.
+  //
+  // Los enlaces escritos a mano (/entrar, /guia) no la necesitan: esos ya los
+  // deshizo tools/build-pages.js al armar el sitio.
+  global.RR_PAGINAS_ESTATICAS = true;
+
   // ---- process: el que no lleva nada puesto ------------------------------
   //
   // Varios archivos leen process.env para decidir cosas —dónde guardar, con

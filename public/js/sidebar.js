@@ -117,7 +117,7 @@ function rrRenderShell(user, activeId) {
         <!-- Solo el nombre. El pájaro de aquí competía con el Robin del chat,
              que es el que de verdad reacciona; dos en la misma pantalla y el
              de la esquina no significaba nada. -->
-        <a href="/index.html" class="rr-brand">roboRobin</a>
+        <a href="/" class="rr-brand">roboRobin</a>
         <button class="rr-side-close" id="rrSideClose" type="button" aria-label="Cerrar menú">&times;</button>
       </div>
 
@@ -181,7 +181,7 @@ function rrRenderShell(user, activeId) {
 
   document.getElementById('rrLogout').addEventListener('click', async () => {
     try { await rrApi('/api/logout', { method: 'POST' }); } catch {}
-    window.location.href = '/index.html';
+    window.location.href = '/';
   });
 
   const menuBtn = document.getElementById('rrMenuBtn');
@@ -210,7 +210,7 @@ function rrRenderShell(user, activeId) {
 // Se cuenta en PORCENTAJE, no en mensajes sueltos. "Te queda el 40 %" se
 // entiende igual con 25 mensajes que con 400, y además deja de importar cuál
 // es la cifra exacta detrás — que es justo lo que no queremos andar enseñando
-// en cada pantalla. Los números de verdad están en /terminos.html#limites.
+// en cada pantalla. Los números de verdad están en /terminos#limites.
 
 function rrShellUsageHtml(user) {
   const uso = user.usageToday && user.usageToday.aiMessages;
