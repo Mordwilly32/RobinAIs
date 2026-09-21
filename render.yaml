@@ -50,6 +50,15 @@ services:
       - key: ANTHROPIC_API_KEY
         sync: false
 
+      # Mandar correo. Sin esto NADIE puede registrarse: las cuentas nuevas
+      # necesitan un código que llega por correo. Ver docs/correo.md.
+      - key: RESEND_API_KEY
+        sync: false
+      - key: MAIL_DESDE
+        value: roboRobin <robin@roborobin.site>
+      - key: MAIL_RESPONDER_A
+        sync: false
+
       # El dominio propio, si lo hay: roborobin.site
       #
       # Con esto puesto, www.roborobin.site y la dirección .onrender.com

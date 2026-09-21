@@ -184,6 +184,29 @@
       </form>
     </div>
 
+    <!-- Activar la cuenta: el código que llegó al correo -->
+    <div id="step-verify" class="step-form">
+      <p class="text-muted" style="font-size:14.5px">
+        Te mandamos un código de seis cifras a <strong id="verifyEmail">tu correo</strong>.
+        Escríbelo aquí para activar la cuenta.
+      </p>
+
+      <form id="verifyForm" novalidate>
+        <div class="field">
+          <label for="verifyCode">Código</label>
+          <input id="verifyCode" name="verifyCode" type="text" inputmode="numeric" autocomplete="one-time-code"
+                 maxlength="6" pattern="[0-9]{6}" placeholder="000000" class="rr-code-input" required />
+        </div>
+        <button type="submit" class="btn btn-primary btn-block" id="verifyBtn">Activar mi cuenta</button>
+      </form>
+
+      <p class="hint" style="margin-top:14px">
+        ¿No te llegó? Mira en la carpeta de correo no deseado.
+        <button type="button" class="rr-link-btn" id="verifyResend">Mandar otro código</button>
+        <span id="verifyResendWait" class="text-muted"></span>
+      </p>
+    </div>
+
     <!-- Paso final del director: sus dos códigos -->
     <div id="step-codes" class="step-form">
       <p class="text-muted" style="font-size:14.5px">

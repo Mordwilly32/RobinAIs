@@ -237,7 +237,11 @@
   // camino por defecto, que es justo el que quiere una demostración.
   if (typeof global.process === 'undefined') {
     global.process = {
-      env: {},
+      // Vacío salvo una cosa: aquí no hay correo que mandar ni base que
+      // proteger —la de esta versión vive en la pestaña y se borra al
+      // cerrarla—, así que pedir un código de activación dejaría el registro
+      // en un callejón sin salida. Ver necesitaVerificar() en src/db.js.
+      env: { RR_SIN_VERIFICACION: '1' },
       argv: [],
       platform: 'browser',
       once() { },
@@ -247,11 +251,40 @@
     };
   }
 
+  // ---- crypto: lo justo, y lo demás avisando -----------------------------
+  //
+  // src/db.js lo pide para los códigos de activación de cuenta. Aquí esos
+  // códigos no se usan nunca —RR_SIN_VERIFICACION está en '1', ver arriba—
+  // pero el require se hace igual al cargar el módulo, y sin esto reventaría
+  // antes de pintar nada.
+  //
+  // randomInt sí está de verdad, porque es fácil y honesto hacerlo bien con
+  // el generador del navegador. Lo que no se puede imitar en dos líneas
+  // —createHmac necesita SHA-256 síncrono, y el del navegador es asíncrono—
+  // avisa en voz alta en lugar de devolver algo que parezca una firma sin
+  // serlo. Si alguien enciende la verificación aquí, se va a enterar.
+  const cryptoShim = {
+    randomInt(min, max) {
+      if (max === undefined) { max = min; min = 0; }
+      const rango = max - min;
+      const buf = new Uint32Array(1);
+      global.crypto.getRandomValues(buf);
+      return min + (buf[0] % rango);
+    },
+    randomUUID() { return global.crypto.randomUUID(); },
+    createHmac() {
+      throw new Error('roboRobin: la versión sin servidor no firma nada. Ver RR_SIN_VERIFICACION en rr-runtime.js.');
+    },
+    timingSafeEqual() {
+      throw new Error('roboRobin: la versión sin servidor no compara firmas. Ver RR_SIN_VERIFICACION en rr-runtime.js.');
+    }
+  };
+
   // ---- Registro de módulos (el require del navegador) ----------------------
 
   const definiciones = Object.create(null);
   const enCache = Object.create(null);
-  const nativos = { fs, path, bcryptjs, express };
+  const nativos = { fs, path, bcryptjs, express, crypto: cryptoShim };
 
   function normalizar(dir, id) {
     if (id.charAt(0) !== '.') return id;

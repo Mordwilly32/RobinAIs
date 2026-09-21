@@ -45,7 +45,8 @@ const STEPS = {
   personalForm: { title: 'Tu cuenta personal', subtitle: 'Solo faltan tus datos', dot: 1 },
   parentForm: { title: 'Tus datos', subtitle: 'Ya casi estás dentro', dot: 2 },
   joinForm: { title: 'Tus datos', subtitle: 'Ya casi estás dentro', dot: 2 },
-  codes: { title: '¡Escuela inscrita!', subtitle: 'Guarda bien estos dos códigos', dot: 2 }
+  codes: { title: '¡Escuela inscrita!', subtitle: 'Guarda bien estos dos códigos', dot: 2 },
+  verify: { title: 'Revisa tu correo', subtitle: 'Te mandamos un código de seis cifras', dot: 2 }
 };
 
 // ---- Paso 1: tipo de cuenta -----------------------------------------------
@@ -290,12 +291,18 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
   }
 
   try {
-    const { user } = await rrApi('/api/register', { method: 'POST', body: payload });
-    // Crear la cuenta es de las cosas que sí vale la pena celebrar.
+    const salida = await rrApi('/api/register', { method: 'POST', body: payload });
+
+    // Cuenta personal, de familia o de dirección: la cuenta existe pero
+    // todavía no es de nadie hasta que se demuestre que el correo es suyo.
+    if (salida.verificar) return irAVerificar(salida);
+
+    // Con un código de ingreso no hay que verificar nada: de esa persona ya
+    // respondió la escuela que le dio el código.
     rrSetPose('authRobin', 'happy');
     btn.textContent = '¡Cuenta creada!';
     rrConfetti(document.getElementById('authRobin'));
-    setTimeout(() => { window.location.href = rrDashboardFor(user.role, user); }, 700);
+    setTimeout(() => { window.location.href = rrDashboardFor(salida.user.role, salida.user); }, 700);
   } catch (err) {
     showError(err.message);
     btn.disabled = false;
@@ -314,7 +321,7 @@ document.getElementById('schoolForm').addEventListener('submit', async (e) => {
   btn.innerHTML = rrLoadingHtml('Inscribiendo', { size: 'inline' });
 
   try {
-    const { school } = await rrApi('/api/register', {
+    const salida = await rrApi('/api/register', {
       method: 'POST',
       body: {
         mode: 'school',
@@ -325,11 +332,10 @@ document.getElementById('schoolForm').addEventListener('submit', async (e) => {
       }
     });
 
-    createdSchool = school;
-    document.getElementById('createdSchoolName').textContent = school.name;
-    document.getElementById('revealStudentCode').textContent = school.studentCode;
-    document.getElementById('revealTeacherCode').textContent = school.teacherCode;
-    setStep('step-codes', STEPS.codes);
+    // Los códigos de la escuela no llegan todavía: se dan al activar. Si se
+    // repartieran ahora, cualquiera fabricaría una escuela con un correo
+    // inventado y se llevaría unos códigos que funcionan.
+    return irAVerificar(salida);
   } catch (err) {
     showError(err.message);
     btn.disabled = false;
@@ -343,3 +349,108 @@ document.querySelectorAll('[data-copy]').forEach(btn => {
     rrCopy(btn.dataset.copy === 'student' ? createdSchool.studentCode : createdSchool.teacherCode, btn);
   });
 });
+
+// ---- Activar la cuenta -----------------------------------------------------
+//
+// Las cuentas que alguien se hace por su cuenta —personal, de familia, y la
+// del director que inscribe una escuela— nacen apagadas. Aquí se encienden,
+// escribiendo el código de seis cifras que llegó al correo.
+//
+// Quién se está activando no se guarda en esta página: lo lleva la sesión, en
+// el servidor. Por eso recargar no pierde el sitio, y por eso nadie puede
+// probar códigos contra una cuenta que no sea la suya.
+
+function irAVerificar(salida) {
+  document.getElementById('verifyEmail').textContent = salida.email || 'tu correo';
+  setStep('step-verify', STEPS.verify);
+  document.getElementById('verifyCode').focus();
+}
+
+const verifyCode = document.getElementById('verifyCode');
+const verifyResend = document.getElementById('verifyResend');
+const verifyResendWait = document.getElementById('verifyResendWait');
+
+// Solo cifras, y en cuanto hay seis se manda sola: quien pega el código desde
+// el correo no tiene por qué buscar además un botón.
+verifyCode.addEventListener('input', () => {
+  const limpio = verifyCode.value.replace(/[^0-9]/g, '').slice(0, 6);
+  if (limpio !== verifyCode.value) verifyCode.value = limpio;
+  if (limpio.length === 6) document.getElementById('verifyForm').requestSubmit();
+});
+
+document.getElementById('verifyForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  clearError();
+
+  const btn = document.getElementById('verifyBtn');
+  btn.disabled = true;
+  btn.innerHTML = rrLoadingHtml('Activando', { size: 'inline' });
+
+  try {
+    const salida = await rrApi('/api/verify', { method: 'POST', body: { code: verifyCode.value } });
+
+    rrSetPose('authRobin', 'happy');
+    rrConfetti(document.getElementById('authRobin'));
+
+    // Si quien acaba de activar es el director de una escuela recién
+    // inscrita, ahora sí recibe sus dos códigos, y esa pantalla se queda
+    // puesta: son dos cosas que tiene que copiar antes de seguir.
+    if (salida.school) {
+      createdSchool = salida.school;
+      document.getElementById('createdSchoolName').textContent = salida.school.name;
+      document.getElementById('revealStudentCode').textContent = salida.school.studentCode;
+      document.getElementById('revealTeacherCode').textContent = salida.school.teacherCode;
+      return setStep('step-codes', STEPS.codes);
+    }
+
+    btn.textContent = '¡Cuenta activada!';
+    setTimeout(() => { window.location.href = rrDashboardFor(salida.user.role, salida.user); }, 700);
+  } catch (err) {
+    showError(err.message);
+    verifyCode.select();
+    btn.disabled = false;
+    btn.textContent = 'Activar mi cuenta';
+  }
+});
+
+verifyResend.addEventListener('click', async () => {
+  clearError();
+  verifyResend.disabled = true;
+
+  try {
+    const salida = await rrApi('/api/verify/resend', { method: 'POST', body: {} });
+    document.getElementById('verifyEmail').textContent = salida.email || 'tu correo';
+    rrToast('Te mandé otro código.', 'success');
+    cuentaAtras(60);
+  } catch (err) {
+    showError(err.message);
+    // El servidor dice cuántos segundos faltan; si los dice, se respetan.
+    cuentaAtras((err.payload && err.payload.esperar) || 60);
+  }
+});
+
+// El botón de reenviar se apaga un minuto. No es decoración: el servidor
+// rechaza dos envíos seguidos, y un botón que parece disponible y contesta que
+// no se siente roto.
+function cuentaAtras(segundos) {
+  let quedan = segundos;
+  verifyResend.disabled = true;
+
+  const tic = setInterval(() => {
+    quedan -= 1;
+    verifyResendWait.textContent = quedan > 0 ? `(espera ${quedan}s)` : '';
+    if (quedan <= 0) {
+      clearInterval(tic);
+      verifyResend.disabled = false;
+    }
+  }, 1000);
+
+  verifyResendWait.textContent = `(espera ${quedan}s)`;
+}
+
+// Si se llega aquí con una cuenta a medio activar —porque se recargó la
+// página, o porque el login mandó para acá— se salta el formulario y se va
+// derecho a la casilla del código. Quién es sale de la sesión.
+rrApi('/api/verify')
+  .then(info => irAVerificar(info))
+  .catch(() => { /* nadie esperando: el registro empieza por el principio */ });

@@ -43,6 +43,14 @@ form.addEventListener('submit', async (e) => {
     rrConfetti(document.getElementById('authRobin'));
     setTimeout(() => { window.location.href = rrDashboardFor(user.role, user); }, 620);
   } catch (err) {
+    // La contraseña era buena pero la cuenta nunca se activó. El servidor ya
+    // dejó apuntado en la sesión de quién se trata, así que la pantalla de
+    // registro sabe a dónde ir sin que haya que llevarle nada por la URL.
+    if (err.payload && err.payload.verificar) {
+      rrToast('Esa cuenta todavía no está activada. Te llevo a activarla.', 'info');
+      return setTimeout(() => { window.location.href = '/registro'; }, 900);
+    }
+
     rrSetPose('authRobin', 'sad');
     errorBox.textContent = err.message;
     errorBox.classList.add('visible');

@@ -34,7 +34,30 @@ El resto del programa no se entera de cuál de las dos está puesta: todo pasa p
 
 **Para poner la base en Supabase y el sitio en línea, la guía paso a paso está
 en [`docs/supabase.md`](docs/supabase.md).** Para ponerle un dominio propio,
-[`docs/dominio.md`](docs/dominio.md).
+[`docs/dominio.md`](docs/dominio.md). Para que se puedan mandar los correos de
+activación, [`docs/correo.md`](docs/correo.md).
+
+---
+
+## Activar la cuenta por correo
+
+Quien se apunta por su cuenta —cuenta personal, de familia, o quien inscribe una
+escuela— recibe un código de seis cifras y sin escribirlo no entra. Quien llega
+con un código de ingreso no pasa por ahí: de esa persona ya responde la escuela
+que se lo dio, y muchos estudiantes no tienen correo.
+
+El código vive 15 minutos, admite 5 intentos, y **no se guarda**: en la ficha
+queda un HMAC suyo. Las cuentas sin activar se borran a las 24 horas, para que
+un correo tecleado mal no quede ocupado para siempre.
+
+Sin proveedor de correo configurado, el código **se imprime en la terminal** en
+vez de mandarse — así se puede probar el registro entero aquí sin dar de alta
+nada. En producción, el servidor avisa al arrancar si le falta.
+
+> Ojo con una confusión fácil: los MX de Cloudflare Email Routing sirven para
+> **recibir** correo, no para mandarlo. Para mandar hace falta un proveedor de
+> envío; [`docs/correo.md`](docs/correo.md) explica cuál y cómo, incluido el
+> detalle del SPF, que hay que **fusionar** y no duplicar.
 
 ---
 

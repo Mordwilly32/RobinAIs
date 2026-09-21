@@ -28,6 +28,7 @@
 //   aiLogs       -> historial plano heredado; se conserva por compatibilidad
 // ---------------------------------------------------------------------------
 
+const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const plans = require('./plans');
 const games = require('./games');
@@ -379,6 +380,138 @@ function seedAdmin() {
   });
 }
 
+// ---------------------------------------------------------------------------
+// Activar la cuenta por correo
+// ---------------------------------------------------------------------------
+// Quien se apunta por su cuenta —cuenta personal, de familia, o quien inscribe
+// una escuela— nace con status 'pending' y no puede entrar hasta que escriba
+// el código de seis cifras que le llega al correo. Quien entra con un código
+// de ingreso no pasa por aquí: de ese ya responde la escuela que le dio el
+// código, y muchos estudiantes ni siquiera tienen correo.
+//
+// El código no se guarda. Se guarda un HMAC suyo, así que quien consiguiera
+// mirar la base de datos no podría activar cuentas ajenas con lo que ve. La
+// llave del HMAC es la de las sesiones: si cambia, los códigos que estuvieran
+// en el aire dejan de valer, y como duran quince minutos eso no molesta a
+// nadie.
+
+const VERIFICACION_MINUTOS = 15;     // cuánto vive un código
+const VERIFICACION_INTENTOS = 5;     // fallos antes de tener que pedir otro
+const VERIFICACION_ENVIOS = 5;       // códigos por hora y cuenta
+const VERIFICACION_ESPERA = 60;      // segundos entre un envío y el siguiente
+const PENDIENTE_HORAS = 24;          // cuánto sobrevive una cuenta sin activar
+
+// Los modos de registro que piden activar el correo.
+const MODOS_QUE_VERIFICAN = ['personal', 'parent', 'school'];
+
+function llaveHmac() {
+  return process.env.SESSION_SECRET || 'roborobin-local-secret';
+}
+
+function sellar(codigo) {
+  return crypto.createHmac('sha256', llaveHmac()).update(String(codigo)).digest('hex');
+}
+
+// Seis cifras, sacadas del generador de verdad y no de Math.random(): esto es
+// lo único que separa una cuenta de estar activa.
+function codigoDeSeis() {
+  return String(crypto.randomInt(0, 1000000)).padStart(6, '0');
+}
+
+function necesitaVerificar(modo) {
+  // La versión de GitHub Pages no tiene correo que mandar ni base que
+  // proteger: la suya vive en la pestaña y se borra al cerrarla. Pedir ahí un
+  // código dejaría el registro en un callejón sin salida, con la persona
+  // esperando un correo que nadie puede mandar. Lo enciende rr-runtime.js, y
+  // solo él: en un servidor de verdad esta variable no existe.
+  if (process.env.RR_SIN_VERIFICACION === '1') return false;
+  return MODOS_QUE_VERIFICAN.includes(modo);
+}
+
+// Fabrica un código nuevo y lo deja apuntado en la ficha. Devuelve el código
+// en claro, que es lo único que sale de aquí y solo para metértelo en el
+// correo: no se guarda en ningún lado.
+function nuevoCodigoDeVerificacion(userId) {
+  const user = getUserById(userId);
+  if (!user) return null;
+
+  const ahora = Date.now();
+  const v = user.verificacion || { envios: 0, ultimoEnvio: null };
+
+  // Dos frenos distintos. El de los segundos es contra el botón de "reenviar"
+  // pulsado con ansiedad; el de la hora, contra quien quiera usar la cuenta
+  // ajena de otro como máquina de mandarle correo.
+  if (v.ultimoEnvio && ahora - Date.parse(v.ultimoEnvio) < VERIFICACION_ESPERA * 1000) {
+    const faltan = Math.ceil((VERIFICACION_ESPERA * 1000 - (ahora - Date.parse(v.ultimoEnvio))) / 1000);
+    return { error: 'espera', segundos: faltan };
+  }
+
+  const haceUnaHora = ahora - 60 * 60 * 1000;
+  const envios = (v.primerEnvio && Date.parse(v.primerEnvio) > haceUnaHora) ? v.envios : 0;
+  if (envios >= VERIFICACION_ENVIOS) {
+    return { error: 'demasiados' };
+  }
+
+  const codigo = codigoDeSeis();
+  user.verificacion = {
+    hash: sellar(codigo),
+    expira: new Date(ahora + VERIFICACION_MINUTOS * 60 * 1000).toISOString(),
+    intentos: 0,
+    envios: envios + 1,
+    primerEnvio: envios === 0 ? new Date(ahora).toISOString() : v.primerEnvio,
+    ultimoEnvio: new Date(ahora).toISOString()
+  };
+  save();
+
+  return { codigo, minutos: VERIFICACION_MINUTOS };
+}
+
+// Comprueba el código. Devuelve { ok } o { error } con un motivo que la
+// pantalla pueda contar en palabras.
+function comprobarCodigoDeVerificacion(userId, codigo) {
+  const user = getUserById(userId);
+  if (!user) return { error: 'no-existe' };
+  if (user.status === 'active') return { ok: true, user, yaEstaba: true };
+
+  const v = user.verificacion;
+  if (!v || !v.hash) return { error: 'sin-codigo' };
+  if (Date.parse(v.expira) < Date.now()) return { error: 'vencido' };
+  if (v.intentos >= VERIFICACION_INTENTOS) return { error: 'demasiados-intentos' };
+
+  const limpio = String(codigo || '').replace(/[^0-9]/g, '');
+  // timingSafeEqual sobre los dos HMAC, que miden lo mismo siempre. Comparar
+  // con === filtraría por el tiempo cuántas cifras van bien.
+  const esperado = Buffer.from(v.hash, 'hex');
+  const recibido = Buffer.from(sellar(limpio), 'hex');
+  if (limpio.length !== 6 || !crypto.timingSafeEqual(esperado, recibido)) {
+    v.intentos += 1;
+    save();
+    const quedan = VERIFICACION_INTENTOS - v.intentos;
+    return { error: 'no-coincide', quedan: Math.max(0, quedan) };
+  }
+
+  user.status = 'active';
+  user.emailVerifiedAt = new Date().toISOString();
+  delete user.verificacion;
+  save();
+  return { ok: true, user };
+}
+
+// Las cuentas que se quedaron a medias. Se borran para que el correo vuelva a
+// quedar libre —si no, alguien que se equivocó al teclearlo no podría volver a
+// intentarlo nunca— y para que no se acumulen.
+function purgarCuentasSinActivar() {
+  const limite = Date.now() - PENDIENTE_HORAS * 60 * 60 * 1000;
+  const condenadas = cache.users.filter(u =>
+    u.status === 'pending' && Date.parse(u.createdAt || 0) < limite);
+
+  if (!condenadas.length) return 0;
+  return enLote(() => {
+    condenadas.forEach(u => deleteUser(u.id));
+    return condenadas.length;
+  });
+}
+
 // ---- Códigos ---------------------------------------------------------------
 
 function randomCode(prefix, length = 4) {
@@ -500,7 +633,7 @@ function normalizeAge(age) {
 // alta cientos de cuentas con la misma contraseña de mentira: calcular el hash
 // una vez y reutilizarlo ahorra la mayor parte del tiempo. Una cuenta de
 // verdad nunca lo pasa, y entonces se calcula aquí como siempre.
-function createUser({ fullName, email, password, role, level, grade, schoolId, plan, age, passwordHash }) {
+function createUser({ fullName, email, password, role, level, grade, schoolId, plan, age, passwordHash, status }) {
   const now = new Date().toISOString();
   const user = {
     id: cache.meta.nextUserId++,
@@ -514,7 +647,10 @@ function createUser({ fullName, email, password, role, level, grade, schoolId, p
     // Solo la traen las cuentas personales; en una de escuela el nivel y el
     // grado dicen lo mismo con más precisión (ver routes/auth.js).
     age: normalizeAge(age),
-    status: 'active',
+    // 'pending' mientras espera el código del correo; ver
+    // nuevoCodigoDeVerificacion(). Con cualquier cosa que no sea 'active' no
+    // se puede entrar (routes/auth.js).
+    status: status === 'pending' ? 'pending' : 'active',
     profilePic: null,
     notifications: [],
     plan: plans.PLAN_IDS.includes(plan) ? plan : 'free',
@@ -1814,6 +1950,9 @@ module.exports = {
   enLote, hashPassword,
   // la conexión con Claude de cada cuenta
   aiSettingsOf, setAiSettings, recordAiTest, maskKey,
+  // activar la cuenta por correo
+  necesitaVerificar, nuevoCodigoDeVerificacion, comprobarCodigoDeVerificacion,
+  purgarCuentasSinActivar, VERIFICACION_MINUTOS, MODOS_QUE_VERIFICAN,
   // códigos nominales
   createJoinCode, getCodesForSchool, getJoinCode, checkJoinCode, burnJoinCode, revokeJoinCode,
   // conversaciones con Robin

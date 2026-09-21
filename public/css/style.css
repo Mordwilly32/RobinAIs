@@ -2572,3 +2572,47 @@ body.rr-arcade-open { overflow: hidden; }
    pegado a ellas se leía como el pie de la última. */
 #section-attendance .rr-sub-h { margin-top: 34px; }
 #section-attendance .rr-section-lead { max-width: 80ch; }
+
+/* ---- La casilla del código para activar la cuenta ------------------------ */
+/* Seis cifras que alguien copia de un correo o teclea mirando el teléfono.
+   Grandes, separadas y centradas: a este tamaño no se confunde un 0 con una O
+   ni se pierde la cuenta de por dónde va. */
+
+.rr-code-input {
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: .38em;
+  text-align: center;
+  /* La separación se pinta a la derecha de cada cifra, así que el texto queda
+     descentrado por un hueco. Este padding se lo devuelve. */
+  text-indent: .38em;
+  font-variant-numeric: tabular-nums;
+  font-family: var(--rr-mono);
+  color: var(--rr-red-dark);
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+
+.rr-code-input::placeholder {
+  color: var(--rr-text-faint);
+  font-weight: 500;
+}
+
+/* "Mandar otro código": es una acción, no un destino, así que es un botón —
+   pero se lee como el enlace que la gente espera ahí. */
+.rr-link-btn {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--rr-red);
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.rr-link-btn:disabled {
+  color: var(--rr-text-faint);
+  cursor: default;
+  text-decoration: none;
+}
