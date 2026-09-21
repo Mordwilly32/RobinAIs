@@ -1,6 +1,11 @@
 # Dependencias
 node_modules/
 
+# La versión de GitHub Pages es un resultado, no una fuente: la arma
+# tools/build-pages.js en cada push (ver .github/workflows/static.yml). Tenerla
+# también guardada aquí solo serviría para que un día no coincidan.
+gh-pages/
+
 # Configuración local y secretos — NUNCA subir
 config.json
 .env

@@ -1,43 +1,59 @@
-# Simple workflow for deploying static content to GitHub Pages
-name: Deploy static content to Pages
+# Publica en GitHub Pages la versión sin servidor de roboRobin.
+#
+# Lo que se sube es gh-pages/, que NO está en el repositorio: lo arma
+# tools/build-pages.js en cada push. Así la demostración nunca se queda vieja
+# —que es lo que pasaría con una copia guardada a mano— y el repositorio no
+# carga con cuatro megas de archivos repetidos.
+#
+# Ojo con lo que esto es y lo que no es: la versión de Pages corre el servidor
+# entero dentro de la pestaña, con la base de datos en memoria. Se puede tocar
+# todo y no se guarda nada. Para una escuela de verdad hace falta el servidor
+# de Node con Supabase detrás — ver docs/supabase.md.
+
+name: Publicar la demostración en GitHub Pages
 
 on:
-  # Runs on pushes targeting the default branch
   push:
     branches: ["main"]
-
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
   contents: read
   pages: write
   id-token: write
 
-# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
-# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+# Una publicación a la vez, sin cortar la que esté a medias.
 concurrency:
   group: "pages"
   cancel-in-progress: false
 
 jobs:
-  # Single deploy job since we're just deploying
-  deploy:
+  publicar:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Traer el repositorio
         uses: actions/checkout@v4
-      - name: Setup Pages
+
+      - name: Preparar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Sin npm install: build-pages.js solo usa fs y path.
+      - name: Armar gh-pages/
+        run: node tools/build-pages.js
+
+      - name: Preparar Pages
         uses: actions/configure-pages@v5
-      - name: Upload artifact
+
+      - name: Subir el sitio
         uses: actions/upload-pages-artifact@v3
         with:
-          # Upload entire repository
-          path: '.'
-      - name: Deploy to GitHub Pages
+          path: 'gh-pages'
+
+      - name: Publicar
         id: deployment
-        uses: actions/deploy-pages@v5
+        uses: actions/deploy-pages@v4

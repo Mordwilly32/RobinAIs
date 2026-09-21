@@ -120,10 +120,14 @@ node tools/build-pages.js          rearma la versión de GitHub Pages
 
 ## La versión de GitHub Pages
 
-En `gh-pages/` hay una copia del sitio **sin servidor**: los mismos archivos de
-`src/` y `routes/` corriendo dentro de la pestaña, con `fs` imitado y la base de
-datos en memoria. Se puede tocar todo y no se guarda nada; al cerrar la pestaña
-no queda rastro.
+`node tools/build-pages.js` arma en `gh-pages/` una copia del sitio **sin
+servidor**: los mismos archivos de `src/` y `routes/` corriendo dentro de la
+pestaña, con `fs` imitado y la base de datos en memoria. Se puede tocar todo y
+no se guarda nada; al cerrar la pestaña no queda rastro.
+
+Esa carpeta no está en el repositorio a propósito: la vuelve a armar GitHub
+Actions en cada push y la publica sola (ver
+[`.github/workflows/static.yml`](.github/workflows/static.yml)).
 
 Sirve para enseñar roboRobin sin instalar nada. No sirve para una escuela de
 verdad.
