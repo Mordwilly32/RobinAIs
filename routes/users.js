@@ -17,6 +17,7 @@ const router = express.Router();
 const db = require('../src/db');
 const { requireLogin, requireRole } = require('../src/auth');
 const { can, requirePermission, ROLE_LABEL } = require('../src/permissions');
+const fotos = require('../src/fotos');
 
 // Escuela desde la que trabaja quien hace la petición (null = todo el sistema,
 // que es el caso de la cuenta de director por defecto sin escuela inscrita).
@@ -31,11 +32,11 @@ function inScope(user, schoolId) {
 
 // ---- Perfil propio ---------------------------------------------------------
 
-router.put('/profile', requireLogin, (req, res) => {
+router.put('/profile', requireLogin, async (req, res) => {
   const user = db.getUserById(req.session.userId);
-  // La foto no llega aquí: public/js/api.js la aparta antes de enviar y la
-  // guarda en el navegador de quien la puso. Ver rrGuardarFotoPropia().
-  const { fullName, currentPassword, password } = req.body || {};
+  // La foto sí llega aquí, y se va a Supabase Storage: en la ficha queda solo
+  // su dirección. Ver src/fotos.js.
+  const { fullName, currentPassword, password, profilePic } = req.body || {};
 
   if (!fullName || !String(fullName).trim()) {
     return res.status(400).json({ error: 'El nombre completo es obligatorio.' });
@@ -55,9 +56,22 @@ router.put('/profile', requireLogin, (req, res) => {
     }
   }
 
+  // La foto primero: si falla, el perfil no se toca y quien la subió se
+  // entera. Al revés —guardar el nombre y que la foto reviente después— deja
+  // media operación hecha y un mensaje de error que parece mentir.
+  let profilePicUrl;
+  if (profilePic !== undefined) {
+    try {
+      profilePicUrl = await fotos.guardarFoto(user.id, profilePic);
+    } catch (err) {
+      return res.status(400).json({ error: err.message });
+    }
+  }
+
   const updated = db.updateUser(user.id, {
     fullName: String(fullName).trim(),
-    password: user.role === 'student' ? undefined : password
+    password: user.role === 'student' ? undefined : password,
+    profilePicUrl
   });
   res.json({ user: db.publicUser(updated) });
 });

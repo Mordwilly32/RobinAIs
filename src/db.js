@@ -220,6 +220,11 @@ function migrate() {
     // dejan en null, que es un valor válido en todas partes.
     if (user.birthDate === undefined) user.birthDate = null;
     if (user.country === undefined) user.country = null;
+
+    // La foto de perfil pasó de vivir en el navegador a vivir en Storage. Las
+    // cuentas de antes no traen dirección: null hasta que suban una. La que
+    // tengan guardada en su navegador se sube sola al entrar (ver api.js).
+    if (user.profilePicUrl === undefined) user.profilePicUrl = null;
     // Quien dio su fecha cumple años sin tener que avisar a nadie.
     if (user.birthDate) user.age = edadDeNacimiento(user.birthDate);
 
@@ -627,6 +632,9 @@ function updateUser(id, updates) {
   if (updates.schoolId !== undefined) user.schoolId = updates.schoolId == null ? null : Number(updates.schoolId);
   if (updates.password) user.passwordHash = bcrypt.hashSync(updates.password, 10);
   if (updates.profilePic !== undefined) user.profilePic = updates.profilePic;
+  // La foto ya no es la imagen, es dónde quedó. undefined es "no la tocaste";
+  // null es "quítala". Ver src/fotos.js.
+  if (updates.profilePicUrl !== undefined) user.profilePicUrl = updates.profilePicUrl;
   if (updates.plan !== undefined && plans.PLAN_IDS.includes(updates.plan)) user.plan = updates.plan;
   if (updates.planCycle !== undefined) user.planCycle = updates.planCycle;
   save();
@@ -678,6 +686,10 @@ function publicUser(user) {
     lastTest: (ai && ai.lastTest) || null
   };
   rest.age = edadDe(user);
+  // Las pantallas piden 'profilePic' desde siempre y les da igual si es una
+  // data URL o una dirección: las dos entran igual en un <img src>. Servirla
+  // con el nombre de siempre evita tocar los cinco paneles y la barra lateral.
+  rest.profilePic = user.profilePicUrl || user.profilePic || null;
   const school = user.schoolId ? getSchoolById(user.schoolId) : null;
   rest.schoolName = school ? school.name : null;
   rest.roleLabel = permissions.ROLE_LABEL[user.role] || user.role;

@@ -25,11 +25,18 @@
 //   porque una tanda de altas son cientos de save() seguidos.
 //
 // Lo que NUNCA sube a Supabase
-//   Las caras. Ver CAMPOS_QUE_NO_SUBEN: la foto de reconocimiento, la huella
-//   que face-api saca de ella y la foto de perfil se quedan en el navegador
-//   de quien las tomó, en IndexedDB (public/js/face-vault.js). Son datos
-//   biométricos de menores de edad; no tienen por qué estar en un servidor
-//   de nadie. Si una fila ya venía con ellos, se le quitan al subirla.
+//   Las caras del pase de lista. Ver CAMPOS_QUE_NO_SUBEN: la foto de
+//   reconocimiento y la huella que face-api saca de ella se quedan en el
+//   navegador de quien las tomó, en IndexedDB (public/js/face-vault.js). Son
+//   datos biométricos de menores de edad; no tienen por qué estar en un
+//   servidor de nadie. Si una fila ya venía con ellos, se le quitan al subirla.
+//
+//   'profilePic' sigue en esa lista, pero por otro motivo y no por el mismo:
+//   la foto de perfil SÍ se guarda ahora, solo que en Supabase Storage y no
+//   aquí. Lo que no puede entrar en una fila es la imagen en base64 — la base
+//   entera vive en memoria y se compara campo por campo en cada guardado, así
+//   que meter fotos sería cargarlas todas en RAM para siempre. En la ficha
+//   queda 'profilePicUrl', que es una línea de texto. Ver src/fotos.js.
 // ---------------------------------------------------------------------------
 
 const fs = require('fs');
@@ -61,7 +68,8 @@ const TABLAS = {
 
 const TABLA_META = 'rr_meta';
 
-// Las caras y la foto de perfil se quedan en el dispositivo. Ver la cabecera.
+// Las caras se quedan en el dispositivo; la foto de perfil va a Storage y no a
+// una fila. Ver la cabecera y src/fotos.js.
 const CAMPOS_QUE_NO_SUBEN = {
   users: ['facePhoto', 'faceDescriptor', 'profilePic']
 };

@@ -15,7 +15,7 @@ no era, o el proyecto de Supabase está dormido.
 | El código                                   | GitHub                        |
 | Cuentas, escuelas, códigos, tareas, clases, avisos, asistencia, conversaciones con Robin | Supabase (Postgres) |
 | Las caras del pase de lista y su huella     | El navegador de la tablet     |
-| Las fotos de perfil                         | El navegador de cada quien    |
+| Las fotos de perfil                         | Supabase Storage              |
 | La clave de la API de Anthropic             | Variable de entorno del servidor |
 | El servidor que junta todo                  | Render (o Railway, o Fly)     |
 
@@ -115,8 +115,9 @@ npm run supabase:subir
 ```
 
 Te dirá cuántas filas quedaron en cada tabla, y cuántas imágenes se quedaron en
-tierra — las caras y las fotos de perfil, que no suben. Tu `data/db.json` no se
-toca: sigue ahí, intacto.
+tierra — las caras del pase de lista, que no suben. Las fotos de perfil de un
+`db.json` viejo tampoco viajan con este script: se suben solas cuando cada
+quien vuelva a entrar. Tu `data/db.json` no se toca: sigue ahí, intacto.
 
 Si te equivocas y quieres empezar de cero: `npm run supabase:subir -- --reemplazar`
 borra antes lo que hubiera arriba. **No pregunta.**
@@ -184,18 +185,23 @@ navegador, hay que volver a tomarlas.
 
 ### Las fotos de perfil
 
-Mismo criterio, misma razón: también son caras. Viven en el `localStorage` del
-navegador de cada quien, con la llave `roborobin.miFoto.<id>`.
+Estas **sí** se guardan, y no en una fila: en **Supabase Storage**, bucket
+`fotos-perfil`. No hay que crearlo a mano — el servidor lo crea la primera vez
+que alguien sube una foto, con lectura pública, techo de 1 MB por archivo y
+solo PNG, JPG, WEBP o GIF. En la ficha de la cuenta queda `profilePicUrl`.
 
-**Lo que eso significa en la práctica:** tu foto la ves tú, y solo en el
-navegador donde la pusiste. En la lista del profesor o en la de la dirección,
-todo el mundo sale con el muñequito gris.
+El plan gratuito de Supabase trae 1 GB de archivos; a unos 80 KB por foto, son
+del orden de trece mil fotos.
 
-Si prefieres lo contrario —que las fotos de perfil sí se guarden y todos se
-vean— se quita `'profilePic'` de `CAMPOS_QUE_NO_SUBEN` en
-[`src/store.js`](../src/store.js) y se borra el bloque de `rrFotoPropia()` en
-[`public/js/api.js`](../public/js/api.js). Las caras del pase de lista son otra
-cosa y esas conviene dejarlas donde están.
+`'profilePic'` sigue en `CAMPOS_QUE_NO_SUBEN` y no es contradicción: lo que no
+puede entrar en una fila es la imagen en base64. La base entera vive en memoria
+y se compara campo por campo en cada guardado, así que meter fotos ahí sería
+cargarlas todas en RAM para siempre y volver a serializarlas cada vez que
+alguien cambia su nombre. Ver [`src/fotos.js`](../src/fotos.js).
+
+Quien ya tuviera una foto guardada en su navegador de antes de este cambio no
+la pierde: se sube sola la próxima vez que entre, y la copia local se borra
+recién cuando el servidor confirma que la recibió.
 
 ### La clave de la API de Anthropic
 

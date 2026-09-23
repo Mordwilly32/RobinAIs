@@ -2,17 +2,19 @@
 // Envoltorio de fetch (agrega cabeceras JSON y lanza errores legibles),
 // avisos flotantes y utilidades compartidas por todas las páginas.
 
-// La foto de perfil no viaja al servidor. Es una cara, y las caras se quedan
-// en el aparato de quien las puso — el mismo criterio que el pase de lista,
-// ver public/js/face-vault.js. Vive en localStorage y no en IndexedDB porque
-// es un solo dato pequeño y hace falta en páginas que no cargan el archivo de
-// caras, como la de entrar.
+// La foto de perfil SÍ viaja al servidor: se guarda en Supabase Storage y en
+// la ficha queda su dirección. Ver src/fotos.js.
 //
-// Lo que eso cuesta: solo tú ves tu foto, y solo en este navegador. En la
-// lista del profesor o en la de la dirección sales con el muñequito gris,
-// porque tu foto no está en ningún servidor que puedan consultar. Si algún día
-// se prefiere lo contrario, se quita 'profilePic' de CAMPOS_QUE_NO_SUBEN en
-// src/store.js y se borra este bloque.
+// Antes se quedaba aquí, en este navegador, y eso costaba más de lo que
+// protegía: solo tú veías tu foto, y solo en este aparato. En la lista del
+// profesor y en la de la dirección todo el mundo salía con el muñequito gris.
+//
+// Las caras del pase de lista son otra cosa y no se movieron: siguen sin salir
+// del aparato. Ver public/js/face-vault.js.
+//
+// De localStorage solo queda lo justo para no perder las fotos que la gente ya
+// tenía puestas antes de este cambio: se suben solas la próxima vez que entren
+// y la copia de aquí se borra. Ver rrSubirFotoVieja().
 // Con el id de quien la puso, no a secas: la tablet del aula la usan treinta
 // personas, y una sola llave haría que cada quien entrara con la cara de la
 // anterior.
@@ -40,19 +42,35 @@ function rrGuardarFotoPropia(userId, dataUrl) {
   return dataUrl || null;
 }
 
-async function rrApi(path, { method = 'GET', body } = {}) {
-  // Único desvío de este envoltorio, y está aquí y no repetido en los cinco
-  // paneles para que sea una sola regla y no cinco que se van separando: al
-  // guardar el perfil, la foto se queda en este navegador y al servidor va
-  // todo lo demás. La respuesta vuelve con la foto puesta para que la pantalla
-  // no note la diferencia.
-  let fotoLocal;
-  if (method === 'PUT' && path === '/api/profile' && body && 'profilePic' in body) {
-    fotoLocal = body.profilePic;
-    body = { ...body };
-    delete body.profilePic;
-  }
+// Las fotos que ya estaban puestas antes de que existiera Storage.
+//
+// Se corre una vez por cuenta y en silencio: si el servidor ya tiene foto, no
+// hay nada que hacer; si no la tiene y aquí quedaba una, se manda y se borra
+// la copia local. Si falla —sin red, o el servidor dice que no— la copia se
+// queda donde está y se vuelve a intentar la próxima vez. Perderla sin avisar
+// sería lo único imperdonable aquí.
+async function rrSubirFotoVieja(user) {
+  if (!user || user.profilePic) return user;
 
+  const vieja = rrFotoPropia(user.id);
+  if (!vieja) return user;
+
+  try {
+    const { user: actualizado } = await rrApi('/api/profile', {
+      method: 'PUT',
+      body: { fullName: user.fullName, profilePic: vieja }
+    });
+    if (actualizado && actualizado.profilePic) {
+      user.profilePic = actualizado.profilePic;
+      rrGuardarFotoPropia(user.id, null);
+    }
+  } catch {
+    // Se queda para el próximo intento.
+  }
+  return user;
+}
+
+async function rrApi(path, { method = 'GET', body } = {}) {
   const res = await fetch(path, {
     method,
     headers: { 'Content-Type': 'application/json' },
@@ -71,9 +89,6 @@ async function rrApi(path, { method = 'GET', body } = {}) {
     throw err;
   }
 
-  if (fotoLocal !== undefined && data && data.user) {
-    data.user.profilePic = rrGuardarFotoPropia(data.user.id, fotoLocal);
-  }
   return data;
 }
 
@@ -152,8 +167,9 @@ function rrShowError(motivo) {
 async function rrRequireSession(allowedRoles, { allowLittle = false } = {}) {
   try {
     const { user } = await rrApi('/api/me');
-    // Tu foto no viene del servidor: está aquí. Ver rrFotoPropia() arriba.
-    user.profilePic = rrFotoPropia(user.id);
+    // La foto viene del servidor. Si además hay una guardada aquí de antes del
+    // cambio, se sube ahora y esta copia desaparece.
+    await rrSubirFotoVieja(user);
     if (allowedRoles && !allowedRoles.includes(user.role)) {
       rrShowError('permiso'); // este panel es de otro rol
       return null;

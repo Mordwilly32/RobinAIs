@@ -13,10 +13,14 @@ nada configurado, o Postgres en Supabase si existen `SUPABASE_URL` y
 
 Como la base está en memoria, **una sola instancia** (ver `render.yaml`).
 
-Tres cosas NO se guardan en el servidor a propósito: las caras del pase de lista
-y las fotos de perfil (viven en el navegador, ver `public/js/face-vault.js` y
-`rrFotoPropia()` en `public/js/api.js`) y la clave de Anthropic (variable de
-entorno). La lista está en `CAMPOS_QUE_NO_SUBEN`, en `src/store.js`.
+Dos cosas NO se guardan en el servidor a propósito: las caras del pase de lista
+(viven en el navegador, ver `public/js/face-vault.js`) y la clave de Anthropic
+(variable de entorno). La lista está en `CAMPOS_QUE_NO_SUBEN`, en `src/store.js`.
+
+Las fotos de perfil sí se guardan, pero en Supabase Storage (bucket
+`fotos-perfil`, que el servidor crea solo) y no en una fila: en la ficha queda
+`profilePicUrl`. Una imagen en base64 dentro de la base cargaría todas las
+fotos en memoria. Ver `src/fotos.js`.
 
 ## Dos atajos de teclado
 

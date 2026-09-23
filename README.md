@@ -105,14 +105,22 @@ servidor solo llega el id de a quién se reconoció.
 *En la práctica:* la lista de caras es del aparato, no de la cuenta. Si se
 cambia de tablet, hay que volver a tomarlas.
 
-### Las fotos de perfil
+### Las fotos de perfil (estas sí se guardan)
 
-Mismo motivo: también son caras. Viven en el `localStorage` de cada quien.
+Las fotos de perfil son la excepción, y antes no lo eran. Se guardan en
+**Supabase Storage**, en el bucket `fotos-perfil` que el servidor crea solo la
+primera vez; en la ficha de la cuenta queda `profilePicUrl`, que es la
+dirección y no la imagen.
 
-*En la práctica:* tu foto la ves tú, en el navegador donde la pusiste. En las
-listas del profesorado y de la dirección todo el mundo sale con el muñequito
-gris. Si prefieres lo contrario, se cambia en una línea:
-[`docs/supabase.md`](docs/supabase.md#las-fotos-de-perfil) explica cuál.
+*En la práctica:* tu foto te sigue a cualquier navegador y a cualquier
+aparato, y en las listas del profesorado y de la dirección la gente sale con
+su cara. Las que ya estaban guardadas en un navegador se suben solas la
+próxima vez que esa persona entre.
+
+*Por qué Storage y no una columna:* la base entera se carga en memoria y se
+compara campo por campo en cada guardado. Una imagen en base64 dentro de la
+ficha sería cargar todas las fotos de todo el mundo en RAM para siempre. Ver
+[`src/fotos.js`](src/fotos.js).
 
 ### La clave de la API de Anthropic
 
