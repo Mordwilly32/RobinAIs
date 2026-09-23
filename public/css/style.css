@@ -2616,3 +2616,102 @@ body.rr-arcade-open { overflow: hidden; }
   cursor: default;
   text-decoration: none;
 }
+
+/* =============================================================================
+   En un teléfono
+   =============================================================================
+   Lo de arriba está pensado en una pantalla ancha y después se estrecha. Esto
+   es al revés: son las cosas que solo se notan con el teléfono en la mano y
+   que ninguna regla de las de arriba arregla sola.
+
+   Van al final del archivo a propósito: comparten especificidad con lo que
+   corrigen, y aquí gana el último. */
+
+@media (max-width: 860px) {
+  /* 1. El zoom que nadie pidió.
+     Safari en iPhone hace zoom al tocar cualquier campo que tenga la letra
+     por debajo de 16 px, y ese zoom no se deshace solo: te deja el formulario
+     a medio salir de la pantalla y arrastrando de lado para leer. No se
+     arregla con maximum-scale —eso además le quita el zoom a quien lo
+     necesita de verdad— sino subiendo la letra a 16. */
+  input[type="text"], input[type="email"], input[type="password"], input[type="search"],
+  input[type="date"], input[type="number"], input[type="tel"], input[type="file"],
+  select, textarea { font-size: 16px; }
+
+  /* 2. Sitios donde tocar.
+     Un dedo son unos 9 mm. Los botones pequeños de una barra de herramientas
+     se pueden pulsar con el ratón y no con el pulgar. */
+  .btn, .btn-sm { min-height: 44px; }
+  .btn-sm { padding: 10px 16px; }
+  .rr-side-link { padding: 12px 14px; }
+  .rr-rail-item { padding: 11px 10px 11px 12px; }
+  /* El botón de borrar una conversación no aparece al pasar el mouse por
+     encima, porque no hay mouse: se ve siempre. */
+  .rr-rail-del { opacity: .6; padding: 6px 8px; }
+
+  /* 3. El alto de la ventana en un navegador de teléfono.
+     100vh cuenta la pantalla entera, incluida la barra de direcciones que se
+     esconde al bajar: con eso, el pie de la barra lateral queda debajo del
+     borde y no se llega nunca. dvh es el alto de verdad en cada momento. */
+  .rr-app { min-height: 100dvh; }
+  .rr-sidebar { height: 100dvh; }
+  .rr-auth-split { min-height: 100dvh; }
+
+  /* 4. La muesca y la barra de gestos.
+     La barra lateral ocupa el alto entero, así que su contenido tiene que
+     empezar por debajo de la muesca y acabar por encima del gesto de inicio. */
+  .rr-sidebar {
+    padding-top: calc(18px + env(safe-area-inset-top));
+    padding-bottom: calc(14px + env(safe-area-inset-bottom));
+    padding-left: calc(12px + env(safe-area-inset-left));
+  }
+
+  /* 5. Con el menú abierto, lo de atrás no se mueve.
+     Sin esto, arrastrar el dedo sobre el menú hace scroll de la página que
+     está debajo: se cierra el menú y has perdido el sitio donde estabas. */
+  body.rr-menu-abierto { overflow: hidden; }
+
+  /* 6. La cabecera de cada pantalla.
+     El título y su botón no caben en una línea: el botón se va abajo y ocupa
+     el ancho, que es donde se pulsa sin apuntar. */
+  .rr-topbar { flex-direction: column; align-items: stretch; gap: 12px; }
+  .rr-topbar h1 { font-size: 24px; }
+  .rr-topbar > div:last-child:not(:only-child) { display: flex; flex-wrap: wrap; gap: 8px; }
+  .rr-topbar > div:last-child:not(:only-child) .btn { flex: 1 1 auto; }
+
+  /* 7. Las tablas anchas.
+     Ya tenían scroll propio (.rr-table-wrap), pero sin un borde que lo diga
+     parece que la tabla está cortada. El degradado de la derecha es la pista
+     de que hay más. */
+  .rr-table-wrap { position: relative; }
+  .rr-table-wrap::after {
+    content: ""; position: absolute; top: 0; right: 0; bottom: 0; width: 26px;
+    pointer-events: none; border-radius: 0 var(--rr-r-md) var(--rr-r-md) 0;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0), var(--rr-white));
+  }
+}
+
+@media (max-width: 560px) {
+  .rr-main { padding: 16px 14px calc(70px + env(safe-area-inset-bottom)); }
+  .rr-topbar h1 { font-size: 22px; }
+  .card { padding: 16px 14px; }
+
+  /* Crear cuenta y entrar: la columna del formulario respira lo justo y el
+     "volver" se queda pegado arriba, que es donde se busca. */
+  .rr-auth-inner { padding-left: 2px; padding-right: 2px; }
+  .rr-auth-back { margin-bottom: 14px; }
+
+  /* Las fichas de "qué tipo de cuenta" en una columna ya estaban; lo que
+     faltaba era que no fueran tan altas: en un teléfono, cuatro fichas de
+     ciento y pico píxeles son cuatro pantallas de scroll antes del primer
+     campo. */
+  .rr-choice { padding: 15px 15px; }
+  .rr-choice .ic { font-size: 21px; }
+  .rr-choice .t { font-size: 15.5px; }
+  .rr-choice .d { font-size: 13px; line-height: 1.45; }
+
+  .level-grid { gap: 8px; }
+  .level-card { padding: 12px 8px; }
+  .level-icon { font-size: 22px; }
+  .level-name { font-size: 12.5px; }
+}

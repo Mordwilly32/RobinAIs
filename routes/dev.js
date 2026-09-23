@@ -11,11 +11,21 @@
 //
 //   · No aparece en ningún menú. Se abre con Ctrl + Alt + Shift + R desde
 //     cualquier pantalla (ver public/js/consola.js).
-//   · Se apaga entera poniendo "devConsole": false en config.json. Apagada,
-//     estas rutas contestan 404 como si no existieran — ni siquiera confirman
-//     que estuvieron ahí.
+//   · Es de UNA sola persona. Hay dos maneras de abrirla y no hay una tercera:
 //
-// Antes de poner esto en un sitio de verdad con datos de verdad: apágalo.
+//       - estar dentro con la cuenta dueña (RR_CONSOLA_DUENO), o
+//       - escribir la contraseña de la consola (RR_CONSOLA_CLAVE).
+//
+//     La segunda existe porque la consola sirve sobre todo cuando NO hay
+//     sesión abierta: es la pantalla desde la que se entra a las demás.
+//
+//   · Se apaga entera con RR_DEV_CONSOLE=0, o con "devConsole": false en
+//     config.json. Apagada, estas rutas contestan 404 como si no existieran.
+//
+// Antes esta puerta se cerraba sola en producción (NODE_ENV=production), y eso
+// tenía un efecto que no se veía desde el navegador: en el servidor de verdad
+// la consola contestaba 404 y el atajo parecía roto. Ahora la puerta no se
+// cierra por dónde corra el servidor, sino por quién llama.
 // ---------------------------------------------------------------------------
 
 const fs = require('fs');
@@ -25,29 +35,125 @@ const router = express.Router();
 const db = require('../src/db.js');
 const { ROLE_LABEL } = require('../src/permissions.js');
 
-// La consola está encendida salvo que se diga lo contrario, y apagada en
-// producción salvo que se diga que sí.
-//
-// Ese giro es a propósito: la consola fabrica escuelas y cuentas de mentira de
-// un botonazo, que es justo lo que se quiere en una demostración y justo lo
-// que no se quiere en la escuela de verdad. En un servidor no hay config.json,
-// así que sin esta regla quedaría encendida por descuido.
-function consolaEncendida() {
-  if (process.env.RR_DEV_CONSOLE === '1') return true;
-  if (process.env.RR_DEV_CONSOLE === '0') return false;
-  if (process.env.NODE_ENV === 'production') return false;
+function config() {
   try {
-    const config = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'config.json'), 'utf-8'));
-    return config.devConsole !== false;
+    return JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'config.json'), 'utf-8'));
   } catch {
-    return true; // en esta computadora, la demostración sigue siendo posible
+    return {};
   }
 }
 
-// Apagada, estas rutas no existen. Se contesta el mismo 404 que cualquier
-// dirección inventada para no confirmar que la consola está ahí.
+// La cuenta dueña. Cualquier otra cuenta, aunque sea de dirección, no ve nada.
+const DUENO = (process.env.RR_CONSOLA_DUENO || 'cokatielcoty009@gmail.com').trim().toLowerCase();
+
+// La contraseña de la consola. No vive en el repositorio: sale de la variable
+// de entorno o de config.json, que están los dos en el .gitignore. Sin ella
+// puesta, la única manera de abrir la consola es haber entrado con la cuenta
+// dueña.
+const CLAVE = String(process.env.RR_CONSOLA_CLAVE || config().consolaClave || '').trim();
+
+// Cinco intentos por sesión y se acabó. No hay manera de probar contraseñas a
+// ciegas contra esto sin que la propia sesión se cierre en la cara.
+const INTENTOS = 5;
+
+function apagada() {
+  if (process.env.RR_DEV_CONSOLE === '1') return false;
+  if (process.env.RR_DEV_CONSOLE === '0') return true;
+  return config().devConsole === false;
+}
+
+function esDueno(req) {
+  const user = req.session && req.session.userId ? db.getUserById(req.session.userId) : null;
+  return Boolean(user && user.email && user.email.trim().toLowerCase() === DUENO);
+}
+
+function abierta(req) {
+  // La versión sin servidor de GitHub Pages no tiene a quién proteger: su base
+  // vive en la pestaña, se borra al cerrarla y todo lo que hay dentro es de
+  // mentira. Ahí la consola está abierta, y la enciende rr-runtime.js — en un
+  // servidor de verdad esta variable no existe.
+  if (process.env.RR_CONSOLA_ABIERTA === '1') return true;
+  return esDueno(req) || (req.session && req.session.consolaAbierta === true);
+}
+
+// Comparación que no se puede cronometrar: recorre las dos cadenas enteras
+// pase lo que pase. Con === se filtraría por el tiempo cuántos caracteres van
+// bien, que es exactamente cómo se adivina una clave sin saberla.
+//
+// A mano y sin crypto a propósito: este archivo también se empaqueta para la
+// versión sin servidor, donde no hay un SHA-256 síncrono que usar.
+function claveCorrecta(escrita) {
+  if (!CLAVE) return false;
+  const a = String(escrita == null ? '' : escrita);
+  let dif = a.length ^ CLAVE.length;
+  const n = Math.max(a.length, CLAVE.length);
+  for (let i = 0; i < n; i++) {
+    // Fuera de la cadena, charCodeAt da NaN, y NaN | 0 es 0.
+    dif |= (a.charCodeAt(i) | 0) ^ (CLAVE.charCodeAt(i) | 0);
+  }
+  return dif === 0;
+}
+
+// Apagada del todo, estas rutas no existen. Se contesta el mismo 404 que
+// cualquier dirección inventada para no confirmar que la consola está ahí.
 router.use((req, res, next) => {
-  if (!consolaEncendida()) return res.status(404).json({ error: 'No encontrado.' });
+  if (apagada()) return res.status(404).json({ error: 'No encontrado.' });
+  next();
+});
+
+// ---- La puerta -------------------------------------------------------------
+
+// Lo único que se puede preguntar sin haber entrado: si esta sesión tiene la
+// consola abierta y si hay una contraseña que escribir. Nunca dice de quién es
+// la consola: ese correo no tiene por qué viajar a un navegador cualquiera.
+router.get('/estado', (req, res) => {
+  res.json({
+    abierta: abierta(req),
+    pideClave: Boolean(CLAVE),
+    // Sin clave puesta y sin ser el dueño no hay nada que intentar: la pantalla
+    // lo dice en vez de enseñar una casilla que no va a abrir nada.
+    soloDueno: !CLAVE
+  });
+});
+
+router.post('/unlock', (req, res) => {
+  const sesion = req.session;
+  if (abierta(req)) return res.json({ abierta: true });
+
+  sesion.consolaFallos = Number(sesion.consolaFallos || 0);
+  if (sesion.consolaFallos >= INTENTOS) {
+    return res.status(429).json({ error: 'Demasiados intentos. Cierra el navegador y vuelve a empezar.' });
+  }
+
+  if (!CLAVE) {
+    return res.status(403).json({ error: 'Esta consola es de una sola cuenta. Entra con ella.' });
+  }
+
+  if (!claveCorrecta((req.body || {}).clave || '')) {
+    sesion.consolaFallos += 1;
+    const quedan = INTENTOS - sesion.consolaFallos;
+    return res.status(403).json({
+      error: quedan > 0
+        ? `Esa no es la contraseña. Te ${quedan === 1 ? 'queda 1 intento' : `quedan ${quedan} intentos`}.`
+        : 'Esa no es la contraseña, y se acabaron los intentos.'
+    });
+  }
+
+  sesion.consolaAbierta = true;
+  sesion.consolaFallos = 0;
+  res.json({ abierta: true });
+});
+
+router.post('/lock', (req, res) => {
+  if (req.session) req.session.consolaAbierta = false;
+  res.json({ abierta: false });
+});
+
+// De aquí para abajo hay que haber pasado por la puerta.
+router.use((req, res, next) => {
+  if (!abierta(req)) {
+    return res.status(403).json({ error: 'La consola está cerrada.', cerrada: true });
+  }
   next();
 });
 

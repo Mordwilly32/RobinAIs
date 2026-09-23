@@ -1049,3 +1049,99 @@ body.rb-page {
   width: 28px; height: 28px; border-radius: 50%; object-fit: cover;
   background: #F4F4F6; border: 1px solid var(--rb-line);
 }
+
+/* =============================================================================
+   En un teléfono
+   =============================================================================
+   La portada ya se estrechaba bien —las rejillas caen a una columna solas—
+   pero había cosas que solo se ven con el teléfono en la mano: un enlace de
+   entrar que desaparecía, títulos que no caben, un botón flotante encima de
+   lo que hay que pulsar, y la muesca de la pantalla comiéndose la barra.
+
+   Va al final del archivo a propósito: comparte especificidad con lo que
+   corrige, y aquí gana el último. */
+
+/* 1. Entrar desde el teléfono.
+   El "Iniciar sesión" de la barra se esconde en pantalla estrecha, y lo único
+   que quedaba era "Empezar gratis": quien ya tiene cuenta se quedaba sin
+   puerta a la vista. Ahora vive también dentro del menú, que es donde se
+   busca — y solo ahí: en pantalla ancha ya está en la barra, y repetido dos
+   veces sobra. */
+.rb-nav-links .rb-nav-entrar { display: none; }
+
+@media (max-width: 940px) {
+  .rb-nav-links .rb-nav-entrar {
+    display: block;
+    border-top: 1px solid var(--rb-line);
+    font-weight: 700; color: var(--rb-red);
+  }
+
+  /* 2. La muesca y los bordes redondeados. */
+  .rb-nav-inner { padding-left: max(28px, env(safe-area-inset-left)); padding-right: max(28px, env(safe-area-inset-right)); }
+  .rb-nav-links a { padding-left: max(28px, env(safe-area-inset-left)); }
+
+  /* 3. El menú abierto no deja moverse a lo de abajo. */
+  body.rb-menu-abierto { overflow: hidden; }
+}
+
+@media (max-width: 620px) {
+  /* Menos aire arriba: en una pantalla de teléfono, 74 px de hueco antes del
+     título son media pantalla gastada en nada. */
+  .rb-hero { padding: calc(var(--rb-nav-h) + 38px) 0 56px; }
+  .rb-hero h1 { font-size: clamp(34px, 10.5vw, 48px); margin: 18px 0 18px; }
+  .rb-hero-lead { font-size: 16.5px; line-height: 1.65; margin-bottom: 26px; }
+  .rb-hero-note { margin-top: 24px; }
+
+  /* Los dos botones del héroe, uno debajo del otro y del ancho entero: con
+     el pulgar no se apunta a un botón de 160 px en una esquina. */
+  .rb-hero-actions { flex-direction: column; align-items: stretch; gap: 10px; }
+  .rb-hero-actions .rb-btn { width: 100%; justify-content: center; }
+  .rb-cta-actions .rb-btn { width: 100%; justify-content: center; }
+
+  .rb-section { padding: 68px 0; }
+  .rb-section-head { margin-bottom: 38px; }
+  .rb-cta { padding: 20px 0 76px; }
+  .rb-cta-band { padding: 72px 22px 42px; border-radius: 26px; }
+  .rb-cta-band p { font-size: 16px; }
+
+  /* El botón de "¿qué es este proyecto?" se subía encima del último botón de
+     la página. Se encoge y se aparta, y su globito no hace falta: en un
+     teléfono no hay mouse que lo saque. */
+  .rb-help { width: 40px; height: 40px; font-size: 16px; right: 14px; bottom: calc(14px + env(safe-area-inset-bottom)); }
+  .rb-help-tip { display: none; }
+
+  /* La conversación de ejemplo se lee, no se decora: con menos relleno caben
+     los mismos mensajes en una pantalla que mide la mitad. */
+  .rb-chat { padding: 18px 16px; border-radius: 20px; }
+  .rb-msg p { font-size: 14px; padding: 11px 13px; }
+  .rb-chat-bar { padding: 6px 6px 6px 16px; margin-top: 14px; }
+
+  /* Las pestañas de "Hecho para todos" no caben con 30 px a cada lado. */
+  .rb-tabs { margin-bottom: 34px; }
+  .rb-tabs-inner { width: 100%; }
+  .rb-tabs button { flex: 1; padding: 12px 10px; font-size: 14.5px; }
+
+  .rb-price { padding: 26px 20px 28px; }
+  .rb-price .amount { font-size: 38px; }
+  .rb-price-schools { text-align: center; }
+}
+
+/* Pantallas muy angostas — un iPhone SE mide 320 px de ancho útil. */
+@media (max-width: 380px) {
+  .rb-wrap { padding: 0 16px; }
+  .rb-hero h1 { font-size: 32px; }
+  .rb-logo-xl { font-size: 22px; }
+  .rb-btn { padding: 14px 20px; font-size: 15px; }
+  .rb-scene { min-height: 300px; }
+  .rb-float { transform: scale(.78); }
+}
+
+/* Un teléfono de lado: la pantalla mide más de ancho que de alto y el héroe,
+   pensado para una ventana alta, se convierte en tres pantallas de scroll
+   antes de llegar a nada. */
+@media (max-height: 520px) and (orientation: landscape) {
+  .rb-hero { padding: calc(var(--rb-nav-h) + 24px) 0 40px; }
+  .rb-hero-grid { gap: 28px; }
+  .rb-scene { min-height: 240px; }
+  .rb-scene .rr-mascot { width: min(170px, 30vw); height: min(170px, 30vw); }
+}

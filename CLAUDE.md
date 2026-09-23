@@ -18,6 +18,27 @@ y las fotos de perfil (viven en el navegador, ver `public/js/face-vault.js` y
 `rrFotoPropia()` en `public/js/api.js`) y la clave de Anthropic (variable de
 entorno). La lista está en `CAMPOS_QUE_NO_SUBEN`, en `src/store.js`.
 
+## Dos atajos de teclado
+
+Ninguno de los dos aparece en ningún menú; tres modificadores a la vez no se
+pulsan sin querer.
+
+- `Ctrl + Alt + Shift + R` — la consola de demostración: entrar a cualquier
+  cuenta con un clic y fabricar escuelas de mentira. Es de UNA cuenta
+  (`RR_CONSOLA_DUENO`) o de quien sepa la contraseña (`RR_CONSOLA_CLAVE`);
+  sin ninguna de las dos solo se dibuja un candado. Ver `routes/dev.js` y
+  `public/js/consola.js`.
+- `Ctrl + Alt + Shift + T` — solo en la portada: la demostración que se cuenta
+  sola, para una exposición o una grabación. No trae animaciones propias:
+  dispara en orden las que ya tiene la portada. Ver `public/js/cine.js`.
+
+## Crear cuenta
+
+Las cuentas nacen encendidas: no hay códigos por correo ni proveedor de correo
+que mantener. En los cuatro caminos se piden la fecha de nacimiento y el país
+(`public/js/paises.js`); la edad no se pregunta, se deriva de la fecha cada vez
+que se mira (`edadDe()` en `src/db.js`).
+
 ## Agent skills
 
 ### Issue tracker

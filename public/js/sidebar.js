@@ -160,7 +160,19 @@ function rrRenderShell(user, activeId) {
 
   const sidebar = document.getElementById('rrSidebar');
   const scrim = document.getElementById('rrScrim');
-  const closeMenu = () => { sidebar.classList.remove('open'); scrim.classList.remove('open'); };
+  // Con el menú abierto, la página de atrás se queda quieta. Sin esto, un
+  // dedo que arrastra sobre el menú hace scroll de lo que hay debajo: se
+  // cierra el menú y encima has perdido el sitio donde estabas leyendo.
+  const openMenu = () => {
+    sidebar.classList.add('open');
+    scrim.classList.add('open');
+    document.body.classList.add('rr-menu-abierto');
+  };
+  const closeMenu = () => {
+    sidebar.classList.remove('open');
+    scrim.classList.remove('open');
+    document.body.classList.remove('rr-menu-abierto');
+  };
 
   // Un solo manejador para todo el menú: así los enlaces que se dibujan
   // después (las conversaciones) no necesitan volver a engancharse.
@@ -186,7 +198,7 @@ function rrRenderShell(user, activeId) {
 
   const menuBtn = document.getElementById('rrMenuBtn');
   if (menuBtn) {
-    menuBtn.addEventListener('click', () => { sidebar.classList.add('open'); scrim.classList.add('open'); });
+    menuBtn.addEventListener('click', openMenu);
   }
   scrim.addEventListener('click', closeMenu);
   const closeBtn = document.getElementById('rrSideClose');
@@ -382,6 +394,7 @@ function rrShowSection(target) {
   const scrim = document.getElementById('rrScrim');
   if (sidebar) sidebar.classList.remove('open');
   if (scrim) scrim.classList.remove('open');
+  document.body.classList.remove('rr-menu-abierto');
   window.scrollTo({ top: 0, behavior: 'smooth' });
   document.dispatchEvent(new CustomEvent('rr:section', { detail: target }));
 }

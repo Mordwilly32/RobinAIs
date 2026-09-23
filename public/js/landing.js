@@ -20,6 +20,12 @@
   // estado inicial; si la clase entra en el mismo tirón en que se pinta ese
   // estado, no hay desde dónde animar y el elemento aparece de golpe.
   function encender(el, delay) {
+    // Mientras la demostración se cuenta sola (Ctrl + Alt + Shift + T, ver
+    // cine.js) es ella quien decide qué se enciende y cuándo. Sin esto, el
+    // observador de aquí encendería la sección entera en cuanto asomara, y el
+    // camino de los cuatro pasos —que es lo que se quiere enseñar— aparecería
+    // ya hecho antes de que le tocara a nadie.
+    if (window.RB_CINE_MANDO) return;
     setTimeout(() => el.classList.add('in'), Math.max(delay, 20));
   }
 
@@ -158,14 +164,20 @@
     window.addEventListener('scroll', onScroll, { passive: true });
 
     if (burger && links) {
-      burger.addEventListener('click', () => {
-        burger.classList.toggle('open');
-        links.classList.toggle('open');
-      });
-      links.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
-        burger.classList.remove('open');
-        links.classList.remove('open');
-      }));
+      // Con el menú abierto, la página de atrás se queda quieta: si no, un
+      // dedo que arrastra sobre el menú hace scroll de lo que hay debajo y al
+      // cerrarlo has perdido el sitio donde estabas.
+      const pintar = (abierto) => {
+        burger.classList.toggle('open', abierto);
+        links.classList.toggle('open', abierto);
+        document.body.classList.toggle('rb-menu-abierto', abierto);
+      };
+
+      burger.addEventListener('click', () => pintar(!links.classList.contains('open')));
+      links.querySelectorAll('a').forEach(a => a.addEventListener('click', () => pintar(false)));
+      // Girar el teléfono o ensanchar la ventana deja el menú abierto encima
+      // de una barra que ya cabe entera.
+      window.addEventListener('resize', () => { if (window.innerWidth > 940) pintar(false); });
     }
   }
 
@@ -326,6 +338,27 @@
           { de: 'robin', texto: 'Tranquilo, lo vemos por partes.' },
           { de: 'robin', texto: 'Empezamos por sumar con el mismo denominador. En diez minutos le agarras el hilo. 💪' }
         ]
+      },
+      {
+        barra: 'Repasemos juntos…',
+        turnos: [
+          { de: 'yo', texto: 'Mañana tengo examen de historia y no sé por dónde empezar' },
+          { de: 'robin', texto: 'Por lo que más pesa: las causas de la independencia. Te hago una pregunta de cada una y vemos cuál cojea. 📚' }
+        ]
+      },
+      {
+        barra: 'Revisa mi tarea…',
+        turnos: [
+          { de: 'yo', texto: '¿Está bien escrito mi párrafo de conclusión?' },
+          { de: 'robin', texto: 'La idea está clara. Cambia «debido a que» por «porque» y parte la última oración en dos: te está pidiendo aire. ✍️' }
+        ]
+      },
+      {
+        barra: 'Pregúntame lo que sea…',
+        turnos: [
+          { de: 'yo', texto: '¿Para qué me va a servir el mínimo común múltiplo?' },
+          { de: 'robin', texto: 'Para juntar cosas que van a distinto ritmo: dos buses que salen cada 12 y cada 18 minutos coinciden cada 36. 🚌' }
+        ]
       }
     ],
     escuelas: [
@@ -365,6 +398,28 @@
           { de: 'yo', texto: '¿Con qué código?' },
           { de: 'robin', texto: 'Con PRO-9XB2. Ya está en el panel de docentes, listo para asignarle grupos.' }
         ]
+      },
+      {
+        barra: 'Preguntar por un grupo…',
+        turnos: [
+          { de: 'yo', texto: '¿Cómo va séptimo B este mes?' },
+          { de: 'robin', texto: 'Asistencia del 94 % y dos tareas sin entregar en Ciencias. Te dejo los nombres en el panel. 📊' }
+        ]
+      },
+      {
+        barra: 'Ver el pase de lista…',
+        turnos: [
+          { de: 'robin', texto: 'Ya pasaron lista en 3.º A 🕗' },
+          { de: 'yo', texto: '¿Faltó alguien?' },
+          { de: 'robin', texto: 'Tres. Sus familias ya lo están viendo en casa, sin que nadie tenga que llamar.' }
+        ]
+      },
+      {
+        barra: 'Dar de alta a alguien…',
+        turnos: [
+          { de: 'yo', texto: 'El lunes entra una profesora nueva' },
+          { de: 'robin', texto: 'Te emito un código a su nombre 🎟️ Sirve una sola vez y ya trae puesto que es de profesorado.' }
+        ]
       }
     ]
   };
@@ -383,13 +438,45 @@
     });
   }
 
+  // Una charla al azar de las del guion, pero nunca la misma dos veces
+  // seguidas: repetir es lo que delata que hay una lista corta detrás.
+  function otraCharla(guion, anterior) {
+    if (guion.length < 2) return guion[0];
+    let elegida;
+    do { elegida = guion[Math.floor(Math.random() * guion.length)]; } while (elegida === anterior);
+    return elegida;
+  }
+
   async function correrChat({ log, barra, guion, avatar }) {
     const panel = log.closest('.rb-panel');
-    // Con el movimiento reducido del sistema, el guion va más pausado.
-    const lento = reduced ? 1.4 : 1;
+    // Con el movimiento reducido del sistema, el guion va más pausado. Y la
+    // demostración que se cuenta sola (Ctrl + Alt + Shift + T, ver cine.js) lo
+    // estira todavía más: ahí la conversación se mira de lejos y sin prisa.
+    //
+    // Se lee en cada espera y no una sola vez al empezar, porque la
+    // demostración se enciende y se apaga con el guion ya en marcha.
+    const lento = () => (reduced ? 1.4 : 1) * (window.RB_CINE_LENTO || 1);
     // Un panel escondido o una ventana en segundo plano no tienen a quién
     // hablarle: el guion espera ahí hasta que vuelva a haber alguien mirando.
     const mirando = () => (!panel || panel.classList.contains('on')) && !document.hidden;
+
+    // El mando a distancia de esta conversación. Lo cuelga del registro para
+    // que rbChatDeNuevo() —que la demostración usa al llegar a esta sección—
+    // pueda cortar por lo sano y empezar otra sin esperar a que termine la
+    // que estuviera contándose.
+    const control = { corte: 0, cortar: null };
+    log.__rrChat = control;
+
+    let despertar = null;
+    // Una espera que se puede interrumpir. Devuelve false si mientras dormía
+    // alguien pidió empezar de nuevo: quien la llama sabe así que lo que
+    // estaba contando ya no vale.
+    const pausa = (ms) => new Promise(resolve => {
+      const turno = control.corte;
+      const reloj = setTimeout(() => { despertar = null; resolve(control.corte === turno); }, ms);
+      despertar = () => { clearTimeout(reloj); despertar = null; resolve(false); };
+    });
+    control.cortar = () => { control.corte += 1; if (despertar) despertar(); };
 
     const decir = (html) => {
       log.insertAdjacentHTML('beforeend', html);
@@ -399,39 +486,68 @@
 
     // La conversación que ya venía escrita en el HTML se deja leer un momento
     // antes de que el guion tome el control.
-    await espera(3400 * lento);
+    await pausa(3400 * lento());
+
+    let anterior = null;
 
     for (let i = 0; ; i++) {
-      while (!mirando()) await espera(400);
+      while (!mirando()) { if (!(await pausa(400))) break; }
 
-      const charla = guion[i % guion.length];
+      // De corrido en la portada normal —así se ven todas si te quedas un
+      // rato— y al azar cuando lo pide la demostración, que nunca enseña más
+      // de una o dos por sección y siempre enseñaría las mismas.
+      const charla = control.azar ? otraCharla(guion, anterior) : guion[i % guion.length];
+      anterior = charla;
+
       if (barra) barra.textContent = charla.barra;
       log.innerHTML = '';
-      await espera(400 * lento);
+      if (!(await pausa(400 * lento()))) continue;
+
+      let cortada = false;
 
       for (const turno of charla.turnos) {
         // Si te fuiste a media charla no se corta: se queda ahí quieta y sigue
         // en el mismo punto cuando vuelves.
-        while (!mirando()) await espera(300);
+        while (!mirando()) { if (!(await pausa(300))) { cortada = true; break; } }
+        if (cortada) break;
 
         if (turno.de === 'robin') {
           // Los puntitos duran más si la respuesta es más larga: se siente como
           // alguien escribiendo y no como un temporizador.
           const puntos = decir(`<div class="rb-msg">${avatar}<div class="rb-typing"><i></i><i></i><i></i></div></div>`);
-          await espera((620 + Math.min(turno.texto.length * 11, 1500)) * lento);
+          const sigue = await pausa((620 + Math.min(turno.texto.length * 11, 1500)) * lento());
           puntos.remove();
+          if (!sigue) { cortada = true; break; }
           decir(`<div class="rb-msg">${avatar}<p>${turno.texto}</p></div>`);
         } else {
-          await espera(560 * lento);
+          if (!(await pausa(560 * lento()))) { cortada = true; break; }
           decir(`<div class="rb-msg me"><p>${turno.texto}</p></div>`);
         }
 
-        await espera(560 * lento);
+        if (!(await pausa(560 * lento()))) { cortada = true; break; }
       }
 
-      await espera(3600 * lento);   // se deja leer antes de cambiar de tema
+      if (cortada) continue;          // empezar otra, ya
+
+      await pausa(3600 * lento());    // se deja leer antes de cambiar de tema
     }
   }
+
+  // ---- Empezar una conversación nueva, ahora -------------------------------
+  //
+  // La demostración que se cuenta sola llama a esto al llegar a la sección del
+  // chat. Sin ello se encontraría la charla por donde fuera —a la mitad, o
+  // acabada y quieta— que es justo lo que no se quiere enseñar. Y la pide al
+  // azar, porque la demostración da vueltas y con el orden de siempre
+  // enseñaría una y otra vez la primera del guion.
+  window.rbChatDeNuevo = function (raiz, { azar = true } = {}) {
+    (raiz || document).querySelectorAll('.rb-chat-log').forEach(log => {
+      const control = log.__rrChat;
+      if (!control) return;
+      control.azar = azar;
+      control.cortar();
+    });
+  };
 
   // ---- Los precios y cada cuánto se pagan ---------------------------------
   // El selector de arriba cambia los tres planes a la vez. Los números salen
@@ -538,6 +654,14 @@
         const boton = cta.querySelector('.rb-btn');
         boton.href = destino;
         boton.textContent = 'Ir a mi panel';
+
+        // El mismo cambio dentro del menú del teléfono, que tiene su propio
+        // enlace de entrar (ver .rb-nav-entrar en index.html).
+        const entrarMovil = document.getElementById('rbNavEntrar');
+        if (entrarMovil) {
+          entrarMovil.href = destino;
+          entrarMovil.textContent = 'Ir a mi panel';
+        }
 
         // El héroe y la llamada final dejan de ofrecer una cuenta que ya existe.
         document.querySelectorAll('a[href="/registro"]').forEach(a => {

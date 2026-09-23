@@ -28,7 +28,6 @@ const session = require('express-session');
 try { require('dotenv').config(); } catch { /* opcional */ }
 
 const db = require('./src/db');
-const mailer = require('./src/mailer');
 
 // config.json es para trabajar en esta computadora. En un servidor mandan las
 // variables de entorno, que es donde sí se pueden guardar secretos.
@@ -130,8 +129,8 @@ app.use('/api/codes', require('./routes/codes'));
 app.use('/api/chats', require('./routes/chats'));
 app.use('/api/attendance', require('./routes/attendance'));
 app.use('/api/family', require('./routes/family'));
-// La consola de demostración (Ctrl + Alt + Shift + R en el navegador). Se
-// apaga entera con "devConsole": false en config.json; ver routes/dev.js.
+// La consola de demostración (Ctrl + Alt + Shift + R en el navegador). Es de
+// una sola cuenta y se apaga entera con RR_DEV_CONSOLE=0; ver routes/dev.js.
 app.use('/api/dev', require('./routes/dev'));
 
 app.get('/health', (req, res) => res.json({
@@ -186,18 +185,7 @@ db.listo()
       console.log(`  Base de datos: ${db.almacen.nombre}`);
       if (db.almacen.USA_SUPABASE) console.log(`  Supabase: ${db.almacen.donde}`);
       if (DOMINIO) console.log(`  Dominio: https://${DOMINIO}`);
-      console.log(`  Correo: ${mailer.TRANSPORTE}`);
       console.log('==============================================');
-
-      // Sin proveedor de correo no se puede activar ninguna cuenta, y como el
-      // registro contesta con normalidad hasta el último paso, se nota tarde y
-      // se nota mal: alguien esperando un código que no existe.
-      if (EN_PRODUCCION && !mailer.mandaDeVerdad) {
-        console.warn('[roboRobin] ATENCIÓN: no hay proveedor de correo.');
-        console.warn('[roboRobin] Nadie puede registrarse: los códigos de activación');
-        console.warn('[roboRobin] se están imprimiendo aquí en vez de enviarse.');
-        console.warn('[roboRobin] Pon RESEND_API_KEY. Ver docs/correo.md.');
-      }
     });
   })
   .catch(err => {

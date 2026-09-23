@@ -12,9 +12,15 @@
 // desde cualquier pantalla. Tres modificadores a la vez no se pulsan sin
 // querer, que es justamente lo que se busca.
 //
-// El servidor la puede apagar entera ("devConsole": false en config.json). Si
-// está apagada, la primera petición falla y aquí no se dibuja nada: el atajo
-// simplemente no hace nada, sin pistas de que alguna vez existió.
+// Es de una sola persona. Al abrirla se le pregunta al servidor si esta sesión
+// puede verla (ver routes/dev.js): si no, lo primero que aparece es un candado
+// y no la lista de cuentas. Las dos llaves son estar dentro con la cuenta
+// dueña, o escribir la contraseña de la consola.
+//
+// El servidor la puede apagar entera (RR_DEV_CONSOLE=0, o "devConsole": false
+// en config.json). Apagada, la primera petición contesta 404 y aquí no se
+// dibuja nada: el atajo simplemente no hace nada, sin pistas de que alguna vez
+// existió.
 // ---------------------------------------------------------------------------
 
 (function () {
@@ -26,8 +32,17 @@
 
   // ---- El atajo ------------------------------------------------------------
 
+  // Se mira e.code además de e.key: con Ctrl + Alt el sistema puede estar
+  // haciendo de AltGr, y entonces la tecla "R" llega con otro e.key según la
+  // distribución del teclado. e.code dice qué tecla se pulsó de verdad, sin
+  // importar qué letra pinta.
+  function esElAtajo(e) {
+    if (!(e.ctrlKey && e.altKey && e.shiftKey)) return false;
+    return e.code === 'KeyR' || String(e.key || '').toLowerCase() === TECLA;
+  }
+
   document.addEventListener('keydown', (e) => {
-    if (e.ctrlKey && e.altKey && e.shiftKey && (e.key || '').toLowerCase() === TECLA) {
+    if (esElAtajo(e)) {
       e.preventDefault();
       alternar();
     }
@@ -45,12 +60,99 @@
     caja = null;
   }
 
-  // ---- La ventana ----------------------------------------------------------
+  // ---- La puerta -----------------------------------------------------------
+  //
+  // Antes de dibujar la consola se pregunta si esta sesión puede verla. Tres
+  // respuestas posibles:
+  //
+  //   404        apagada en el servidor: no se dibuja nada, como si el atajo
+  //              no existiera.
+  //   abierta    se dibuja la consola de siempre.
+  //   cerrada    se dibuja el candado y nada más — ni la lista de cuentas ni
+  //              el botón de fabricar datos llegan a existir en la pantalla.
 
-  function abrir() {
+  async function abrir() {
+    let estado;
+    try {
+      estado = await peticion('/api/dev/estado');
+    } catch {
+      return; // apagada, o sin servidor: el atajo no hace nada
+    }
+    if (estado.abierta) return abrirConsola();
+    abrirCandado(estado);
+  }
+
+  function marco(dentro) {
     caja = document.createElement('div');
     caja.className = 'rr-consola-fondo';
-    caja.innerHTML = `
+    caja.innerHTML = dentro;
+    document.body.appendChild(caja);
+    caja.addEventListener('click', (e) => {
+      if (e.target === caja || e.target.closest('[data-cerrar]')) cerrar();
+    });
+    return caja;
+  }
+
+  function abrirCandado(estado) {
+    marco(`
+      <div class="rr-consola rr-consola-candado" role="dialog" aria-label="Consola de demostración">
+        <header class="rr-consola-head">
+          <div>
+            <strong>Consola de demostración</strong>
+            <small>Esta consola es de una sola cuenta.</small>
+          </div>
+          <button type="button" class="rr-consola-x" data-cerrar aria-label="Cerrar">&times;</button>
+        </header>
+
+        <div class="rr-consola-body rr-consola-body-solo">
+          <section class="rr-consola-bloque">
+            <div class="rr-consola-candado-ic" aria-hidden="true">🔒</div>
+            ${estado.soloDueno
+              ? `<p class="rr-consola-candado-txt">No hay contraseña puesta en este servidor.
+                 La única manera de abrirla es entrar con la cuenta dueña.</p>`
+              : `<p class="rr-consola-candado-txt">Escribe la contraseña de la consola, o entra
+                 con la cuenta dueña y se abre sola.</p>
+                 <form id="rrConsolaForm" autocomplete="off">
+                   <input type="password" class="rr-consola-clave" id="rrConsolaClave"
+                          placeholder="Contraseña de la consola" autocomplete="off" />
+                   <button type="submit" class="rr-consola-btn" id="rrConsolaEntrar">Abrir la consola</button>
+                 </form>`}
+            <div class="rr-consola-salida" id="rrConsolaSalida"></div>
+          </section>
+        </div>
+
+        <footer class="rr-consola-pie">
+          <span>Esc para salir</span>
+        </footer>
+      </div>`);
+
+    const form = caja.querySelector('#rrConsolaForm');
+    if (!form) return;
+    const campo = caja.querySelector('#rrConsolaClave');
+    setTimeout(() => campo.focus(), 40);
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = caja.querySelector('#rrConsolaEntrar');
+      btn.disabled = true;
+      btn.textContent = 'Abriendo…';
+      try {
+        await peticion('/api/dev/unlock', { method: 'POST', body: { clave: campo.value } });
+        cerrar();
+        abrirConsola();
+      } catch (err) {
+        btn.disabled = false;
+        btn.textContent = 'Abrir la consola';
+        campo.select();
+        avisar(err.message);
+      }
+    });
+  }
+
+  // ---- La ventana ----------------------------------------------------------
+
+  function abrirConsola() {
+    marco(`
       <div class="rr-consola" role="dialog" aria-label="Consola de demostración">
         <header class="rr-consola-head">
           <div>
@@ -96,13 +198,7 @@
         <footer class="rr-consola-pie">
           <span>Ctrl + Alt + Shift + R para abrirla y cerrarla · Esc para salir</span>
         </footer>
-      </div>`;
-
-    document.body.appendChild(caja);
-
-    caja.addEventListener('click', (e) => {
-      if (e.target === caja || e.target.closest('[data-cerrar]')) cerrar();
-    });
+      </div>`);
 
     const buscar = caja.querySelector('#rrConsolaBuscar');
     buscar.addEventListener('input', () => { filtro = buscar.value.trim().toLowerCase(); pintarLista(); });
@@ -125,10 +221,10 @@
       cuentas = data.accounts || [];
       pintarLista();
     } catch (err) {
-      // Consola apagada en el servidor, o algo peor: se dice y se cierra la
-      // puerta, sin dejar una ventana a medias en pantalla.
+      // La sesión se cerró mientras la ventana estaba abierta, o el servidor
+      // apagó la consola: se dice lo que pasó, sin dejar una lista a medias.
       if (caja) caja.querySelector('#rrConsolaLista').innerHTML =
-        `<div class="rr-consola-vacio">La consola está apagada en el servidor.<br><small>${escapar(err.message)}</small></div>`;
+        `<div class="rr-consola-vacio">No se pudo leer la lista de cuentas.<br><small>${escapar(err.message)}</small></div>`;
     }
   }
 

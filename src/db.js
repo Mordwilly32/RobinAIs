@@ -28,7 +28,6 @@
 //   aiLogs       -> historial plano heredado; se conserva por compatibilidad
 // ---------------------------------------------------------------------------
 
-const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const plans = require('./plans');
 const games = require('./games');
@@ -212,6 +211,18 @@ function migrate() {
     // Los niveles se guardaban en inglés en versiones anteriores.
     user.level = normalizeLevel(user.level);
 
+    // Ya no hay códigos por correo. Las cuentas que se quedaron esperando uno
+    // —de cuando sí los había— quedarían encerradas para siempre: se activan.
+    if (user.status === 'pending') user.status = 'active';
+    if (user.verificacion) delete user.verificacion;
+
+    // Cuándo naciste y de dónde eres. Las cuentas de antes no lo traen: se
+    // dejan en null, que es un valor válido en todas partes.
+    if (user.birthDate === undefined) user.birthDate = null;
+    if (user.country === undefined) user.country = null;
+    // Quien dio su fecha cumple años sin tener que avisar a nadie.
+    if (user.birthDate) user.age = edadDeNacimiento(user.birthDate);
+
     // Plan de la cuenta. Solo significa algo en las cuentas personales; las de
     // escuela lo llevan en 'free' y nunca se les cobra nada.
     if (!plans.PLAN_IDS.includes(user.plan)) user.plan = 'free';
@@ -380,138 +391,6 @@ function seedAdmin() {
   });
 }
 
-// ---------------------------------------------------------------------------
-// Activar la cuenta por correo
-// ---------------------------------------------------------------------------
-// Quien se apunta por su cuenta —cuenta personal, de familia, o quien inscribe
-// una escuela— nace con status 'pending' y no puede entrar hasta que escriba
-// el código de seis cifras que le llega al correo. Quien entra con un código
-// de ingreso no pasa por aquí: de ese ya responde la escuela que le dio el
-// código, y muchos estudiantes ni siquiera tienen correo.
-//
-// El código no se guarda. Se guarda un HMAC suyo, así que quien consiguiera
-// mirar la base de datos no podría activar cuentas ajenas con lo que ve. La
-// llave del HMAC es la de las sesiones: si cambia, los códigos que estuvieran
-// en el aire dejan de valer, y como duran quince minutos eso no molesta a
-// nadie.
-
-const VERIFICACION_MINUTOS = 15;     // cuánto vive un código
-const VERIFICACION_INTENTOS = 5;     // fallos antes de tener que pedir otro
-const VERIFICACION_ENVIOS = 5;       // códigos por hora y cuenta
-const VERIFICACION_ESPERA = 60;      // segundos entre un envío y el siguiente
-const PENDIENTE_HORAS = 24;          // cuánto sobrevive una cuenta sin activar
-
-// Los modos de registro que piden activar el correo.
-const MODOS_QUE_VERIFICAN = ['personal', 'parent', 'school'];
-
-function llaveHmac() {
-  return process.env.SESSION_SECRET || 'roborobin-local-secret';
-}
-
-function sellar(codigo) {
-  return crypto.createHmac('sha256', llaveHmac()).update(String(codigo)).digest('hex');
-}
-
-// Seis cifras, sacadas del generador de verdad y no de Math.random(): esto es
-// lo único que separa una cuenta de estar activa.
-function codigoDeSeis() {
-  return String(crypto.randomInt(0, 1000000)).padStart(6, '0');
-}
-
-function necesitaVerificar(modo) {
-  // La versión de GitHub Pages no tiene correo que mandar ni base que
-  // proteger: la suya vive en la pestaña y se borra al cerrarla. Pedir ahí un
-  // código dejaría el registro en un callejón sin salida, con la persona
-  // esperando un correo que nadie puede mandar. Lo enciende rr-runtime.js, y
-  // solo él: en un servidor de verdad esta variable no existe.
-  if (process.env.RR_SIN_VERIFICACION === '1') return false;
-  return MODOS_QUE_VERIFICAN.includes(modo);
-}
-
-// Fabrica un código nuevo y lo deja apuntado en la ficha. Devuelve el código
-// en claro, que es lo único que sale de aquí y solo para metértelo en el
-// correo: no se guarda en ningún lado.
-function nuevoCodigoDeVerificacion(userId) {
-  const user = getUserById(userId);
-  if (!user) return null;
-
-  const ahora = Date.now();
-  const v = user.verificacion || { envios: 0, ultimoEnvio: null };
-
-  // Dos frenos distintos. El de los segundos es contra el botón de "reenviar"
-  // pulsado con ansiedad; el de la hora, contra quien quiera usar la cuenta
-  // ajena de otro como máquina de mandarle correo.
-  if (v.ultimoEnvio && ahora - Date.parse(v.ultimoEnvio) < VERIFICACION_ESPERA * 1000) {
-    const faltan = Math.ceil((VERIFICACION_ESPERA * 1000 - (ahora - Date.parse(v.ultimoEnvio))) / 1000);
-    return { error: 'espera', segundos: faltan };
-  }
-
-  const haceUnaHora = ahora - 60 * 60 * 1000;
-  const envios = (v.primerEnvio && Date.parse(v.primerEnvio) > haceUnaHora) ? v.envios : 0;
-  if (envios >= VERIFICACION_ENVIOS) {
-    return { error: 'demasiados' };
-  }
-
-  const codigo = codigoDeSeis();
-  user.verificacion = {
-    hash: sellar(codigo),
-    expira: new Date(ahora + VERIFICACION_MINUTOS * 60 * 1000).toISOString(),
-    intentos: 0,
-    envios: envios + 1,
-    primerEnvio: envios === 0 ? new Date(ahora).toISOString() : v.primerEnvio,
-    ultimoEnvio: new Date(ahora).toISOString()
-  };
-  save();
-
-  return { codigo, minutos: VERIFICACION_MINUTOS };
-}
-
-// Comprueba el código. Devuelve { ok } o { error } con un motivo que la
-// pantalla pueda contar en palabras.
-function comprobarCodigoDeVerificacion(userId, codigo) {
-  const user = getUserById(userId);
-  if (!user) return { error: 'no-existe' };
-  if (user.status === 'active') return { ok: true, user, yaEstaba: true };
-
-  const v = user.verificacion;
-  if (!v || !v.hash) return { error: 'sin-codigo' };
-  if (Date.parse(v.expira) < Date.now()) return { error: 'vencido' };
-  if (v.intentos >= VERIFICACION_INTENTOS) return { error: 'demasiados-intentos' };
-
-  const limpio = String(codigo || '').replace(/[^0-9]/g, '');
-  // timingSafeEqual sobre los dos HMAC, que miden lo mismo siempre. Comparar
-  // con === filtraría por el tiempo cuántas cifras van bien.
-  const esperado = Buffer.from(v.hash, 'hex');
-  const recibido = Buffer.from(sellar(limpio), 'hex');
-  if (limpio.length !== 6 || !crypto.timingSafeEqual(esperado, recibido)) {
-    v.intentos += 1;
-    save();
-    const quedan = VERIFICACION_INTENTOS - v.intentos;
-    return { error: 'no-coincide', quedan: Math.max(0, quedan) };
-  }
-
-  user.status = 'active';
-  user.emailVerifiedAt = new Date().toISOString();
-  delete user.verificacion;
-  save();
-  return { ok: true, user };
-}
-
-// Las cuentas que se quedaron a medias. Se borran para que el correo vuelva a
-// quedar libre —si no, alguien que se equivocó al teclearlo no podría volver a
-// intentarlo nunca— y para que no se acumulen.
-function purgarCuentasSinActivar() {
-  const limite = Date.now() - PENDIENTE_HORAS * 60 * 60 * 1000;
-  const condenadas = cache.users.filter(u =>
-    u.status === 'pending' && Date.parse(u.createdAt || 0) < limite);
-
-  if (!condenadas.length) return 0;
-  return enLote(() => {
-    condenadas.forEach(u => deleteUser(u.id));
-    return condenadas.length;
-  });
-}
-
 // ---- Códigos ---------------------------------------------------------------
 
 function randomCode(prefix, length = 4) {
@@ -629,11 +508,59 @@ function normalizeAge(age) {
   return entero >= 4 && entero <= 120 ? entero : null;
 }
 
+// ---- Cuándo naciste y de dónde eres ---------------------------------------
+//
+// La edad ya no se teclea: se saca de la fecha de nacimiento. Un número
+// escrito a mano se queda viejo al día siguiente del cumpleaños y nadie vuelve
+// a corregirlo; una fecha vale para siempre.
+
+// Solo 'AAAA-MM-DD', que es lo que manda un <input type="date">, y solo si es
+// una fecha que puede ser la de alguien vivo.
+function normalizeBirthDate(fecha) {
+  const texto = String(fecha == null ? '' : fecha).trim().slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(texto)) return null;
+
+  const d = new Date(texto + 'T00:00:00Z');
+  if (Number.isNaN(d.getTime())) return null;
+  // Que la fecha exista de verdad: el 31 de febrero se convierte solo en el 3
+  // de marzo y pasaría el filtro de arriba sin esto.
+  if (d.toISOString().slice(0, 10) !== texto) return null;
+  if (d.getTime() > Date.now()) return null;            // nadie nace mañana
+  if (edadDeNacimiento(texto) > 120) return null;       // ni hace ciento veinte años
+  return texto;
+}
+
+// Los años cumplidos a día de hoy.
+function edadDeNacimiento(fecha) {
+  const texto = String(fecha == null ? '' : fecha).trim().slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(texto)) return null;
+  const [a, m, d] = texto.split('-').map(Number);
+  const hoy = new Date();
+  let anios = hoy.getFullYear() - a;
+  const mes = (hoy.getMonth() + 1) - m;
+  if (mes < 0 || (mes === 0 && hoy.getDate() < d)) anios -= 1;
+  return anios >= 0 ? anios : null;
+}
+
+// La edad de una cuenta: la que dice su fecha de nacimiento si la tiene, y si
+// no, la que se guardó a mano en su día.
+function edadDe(user) {
+  if (!user) return null;
+  return (user.birthDate ? edadDeNacimiento(user.birthDate) : null) ?? normalizeAge(user.age);
+}
+
+// El país llega como texto de una lista cerrada en la pantalla, pero aquí no
+// se da por hecho: se recorta y se limpia como cualquier otra cosa escrita.
+function normalizeCountry(pais) {
+  const texto = String(pais == null ? '' : pais).trim().replace(/\s+/g, ' ');
+  return texto ? texto.slice(0, 60) : null;
+}
+
 // `passwordHash` es un atajo SOLO para la consola de demostración, que da de
 // alta cientos de cuentas con la misma contraseña de mentira: calcular el hash
 // una vez y reutilizarlo ahorra la mayor parte del tiempo. Una cuenta de
 // verdad nunca lo pasa, y entonces se calcula aquí como siempre.
-function createUser({ fullName, email, password, role, level, grade, schoolId, plan, age, passwordHash, status }) {
+function createUser({ fullName, email, password, role, level, grade, schoolId, plan, age, birthDate, country, passwordHash, status }) {
   const now = new Date().toISOString();
   const user = {
     id: cache.meta.nextUserId++,
@@ -644,13 +571,16 @@ function createUser({ fullName, email, password, role, level, grade, schoolId, p
     schoolId: schoolId != null ? Number(schoolId) : null,
     level: normalizeLevel(level) || null,
     grade: grade || null,
-    // Solo la traen las cuentas personales; en una de escuela el nivel y el
-    // grado dicen lo mismo con más precisión (ver routes/auth.js).
-    age: normalizeAge(age),
-    // 'pending' mientras espera el código del correo; ver
-    // nuevoCodigoDeVerificacion(). Con cualquier cosa que no sea 'active' no
-    // se puede entrar (routes/auth.js).
-    status: status === 'pending' ? 'pending' : 'active',
+    // Cuándo naciste y de dónde eres. La edad no se guarda como un dato
+    // suelto que se escribió una vez: se deriva de la fecha cada vez que se
+    // mira (ver edadDe), y aquí solo queda apuntada para las cuentas viejas
+    // que nunca dieron su fecha.
+    birthDate: normalizeBirthDate(birthDate),
+    country: normalizeCountry(country),
+    age: edadDeNacimiento(birthDate) ?? normalizeAge(age),
+    // Una cuenta nueva ya puede entrar. Lo único que apaga una cuenta es que
+    // la dirección de su escuela la suspenda ('suspended').
+    status: status === 'suspended' ? 'suspended' : 'active',
     profilePic: null,
     notifications: [],
     plan: plans.PLAN_IDS.includes(plan) ? plan : 'free',
@@ -688,6 +618,11 @@ function updateUser(id, updates) {
   if (updates.level !== undefined) user.level = normalizeLevel(updates.level);
   if (updates.grade !== undefined) user.grade = updates.grade;
   if (updates.age !== undefined) user.age = normalizeAge(updates.age);
+  if (updates.birthDate !== undefined) {
+    user.birthDate = normalizeBirthDate(updates.birthDate);
+    if (user.birthDate) user.age = edadDeNacimiento(user.birthDate);
+  }
+  if (updates.country !== undefined) user.country = normalizeCountry(updates.country);
   if (updates.status !== undefined) user.status = updates.status;
   if (updates.schoolId !== undefined) user.schoolId = updates.schoolId == null ? null : Number(updates.schoolId);
   if (updates.password) user.passwordHash = bcrypt.hashSync(updates.password, 10);
@@ -742,6 +677,7 @@ function publicUser(user) {
     model: (ai && ai.model) || '',
     lastTest: (ai && ai.lastTest) || null
   };
+  rest.age = edadDe(user);
   const school = user.schoolId ? getSchoolById(user.schoolId) : null;
   rest.schoolName = school ? school.name : null;
   rest.roleLabel = permissions.ROLE_LABEL[user.role] || user.role;
@@ -1950,9 +1886,8 @@ module.exports = {
   enLote, hashPassword,
   // la conexión con Claude de cada cuenta
   aiSettingsOf, setAiSettings, recordAiTest, maskKey,
-  // activar la cuenta por correo
-  necesitaVerificar, nuevoCodigoDeVerificacion, comprobarCodigoDeVerificacion,
-  purgarCuentasSinActivar, VERIFICACION_MINUTOS, MODOS_QUE_VERIFICAN,
+  // cuándo naciste y de dónde eres
+  normalizeBirthDate, edadDeNacimiento, edadDe, normalizeCountry,
   // códigos nominales
   createJoinCode, getCodesForSchool, getJoinCode, checkJoinCode, burnJoinCode, revokeJoinCode,
   // conversaciones con Robin

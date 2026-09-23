@@ -155,3 +155,30 @@
 }
 .rr-consola-detalle summary:hover { color: #C9D1DC; }
 .rr-consola-detalle[open] summary { margin-bottom: 10px; }
+
+/* =============================================================================
+   El candado
+   =============================================================================
+   La consola es de una sola cuenta. Cuando la sesión no la tiene abierta, esto
+   es TODO lo que se dibuja: ni la lista de cuentas ni el botón de fabricar
+   datos llegan a existir en la pantalla, así que no hay nada que espiar con el
+   inspector. Ver routes/dev.js. */
+
+.rr-consola-candado { width: min(420px, 100%); }
+.rr-consola-body-solo { display: block; }
+.rr-consola-candado-ic {
+  font-size: 32px; text-align: center; margin: 10px 0 14px;
+  filter: grayscale(.2);
+}
+.rr-consola-candado-txt {
+  margin: 0 0 16px; font-size: 13.5px; line-height: 1.6; color: #9AA3B2; text-align: center;
+}
+.rr-consola-clave {
+  width: 100%; box-sizing: border-box; margin-bottom: 10px;
+  background: #0F1115; color: #E7E9EE;
+  border: 1px solid #2C3038; border-radius: 9px;
+  padding: 11px 13px; font-size: 14px; font-family: inherit;
+  letter-spacing: .04em;
+}
+.rr-consola-clave:focus { outline: none; border-color: #4C8BF5; box-shadow: 0 0 0 3px rgba(76, 139, 245, .18); }
+.rr-consola-candado .rr-consola-btn { width: 100%; justify-content: center; }

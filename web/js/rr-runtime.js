@@ -237,11 +237,11 @@
   // camino por defecto, que es justo el que quiere una demostración.
   if (typeof global.process === 'undefined') {
     global.process = {
-      // Vacío salvo una cosa: aquí no hay correo que mandar ni base que
-      // proteger —la de esta versión vive en la pestaña y se borra al
-      // cerrarla—, así que pedir un código de activación dejaría el registro
-      // en un callejón sin salida. Ver necesitaVerificar() en src/db.js.
-      env: { RR_SIN_VERIFICACION: '1' },
+      // Vacío salvo una cosa: aquí no hay base que proteger —la de esta
+      // versión vive en la pestaña y se borra al cerrarla, y todo lo que hay
+      // dentro es de mentira—, así que la consola de demostración está abierta
+      // sin contraseña. Ver abierta() en routes/dev.js.
+      env: { RR_CONSOLA_ABIERTA: '1' },
       argv: [],
       platform: 'browser',
       once() { },
@@ -253,10 +253,9 @@
 
   // ---- crypto: lo justo, y lo demás avisando -----------------------------
   //
-  // src/db.js lo pide para los códigos de activación de cuenta. Aquí esos
-  // códigos no se usan nunca —RR_SIN_VERIFICACION está en '1', ver arriba—
-  // pero el require se hace igual al cargar el módulo, y sin esto reventaría
-  // antes de pintar nada.
+  // Ya casi nadie lo pide —los códigos por correo se fueron— pero algún módulo
+  // puede hacer el require al cargarse, y sin esto reventaría antes de pintar
+  // nada.
   //
   // randomInt sí está de verdad, porque es fácil y honesto hacerlo bien con
   // el generador del navegador. Lo que no se puede imitar en dos líneas
@@ -273,10 +272,10 @@
     },
     randomUUID() { return global.crypto.randomUUID(); },
     createHmac() {
-      throw new Error('roboRobin: la versión sin servidor no firma nada. Ver RR_SIN_VERIFICACION en rr-runtime.js.');
+      throw new Error('roboRobin: la versión sin servidor no firma nada. Ver el cryptoShim en rr-runtime.js.');
     },
     timingSafeEqual() {
-      throw new Error('roboRobin: la versión sin servidor no compara firmas. Ver RR_SIN_VERIFICACION en rr-runtime.js.');
+      throw new Error('roboRobin: la versión sin servidor no compara firmas. Ver el cryptoShim en rr-runtime.js.');
     }
   };
 

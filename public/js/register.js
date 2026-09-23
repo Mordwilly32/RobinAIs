@@ -45,9 +45,72 @@ const STEPS = {
   personalForm: { title: 'Tu cuenta personal', subtitle: 'Solo faltan tus datos', dot: 1 },
   parentForm: { title: 'Tus datos', subtitle: 'Ya casi estás dentro', dot: 2 },
   joinForm: { title: 'Tus datos', subtitle: 'Ya casi estás dentro', dot: 2 },
-  codes: { title: '¡Escuela inscrita!', subtitle: 'Guarda bien estos dos códigos', dot: 2 },
-  verify: { title: 'Revisa tu correo', subtitle: 'Te mandamos un código de seis cifras', dot: 2 }
+  codes: { title: '¡Escuela inscrita!', subtitle: 'Guarda bien estos dos códigos', dot: 2 }
 };
+
+// ---- Cuándo naciste y de dónde eres ----------------------------------------
+//
+// La edad no se pregunta: se calcula de la fecha y se dice en voz alta debajo
+// de la casilla, para que quien se equivocó de año lo vea ahí mismo y no tres
+// pantallas después. Un número tecleado a mano, además, se queda viejo al día
+// siguiente del cumpleaños y nadie vuelve nunca a corregirlo.
+//
+// Los países salen de js/paises.js: los 222 de la lista de Unicode, en español
+// y con su banderita.
+
+const EDAD_MINIMA = 4;
+const EDAD_MAXIMA = 120;
+
+function edadDe(fecha) {
+  if (!fecha) return null;
+  const [a, m, d] = String(fecha).split('-').map(Number);
+  if (!a || !m || !d) return null;
+  const hoy = new Date();
+  let anios = hoy.getFullYear() - a;
+  const mes = (hoy.getMonth() + 1) - m;
+  if (mes < 0 || (mes === 0 && hoy.getDate() < d)) anios -= 1;
+  return anios;
+}
+
+// Devuelve el problema, o nada si la fecha está bien. El servidor revisa lo
+// mismo por su cuenta: esto es para no hacer ir y venir el formulario entero.
+function revisarNacimiento(fecha) {
+  if (!fecha) return 'Escribe cuándo naciste.';
+  const edad = edadDe(fecha);
+  if (edad === null) return 'Esa fecha no se entiende. Escríbela con día, mes y año.';
+  if (edad < 0) return 'Esa fecha todavía no ha llegado.';
+  if (edad < EDAD_MINIMA) return `Esa fecha dice que tienes ${edad} ${edad === 1 ? 'año' : 'años'}. Revísala.`;
+  if (edad > EDAD_MAXIMA) return 'Esa fecha no parece real. Revísala.';
+  return null;
+}
+
+// Las dos casillas de fecha se comportan igual, así que se atan igual.
+function atarNacimiento(idCampo, idPista, textoBase) {
+  const campo = document.getElementById(idCampo);
+  const pista = document.getElementById(idPista);
+  if (!campo) return;
+
+  // El calendario no deja elegir mañana ni el siglo pasado.
+  const hoy = new Date();
+  const iso = d => d.toISOString().slice(0, 10);
+  campo.max = iso(hoy);
+  campo.min = iso(new Date(hoy.getFullYear() - EDAD_MAXIMA, hoy.getMonth(), hoy.getDate()));
+
+  campo.addEventListener('input', () => {
+    if (!pista) return;
+    const edad = edadDe(campo.value);
+    if (edad === null || edad < 0) { pista.textContent = textoBase; return; }
+    pista.textContent = edad < EDAD_MINIMA || edad > EDAD_MAXIMA
+      ? 'Esa fecha no parece real. Revísala.'
+      : `Tienes ${edad} ${edad === 1 ? 'año' : 'años'}. ${textoBase}`;
+  });
+}
+
+atarNacimiento('birthDate', 'ageHint', 'Robin usa tu edad para ajustar cómo te explica las cosas.');
+atarNacimiento('sBirthDate', 'sAgeHint', 'Es tu fecha, no la de la escuela.');
+
+rrLlenarPaises(document.getElementById('country'));
+rrLlenarPaises(document.getElementById('sCountry'));
 
 // ---- Paso 1: tipo de cuenta -----------------------------------------------
 
@@ -61,8 +124,6 @@ document.querySelectorAll('.rr-choice').forEach(card => {
       if (accountType === 'personal') {
         document.getElementById('levelSection').style.display = 'none';
         document.getElementById('gradeFieldWrap').style.display = 'none';
-        document.getElementById('ageFieldWrap').style.display = '';
-        document.getElementById('age').required = true;
         document.getElementById('emailOptional').textContent = '';
         document.getElementById('email').required = true;
         setStep('step-form', STEPS.personalForm);
@@ -121,11 +182,9 @@ async function checkChild() {
         <p class="hint" style="margin:8px 0 0">¿Es esta la persona? Si no, corrige el ID y vuelve a buscar.</p>
       </div>`;
 
-    // La cuenta de familia no tiene nivel, ni grado, ni edad: no estudia aquí.
+    // La cuenta de familia no tiene nivel ni grado: no estudia aquí.
     document.getElementById('levelSection').style.display = 'none';
     document.getElementById('gradeFieldWrap').style.display = 'none';
-    document.getElementById('ageFieldWrap').style.display = 'none';
-    document.getElementById('age').required = false;
     document.getElementById('emailOptional').textContent = '';
     document.getElementById('email').required = true;
 
@@ -187,8 +246,6 @@ async function checkCode() {
     const pideNivel = !isTeacher && !data.level;
     document.getElementById('levelSection').style.display = pideNivel ? '' : 'none';
     document.getElementById('gradeFieldWrap').style.display = pideNivel ? '' : 'none';
-    document.getElementById('ageFieldWrap').style.display = 'none';
-    document.getElementById('age').required = false;
     document.getElementById('emailOptional').textContent = isTeacher ? '' : '(opcional)';
     document.getElementById('email').required = isTeacher;
     if (data.level) selectedLevel = data.level;
@@ -257,13 +314,13 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
   // Si el codigo ya traia el nivel, selectedLevel viene puesto desde ahi.
   if (isStudent && !selectedLevel) return showError('Elige tu nivel escolar.');
 
-  // La edad se revisa aquí además de en el servidor, para no hacer ir y venir
-  // el formulario entero por un número mal escrito.
-  const edad = Number(document.getElementById('age').value);
-  if (accountType === 'personal') {
-    if (!edad) return showError('Escribe tu edad.');
-    if (edad < 4 || edad > 120) return showError('Esa edad no parece real. Escríbela en años.');
-  }
+  // Nacimiento y país se revisan aquí además de en el servidor, para no hacer
+  // ir y venir el formulario entero por una fecha mal escrita.
+  const nacimiento = document.getElementById('birthDate').value;
+  const pais = document.getElementById('country').value;
+  const fallo = revisarNacimiento(nacimiento);
+  if (fallo) return showError(fallo);
+  if (!pais) return showError('Elige tu país.');
 
   if (accountType === 'parent' && !childInfo) {
     return showError('Busca primero a tu hijo o hija por su ID.');
@@ -280,7 +337,8 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
     email: document.getElementById('email').value.trim() || undefined,
     password: document.getElementById('password').value
   };
-  if (accountType === 'personal') payload.age = edad;
+  payload.birthDate = nacimiento;
+  payload.country = pais;
   if (accountType === 'parent') payload.studentCode = childInfo.studentCode;
   if (accountType === 'join') {
     payload.code = codeInput.value.trim().toUpperCase();
@@ -293,12 +351,6 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
   try {
     const salida = await rrApi('/api/register', { method: 'POST', body: payload });
 
-    // Cuenta personal, de familia o de dirección: la cuenta existe pero
-    // todavía no es de nadie hasta que se demuestre que el correo es suyo.
-    if (salida.verificar) return irAVerificar(salida);
-
-    // Con un código de ingreso no hay que verificar nada: de esa persona ya
-    // respondió la escuela que le dio el código.
     rrSetPose('authRobin', 'happy');
     btn.textContent = '¡Cuenta creada!';
     rrConfetti(document.getElementById('authRobin'));
@@ -316,6 +368,12 @@ document.getElementById('schoolForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   clearError();
 
+  const nacimiento = document.getElementById('sBirthDate').value;
+  const pais = document.getElementById('sCountry').value;
+  const fallo = revisarNacimiento(nacimiento);
+  if (fallo) return showError(fallo);
+  if (!pais) return showError('Elige el país de la escuela.');
+
   const btn = document.getElementById('schoolBtn');
   btn.disabled = true;
   btn.innerHTML = rrLoadingHtml('Inscribiendo', { size: 'inline' });
@@ -328,14 +386,21 @@ document.getElementById('schoolForm').addEventListener('submit', async (e) => {
         schoolName: document.getElementById('schoolName').value.trim(),
         fullName: document.getElementById('sFullName').value.trim(),
         email: document.getElementById('sEmail').value.trim(),
-        password: document.getElementById('sPassword').value
+        password: document.getElementById('sPassword').value,
+        birthDate: nacimiento,
+        country: pais
       }
     });
 
-    // Los códigos de la escuela no llegan todavía: se dan al activar. Si se
-    // repartieran ahora, cualquiera fabricaría una escuela con un correo
-    // inventado y se llevaría unos códigos que funcionan.
-    return irAVerificar(salida);
+    // La escuela queda inscrita y sus dos códigos aparecen aquí mismo: son lo
+    // primero que hay que copiar y repartir.
+    createdSchool = salida.school;
+    rrSetPose('authRobin', 'happy');
+    rrConfetti(document.getElementById('authRobin'));
+    document.getElementById('createdSchoolName').textContent = salida.school.name;
+    document.getElementById('revealStudentCode').textContent = salida.school.studentCode;
+    document.getElementById('revealTeacherCode').textContent = salida.school.teacherCode;
+    return setStep('step-codes', STEPS.codes);
   } catch (err) {
     showError(err.message);
     btn.disabled = false;
@@ -349,108 +414,3 @@ document.querySelectorAll('[data-copy]').forEach(btn => {
     rrCopy(btn.dataset.copy === 'student' ? createdSchool.studentCode : createdSchool.teacherCode, btn);
   });
 });
-
-// ---- Activar la cuenta -----------------------------------------------------
-//
-// Las cuentas que alguien se hace por su cuenta —personal, de familia, y la
-// del director que inscribe una escuela— nacen apagadas. Aquí se encienden,
-// escribiendo el código de seis cifras que llegó al correo.
-//
-// Quién se está activando no se guarda en esta página: lo lleva la sesión, en
-// el servidor. Por eso recargar no pierde el sitio, y por eso nadie puede
-// probar códigos contra una cuenta que no sea la suya.
-
-function irAVerificar(salida) {
-  document.getElementById('verifyEmail').textContent = salida.email || 'tu correo';
-  setStep('step-verify', STEPS.verify);
-  document.getElementById('verifyCode').focus();
-}
-
-const verifyCode = document.getElementById('verifyCode');
-const verifyResend = document.getElementById('verifyResend');
-const verifyResendWait = document.getElementById('verifyResendWait');
-
-// Solo cifras, y en cuanto hay seis se manda sola: quien pega el código desde
-// el correo no tiene por qué buscar además un botón.
-verifyCode.addEventListener('input', () => {
-  const limpio = verifyCode.value.replace(/[^0-9]/g, '').slice(0, 6);
-  if (limpio !== verifyCode.value) verifyCode.value = limpio;
-  if (limpio.length === 6) document.getElementById('verifyForm').requestSubmit();
-});
-
-document.getElementById('verifyForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  clearError();
-
-  const btn = document.getElementById('verifyBtn');
-  btn.disabled = true;
-  btn.innerHTML = rrLoadingHtml('Activando', { size: 'inline' });
-
-  try {
-    const salida = await rrApi('/api/verify', { method: 'POST', body: { code: verifyCode.value } });
-
-    rrSetPose('authRobin', 'happy');
-    rrConfetti(document.getElementById('authRobin'));
-
-    // Si quien acaba de activar es el director de una escuela recién
-    // inscrita, ahora sí recibe sus dos códigos, y esa pantalla se queda
-    // puesta: son dos cosas que tiene que copiar antes de seguir.
-    if (salida.school) {
-      createdSchool = salida.school;
-      document.getElementById('createdSchoolName').textContent = salida.school.name;
-      document.getElementById('revealStudentCode').textContent = salida.school.studentCode;
-      document.getElementById('revealTeacherCode').textContent = salida.school.teacherCode;
-      return setStep('step-codes', STEPS.codes);
-    }
-
-    btn.textContent = '¡Cuenta activada!';
-    setTimeout(() => { window.location.href = rrDashboardFor(salida.user.role, salida.user); }, 700);
-  } catch (err) {
-    showError(err.message);
-    verifyCode.select();
-    btn.disabled = false;
-    btn.textContent = 'Activar mi cuenta';
-  }
-});
-
-verifyResend.addEventListener('click', async () => {
-  clearError();
-  verifyResend.disabled = true;
-
-  try {
-    const salida = await rrApi('/api/verify/resend', { method: 'POST', body: {} });
-    document.getElementById('verifyEmail').textContent = salida.email || 'tu correo';
-    rrToast('Te mandé otro código.', 'success');
-    cuentaAtras(60);
-  } catch (err) {
-    showError(err.message);
-    // El servidor dice cuántos segundos faltan; si los dice, se respetan.
-    cuentaAtras((err.payload && err.payload.esperar) || 60);
-  }
-});
-
-// El botón de reenviar se apaga un minuto. No es decoración: el servidor
-// rechaza dos envíos seguidos, y un botón que parece disponible y contesta que
-// no se siente roto.
-function cuentaAtras(segundos) {
-  let quedan = segundos;
-  verifyResend.disabled = true;
-
-  const tic = setInterval(() => {
-    quedan -= 1;
-    verifyResendWait.textContent = quedan > 0 ? `(espera ${quedan}s)` : '';
-    if (quedan <= 0) {
-      clearInterval(tic);
-      verifyResend.disabled = false;
-    }
-  }, 1000);
-
-  verifyResendWait.textContent = `(espera ${quedan}s)`;
-}
-
-// Si se llega aquí con una cuenta a medio activar —porque se recargó la
-// página, o porque el login mandó para acá— se salta el formulario y se va
-// derecho a la casilla del código. Quién es sale de la sesión.
-rrApi('/api/verify')
-  .then(info => irAVerificar(info))
-  .catch(() => { /* nadie esperando: el registro empieza por el principio */ });

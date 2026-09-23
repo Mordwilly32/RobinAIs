@@ -1,0 +1,183 @@
+/* =============================================================================
+   cine.css — la demostración que se cuenta sola (Ctrl + Alt + Shift + T)
+   =============================================================================
+   Solo vive en la portada. No es una pantalla nueva: es la portada de siempre
+   recorriéndose a sí misma, con las mismas animaciones que ya tiene, pero
+   disparadas en orden y a un ritmo que se puede mirar de lejos — para una
+   exposición, una pantalla de fondo o una grabación.
+
+   Por eso aquí abajo hay poquísimo dibujo propio: casi todo es apagar cosas
+   (la barra, el botón de ayuda) y poner en pausa lo que se mueve solo, para
+   que el guion de cine.js decida cuándo se mueve cada cosa.
+   ============================================================================= */
+
+/* ---- Mientras dura ------------------------------------------------------- */
+
+/* Nada de barras ni de botones flotantes: lo que se enseña es la página. */
+body.rb-cine .rb-nav,
+body.rb-cine .rb-help,
+body.rb-cine .rb-help-tip { opacity: 0; pointer-events: none; transition: opacity .5s var(--rb-ease); }
+
+/* La rueda del ratón pelearía contra el recorrido. Se deja el teclado, que es
+   por donde se sale. */
+body.rb-cine { overscroll-behavior: none; }
+
+/* ---- El cartel de arriba ------------------------------------------------- */
+
+.rb-cine-hud {
+  position: fixed; z-index: 9500;
+  top: max(16px, env(safe-area-inset-top)); left: 50%;
+  transform: translateX(-50%);
+  display: flex; align-items: center; gap: 12px;
+  padding: 9px 10px 9px 16px;
+  background: rgba(20, 20, 20, .82); color: #fff;
+  border-radius: 999px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, .3);
+  font-size: 13px; font-weight: 600; letter-spacing: -.01em;
+  animation: rb-cine-hud-in .5s var(--rb-ease) both .3s;
+}
+@keyframes rb-cine-hud-in { from { opacity: 0; transform: translate(-50%, -14px); } to { opacity: 1; transform: translate(-50%, 0); } }
+.rb-cine-hud i {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--rb-red);
+  animation: rb-pulse 2.2s var(--rb-ease) infinite;
+}
+.rb-cine-hud button {
+  border: none; cursor: pointer; font: inherit; font-size: 12.5px; font-weight: 700;
+  background: rgba(255, 255, 255, .14); color: #fff;
+  padding: 6px 13px; border-radius: 999px;
+  transition: background .2s var(--rb-ease);
+}
+.rb-cine-hud button:hover { background: var(--rb-red); }
+
+/* La barra de abajo dice por dónde va el recorrido: sin ella, una pantalla
+   que se mueve sola no deja saber si va a acabar pronto o nunca. */
+.rb-cine-barra {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 9500;
+  height: 3px; background: rgba(20, 20, 20, .1);
+}
+.rb-cine-barra i {
+  display: block; height: 100%; width: 0;
+  background: var(--rb-red);
+  box-shadow: 0 0 14px rgba(255, 46, 46, .7);
+}
+
+/* ---- La entrada: el logo que baja ---------------------------------------- */
+
+.rb-cine-telon {
+  position: fixed; inset: 0; z-index: 9400;
+  display: flex; align-items: center; justify-content: center;
+  background: #fff;
+  background-image: radial-gradient(rgba(255, 46, 46, .13) 1.4px, transparent 1.4px);
+  background-size: 26px 26px;
+}
+.rb-cine-telon.fuera { animation: rb-cine-telon-fuera .9s var(--rb-ease) both; }
+@keyframes rb-cine-telon-fuera { to { opacity: 0; visibility: hidden; } }
+
+/* El logo entra desde arriba, se planta en medio y después baja hasta donde
+   está el logo de verdad en la barra. Ahí es donde el telón se va: el ojo
+   sigue el movimiento y aterriza en la página ya empezada. */
+.rb-cine-logo {
+  font-size: clamp(38px, 8vw, 92px); font-weight: 800; letter-spacing: -.045em;
+  color: var(--rb-ink); line-height: 1;
+  animation: rb-cine-logo-entra 1.5s var(--rb-spring) both;
+}
+.rb-cine-logo b { color: var(--rb-red); }
+.rb-cine-logo.baja { animation: rb-cine-logo-baja 1.1s var(--rb-ease) both; }
+
+@keyframes rb-cine-logo-entra {
+  0%   { opacity: 0; transform: translateY(-120px) scale(.72); filter: blur(6px); }
+  60%  { opacity: 1; filter: blur(0); }
+  100% { opacity: 1; transform: none; filter: blur(0); }
+}
+@keyframes rb-cine-logo-baja {
+  0%   { transform: none; }
+  100% { transform: translateY(26vh) scale(.42); opacity: 0; }
+}
+
+/* El destello que acompaña al aterrizaje */
+.rb-cine-telon::after {
+  content: ""; position: absolute; left: 50%; top: 50%;
+  width: 40vmin; height: 40vmin; margin: -20vmin 0 0 -20vmin;
+  border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(255, 46, 46, .22), transparent 66%);
+  animation: rb-cine-destello 2.6s var(--rb-ease) infinite;
+}
+@keyframes rb-cine-destello {
+  0%, 100% { transform: scale(.85); opacity: .5; }
+  50% { transform: scale(1.15); opacity: 1; }
+}
+
+/* ---- El camino de los pasos --------------------------------------------- */
+/* Los cuatro números de «¿Cómo funciona?» no salen a la vez: salen uno detrás
+   de otro, y la línea que los une se dibuja entre medias. La línea ya existe
+   en landing.css; aquí solo se marca cuál es el paso que acaba de encenderse,
+   que es lo que convierte cuatro tarjetas en un camino. */
+
+body.rb-cine .rb-steps .rb-step.rb-cine-ahora .rb-step-n {
+  background: var(--rb-red); color: #fff;
+  box-shadow: 0 0 0 0 rgba(255, 46, 46, .55);
+  animation: rb-cine-latido 1.2s var(--rb-ease) 2;
+}
+@keyframes rb-cine-latido {
+  0%   { box-shadow: 0 0 0 0 rgba(255, 46, 46, .55); }
+  100% { box-shadow: 0 0 0 26px rgba(255, 46, 46, 0); }
+}
+
+/* ---- Las materias, una por una ------------------------------------------ */
+/* La cinta se queda quieta y vacía, y cada materia hace pop en su turno.
+   Cuando terminan, se quita esta clase y la cinta vuelve a correr sola. */
+
+.rb-marquee.rb-cine-pop .rb-marquee-track { animation-play-state: paused; }
+.rb-marquee.rb-cine-pop span { opacity: 0; transform: scale(.55); }
+.rb-marquee.rb-cine-pop span.rb-cine-visible {
+  animation: rb-cine-materia .5s var(--rb-spring) both;
+}
+@keyframes rb-cine-materia {
+  0%   { opacity: 0; transform: scale(.55) translateY(10px); }
+  70%  { opacity: 1; transform: scale(1.09) translateY(0); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* ---- El chat, más despacio ---------------------------------------------- */
+/* El ritmo del guion lo lleva landing.js (ver RB_CINE_LENTO). Lo único que
+   cambia aquí es el marco: mientras se cuenta la conversación, la maqueta se
+   agranda un punto para que se lea de lejos. */
+
+body.rb-cine .rb-chat {
+  transition: transform .8s var(--rb-ease), box-shadow .8s var(--rb-ease);
+}
+body.rb-cine .rb-chat.rb-cine-mira {
+  transform: scale(1.035);
+  box-shadow: 0 30px 70px rgba(255, 46, 46, .18);
+}
+
+/* ---- El final ------------------------------------------------------------ */
+/* La banda roja se queda un rato en pantalla: es donde acaba el recorrido y
+   desde donde vuelve a empezar. */
+
+body.rb-cine .rb-cta-band.rb-cine-mira {
+  animation: rb-cine-final 1.4s var(--rb-spring) both;
+}
+@keyframes rb-cine-final {
+  0%   { transform: scale(.97); }
+  100% { transform: scale(1); }
+}
+
+/* ---- Movimiento reducido ------------------------------------------------- */
+/* El sistema pide menos movimiento: el recorrido sigue, porque es el sentido
+   entero de esto, pero sin nada que rebote ni que tiemble. */
+@media (prefers-reduced-motion: reduce) {
+  .rb-cine-logo, .rb-cine-logo.baja { animation-timing-function: ease; }
+  .rb-cine-telon::after { animation: none; opacity: .6; }
+  body.rb-cine .rb-steps .rb-step.rb-cine-ahora .rb-step-n { animation: none; }
+  .rb-marquee.rb-cine-pop span.rb-cine-visible { animation: rb-cine-materia-quieta .4s ease both; }
+  @keyframes rb-cine-materia-quieta { from { opacity: 0; } to { opacity: 1; transform: scale(1); } }
+}
+
+/* ---- En una pantalla de teléfono ---------------------------------------- */
+@media (max-width: 560px) {
+  .rb-cine-hud { font-size: 12px; padding: 8px 8px 8px 13px; gap: 9px; max-width: calc(100vw - 24px); }
+  .rb-cine-hud span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rb-cine-hud button { padding: 6px 11px; font-size: 12px; }
+}

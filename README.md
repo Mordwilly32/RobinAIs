@@ -34,30 +34,55 @@ El resto del programa no se entera de cuál de las dos está puesta: todo pasa p
 
 **Para poner la base en Supabase y el sitio en línea, la guía paso a paso está
 en [`docs/supabase.md`](docs/supabase.md).** Para ponerle un dominio propio,
-[`docs/dominio.md`](docs/dominio.md). Para que se puedan mandar los correos de
-activación, [`docs/correo.md`](docs/correo.md).
+[`docs/dominio.md`](docs/dominio.md).
 
 ---
 
-## Activar la cuenta por correo
+## Crear cuenta
 
-Quien se apunta por su cuenta —cuenta personal, de familia, o quien inscribe una
-escuela— recibe un código de seis cifras y sin escribirlo no entra. Quien llega
-con un código de ingreso no pasa por ahí: de esa persona ya responde la escuela
-que se lo dio, y muchos estudiantes no tienen correo.
+Las cuentas nacen encendidas. Hubo un tiempo en que quien se apuntaba por su
+cuenta esperaba un código de seis cifras por correo; dependía de un proveedor
+de correo que hay que pagar y mantener, y lo que pasaba en la práctica era
+gente que no podía entrar a su propia cuenta porque el correo no le llegaba.
 
-El código vive 15 minutos, admite 5 intentos, y **no se guarda**: en la ficha
-queda un HMAC suyo. Las cuentas sin activar se borran a las 24 horas, para que
-un correo tecleado mal no quede ocupado para siempre.
+En los cuatro caminos —personal, familia, con código de ingreso e inscribir una
+escuela— se piden **cuándo naciste** y **de qué país eres**. La edad no se
+pregunta: sale de la fecha, se dice en voz alta debajo de la casilla mientras
+se escribe, y se vuelve a calcular cada vez que se mira — un número tecleado a
+mano se queda viejo al día siguiente del cumpleaños. Los 222 países están en
+[`public/js/paises.js`](public/js/paises.js).
 
-Sin proveedor de correo configurado, el código **se imprime en la terminal** en
-vez de mandarse — así se puede probar el registro entero aquí sin dar de alta
-nada. En producción, el servidor avisa al arrancar si le falta.
+---
 
-> Ojo con una confusión fácil: los MX de Cloudflare Email Routing sirven para
-> **recibir** correo, no para mandarlo. Para mandar hace falta un proveedor de
-> envío; [`docs/correo.md`](docs/correo.md) explica cuál y cómo, incluido el
-> detalle del SPF, que hay que **fusionar** y no duplicar.
+## La demostración que se cuenta sola
+
+`Ctrl + Alt + Shift + T`, **solo en la portada**: el logo baja, el héroe se
+arma, los cuatro pasos de «¿Cómo funciona?» salen uno detrás de otro como un
+camino, las materias hacen pop una por una, la conversación con Robin se cuenta
+despacio y al final se queda en «¿Listo para aprender con Robin?». Después
+vuelve arriba y empieza otra vez, hasta que alguien pulse `Esc`.
+
+Para una exposición con la pantalla de fondo, o para grabar la portada entera
+sin ir tocando la rueda del ratón. No tiene ni una animación propia: dispara en
+orden las que ya tiene la portada, así que lo que enseña es siempre lo que hay.
+Ver [`public/js/cine.js`](public/js/cine.js).
+
+---
+
+## La consola de demostración
+
+`Ctrl + Alt + Shift + R` desde cualquier pantalla abre una consola que deja
+entrar a cualquier cuenta con un clic y fabricar escuelas de mentira. No es una
+función del producto: no aparece en ningún menú y **es de una sola cuenta**.
+
+Se abre de dos maneras y no hay una tercera:
+
+- estar dentro con la cuenta dueña (`RR_CONSOLA_DUENO`), o
+- escribir la contraseña de la consola (`RR_CONSOLA_CLAVE`).
+
+Sin ninguna de las dos, lo único que se dibuja es un candado: la lista de
+cuentas no llega a existir en la pantalla. Con `RR_DEV_CONSOLE=0` la consola no
+existe en absoluto — sus rutas contestan 404. Ver [`routes/dev.js`](routes/dev.js).
 
 ---
 

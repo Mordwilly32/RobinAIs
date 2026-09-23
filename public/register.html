@@ -112,6 +112,19 @@
           <input type="password" id="sPassword" required minlength="6" placeholder="Al menos 6 caracteres" />
           <div class="hint">Con esta cuenta administras toda la escuela: cuentas, avisos y códigos.</div>
         </div>
+        <div class="form-row">
+          <div class="field">
+            <label for="sBirthDate">¿Cuándo naciste?</label>
+            <input type="date" id="sBirthDate" required />
+            <div class="hint" id="sAgeHint">&nbsp;</div>
+          </div>
+          <div class="field">
+            <label for="sCountry">¿De qué país es la escuela?</label>
+            <select id="sCountry" required>
+              <option value="">Elige tu país…</option>
+            </select>
+          </div>
+        </div>
         <div style="display:flex;gap:10px;margin-top:8px">
           <button type="button" class="btn btn-ghost" data-back="type">← Atrás</button>
           <button type="submit" class="btn btn-primary" id="schoolBtn" style="flex:1">Inscribir escuela</button>
@@ -144,14 +157,21 @@
               <option value="">Elige primero tu nivel…</option>
             </select>
           </div>
+        </div>
 
-          <!-- La edad solo se pide en una cuenta personal. En una de escuela
-               el nivel y el grado ya dicen lo mismo y mejor, así que ahí no se
-               pregunta: es un dato menos que pedirle a un menor de edad. -->
-          <div class="field" id="ageFieldWrap" style="display:none">
-            <label for="age">Tu edad</label>
-            <input type="number" id="age" min="4" max="120" inputmode="numeric" placeholder="Por ejemplo: 15" />
-            <div class="hint">Robin la usa para ajustar cómo te explica las cosas y qué tan difíciles salen los minijuegos.</div>
+        <!-- Cuándo naciste y de dónde eres. La edad no se pregunta: sale de la
+             fecha, y así no se queda vieja al día siguiente del cumpleaños. -->
+        <div class="form-row">
+          <div class="field">
+            <label for="birthDate">¿Cuándo naciste?</label>
+            <input type="date" id="birthDate" required />
+            <div class="hint" id="ageHint">Robin usa tu edad para ajustar cómo te explica las cosas.</div>
+          </div>
+          <div class="field">
+            <label for="country">¿De qué país eres?</label>
+            <select id="country" required>
+              <option value="">Elige tu país…</option>
+            </select>
           </div>
         </div>
 
@@ -182,29 +202,6 @@
           <button type="submit" class="btn btn-primary" id="registerBtn" style="flex:1">Crear cuenta</button>
         </div>
       </form>
-    </div>
-
-    <!-- Activar la cuenta: el código que llegó al correo -->
-    <div id="step-verify" class="step-form">
-      <p class="text-muted" style="font-size:14.5px">
-        Te mandamos un código de seis cifras a <strong id="verifyEmail">tu correo</strong>.
-        Escríbelo aquí para activar la cuenta.
-      </p>
-
-      <form id="verifyForm" novalidate>
-        <div class="field">
-          <label for="verifyCode">Código</label>
-          <input id="verifyCode" name="verifyCode" type="text" inputmode="numeric" autocomplete="one-time-code"
-                 maxlength="6" pattern="[0-9]{6}" placeholder="000000" class="rr-code-input" required />
-        </div>
-        <button type="submit" class="btn btn-primary btn-block" id="verifyBtn">Activar mi cuenta</button>
-      </form>
-
-      <p class="hint" style="margin-top:14px">
-        ¿No te llegó? Mira en la carpeta de correo no deseado.
-        <button type="button" class="rr-link-btn" id="verifyResend">Mandar otro código</button>
-        <span id="verifyResendWait" class="text-muted"></span>
-      </p>
     </div>
 
     <!-- Paso final del director: sus dos códigos -->
@@ -246,6 +243,7 @@
 <script src="/js/api.js"></script>
 <script src="/js/loading.js"></script>
 <script src="/js/auth-art.js"></script>
+<script src="/js/paises.js"></script>
 <script src="/js/register.js"></script>
 <script src="/js/consola.js"></script>
 </body>
