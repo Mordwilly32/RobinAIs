@@ -41,6 +41,27 @@ function rrCreateChat({ body, form, input, send, hello, mode, onAction, onChat, 
   let busy = false;
   let chatId = null;
 
+  // Robin, en la cabecera del chat.
+  //
+  // Es una galeria ([data-rr-galeria], ver mascot.js) y no una imagen suelta a
+  // proposito: asi hereda lo que ya sabe hacer —al tocarlo se pone contento, y
+  // rrRobinHabla() lo pone a hablar y lo hace moverse— sin escribir aqui nada
+  // de eso. Es tambien el unico Robin que NO se va al abrir el chat: el del
+  // saludo desaparece, y hasta ahora Robin contestaba sin que se moviera nada
+  // en pantalla.
+  ponerRobinEnLaCabecera();
+
+  function ponerRobinEnLaCabecera() {
+    const cabecera = body && body.closest('.rr-chat') && body.closest('.rr-chat').querySelector('.rr-chat-head');
+    if (!cabecera || cabecera.querySelector('[data-rr-galeria]')) return;
+    const nido = document.createElement('span');
+    nido.className = 'rr-galeria rr-chat-bird';
+    nido.setAttribute('data-rr-galeria', '');
+    nido.dataset.alt = 'Robin';
+    cabecera.insertBefore(nido, cabecera.firstChild);
+    if (typeof rrMountGalerias === 'function') rrMountGalerias();
+  }
+
   function scrollDown() {
     body.scrollTop = body.scrollHeight;
   }

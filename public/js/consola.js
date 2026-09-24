@@ -30,6 +30,12 @@
   let cuentas = [];
   let filtro = '';
 
+  // Cuantas filas se dibujan como mucho en la lista de cuentas. Una escuela
+  // entera son mas de mil, y dibujarlas todas deja la ventana pensando cada
+  // vez que se refresca. Lo que se busca aqui es UNA cuenta, y para eso esta
+  // el buscador.
+  const TOPE_FILAS = 60;
+
   // ---- El atajo ------------------------------------------------------------
 
   // Se mira e.code además de e.key: con Ctrl + Alt el sistema puede estar
@@ -193,6 +199,16 @@
 
             <div class="rr-consola-salida" id="rrConsolaSalida"></div>
           </section>
+
+          <section class="rr-consola-bloque rr-consola-bloque-ancho">
+            <h4>Montar una escuela entera</h4>
+            <p>Con forma de escuela de verdad: parvularia, básica y bachillerato,
+               cada grado con sus secciones, treinta por salón, un maestro por salón
+               y los de materias especiales. Se borra entera de un botón.</p>
+            <div id="rrConsolaEscuelas">
+              <div class="rr-consola-vacio">Cargando…</div>
+            </div>
+          </section>
         </div>
 
         <footer class="rr-consola-pie">
@@ -211,6 +227,7 @@
     }));
 
     cargarCuentas();
+    cargarEscuelas();
   }
 
   // ---- Las cuentas ---------------------------------------------------------
@@ -243,7 +260,8 @@
       return;
     }
 
-    lista.innerHTML = visibles.map(c => `
+    const quedan = visibles.length - TOPE_FILAS;
+    lista.innerHTML = visibles.slice(0, TOPE_FILAS).map(c => `
       <button type="button" class="rr-consola-cuenta" data-entrar="${c.id}">
         <span class="rr-consola-rol rol-${escapar(c.role)}">${escapar(c.roleLabel)}</span>
         <span class="rr-consola-quien">
@@ -251,11 +269,20 @@
           <small>${escapar([c.email || c.studentCode, c.schoolName, c.grade].filter(Boolean).join(' · ') || 'sin escuela')}</small>
         </span>
         <span class="rr-consola-ir">Entrar →</span>
-      </button>`).join('');
+      </button>`).join('') + (quedan > 0
+        ? `<div class="rr-consola-vacio">y ${quedan.toLocaleString('es')} cuentas más.<br>
+           <small>Escribe arriba para encontrar la que buscas.</small></div>`
+        : '');
 
-    lista.querySelectorAll('[data-entrar]').forEach(btn => {
-      btn.addEventListener('click', () => entrar(Number(btn.dataset.entrar), btn));
-    });
+    // Un solo listener para toda la lista, y no uno por fila: con una escuela
+    // entera eran mil trescientos.
+    if (lista.dataset.rrEnchufada !== 'si') {
+      lista.dataset.rrEnchufada = 'si';
+      lista.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-entrar]');
+        if (btn) entrar(Number(btn.dataset.entrar), btn);
+      });
+    }
   }
 
   async function entrar(userId, btn) {
@@ -329,6 +356,295 @@
     } finally {
       btn.disabled = false;
       btn.innerHTML = original;
+    }
+  }
+
+  // ---- El panel de escuelas ------------------------------------------------
+  //
+  // Lo de arriba fabrica clases sueltas para que una pantalla no se vea vacía.
+  // Esto monta una escuela con forma —parvularia, básica y bachillerato, cada
+  // grado con sus secciones, un maestro por salón, los de materias especiales—
+  // y la deja borrar entera de un botón.
+  //
+  // El número de cuentas se dice ANTES de apretar y se recalcula con cada
+  // cambio: son más de mil, tardan, y enterarse después no sirve de nada.
+
+  let malla = [];       // lo que manda el servidor, ya marcado
+  let especiales = [];  // [{ materia, puesto }]
+  let escuelas = [];
+
+  function pintarPanel() {
+    if (!caja) return;
+    const hueco = caja.querySelector('#rrConsolaEscuelas');
+    if (!hueco) return;
+
+    hueco.innerHTML = `
+      <div class="rr-consola-esc-grid">
+        <div>
+          <label class="rr-consola-esc-campo">
+            <span>Nombre de la escuela</span>
+            <input type="text" id="rrEscNombre" placeholder="Centro Escolar Las Flores" autocomplete="off" />
+          </label>
+          <label class="rr-consola-esc-campo">
+            <span>Quién la dirige <em>(si se deja en blanco, sale un nombre al azar)</em></span>
+            <input type="text" id="rrEscDirector" placeholder="Nombre de la dirección" autocomplete="off" />
+          </label>
+          <div class="rr-consola-campos">
+            <label>Secciones <input type="text" id="rrEscSecciones" value="A, B, C" autocomplete="off" /></label>
+            <label>Por salón <input type="number" id="rrEscPorClase" value="30" min="0" max="40" /></label>
+          </div>
+        </div>
+
+        <div>
+          <p class="rr-consola-esc-tit">Qué grados se abren</p>
+          <div class="rr-consola-esc-chips" id="rrEscTramos">
+            ${malla.map((t, i) => `
+              <label class="rr-consola-chip">
+                <input type="checkbox" data-tramo="${i}" ${t.puesto ? 'checked' : ''} />
+                <span>${escapar(t.level)} <em>${t.grades.length}</em></span>
+              </label>`).join('')}
+          </div>
+
+          <p class="rr-consola-esc-tit">Maestros de materias especiales</p>
+          <div class="rr-consola-esc-chips" id="rrEscEspeciales">
+            ${especiales.map((e, i) => `
+              <label class="rr-consola-chip">
+                <input type="checkbox" data-esp="${i}" ${e.puesto ? 'checked' : ''} />
+                <span>${escapar(e.materia)}</span>
+              </label>`).join('')}
+          </div>
+        </div>
+      </div>
+
+      <div class="rr-consola-esc-cuenta" id="rrEscCuenta"></div>
+
+      <button type="button" class="rr-consola-btn rr-consola-btn-grande" id="rrEscCrear">
+        <strong>Montar la escuela</strong>
+        <small id="rrEscResumen"></small>
+      </button>
+
+      <p class="rr-consola-esc-tit rr-consola-esc-tit-sep">Escuelas que ya existen</p>
+      <div class="rr-consola-esc-lista" id="rrEscLista"></div>
+
+      <div class="rr-consola-salida" id="rrConsolaSalidaEsc"></div>`;
+
+    hueco.querySelectorAll('[data-tramo]').forEach(chk => {
+      chk.addEventListener('change', () => {
+        malla[Number(chk.dataset.tramo)].puesto = chk.checked;
+        recalcular();
+      });
+    });
+    hueco.querySelectorAll('[data-esp]').forEach(chk => {
+      chk.addEventListener('change', () => {
+        especiales[Number(chk.dataset.esp)].puesto = chk.checked;
+        recalcular();
+      });
+    });
+    hueco.querySelector('#rrEscSecciones').addEventListener('input', recalcular);
+    hueco.querySelector('#rrEscPorClase').addEventListener('input', recalcular);
+    hueco.querySelector('#rrEscCrear').addEventListener('click', montarEscuela);
+
+    recalcular();
+    pintarEscuelas();
+  }
+
+  // Lo que se va a fabricar, leído de las casillas. Una sola función para esto
+  // y no dos: lo que se cuenta en pantalla y lo que se manda al servidor tienen
+  // que ser exactamente lo mismo, o el aviso de "son 1.260 cuentas" miente.
+  function receta() {
+    const secciones = String(caja.querySelector('#rrEscSecciones').value || '')
+      .split(/[,\s]+/).map(x => x.trim().toUpperCase()).filter(Boolean);
+    const porClase = Math.max(0, Math.min(40, Number(caja.querySelector('#rrEscPorClase').value) || 0));
+    const tramos = malla.filter(t => t.puesto);
+    const secs = secciones.length ? [...new Set(secciones)] : ['A'];
+
+    const aulas = tramos.reduce((n, t) => n + t.grades.length, 0) * secs.length;
+    const espPuestas = especiales.filter(e => e.puesto);
+
+    return {
+      name: String(caja.querySelector('#rrEscNombre').value || '').trim(),
+      directorName: String(caja.querySelector('#rrEscDirector').value || '').trim(),
+      secciones: secs,
+      porClase,
+      malla: tramos.map(t => ({ level: t.level, grades: t.grades })),
+      especiales: espPuestas.map(e => e.materia),
+      // Solo para la cuenta de aquí:
+      _aulas: aulas,
+      _alumnos: aulas * porClase,
+      // Un maestro por salón, más uno por materia especial, más la dirección.
+      _profes: aulas + espPuestas.length,
+      _secs: secs
+    };
+  }
+
+  function recalcular() {
+    if (!caja) return;
+    const r = receta();
+    const total = r._alumnos + r._profes + 1;
+    const cuenta = caja.querySelector('#rrEscCuenta');
+    const resumen = caja.querySelector('#rrEscResumen');
+    const btn = caja.querySelector('#rrEscCrear');
+    if (!cuenta) return;
+
+    if (!r._aulas) {
+      cuenta.className = 'rr-consola-esc-cuenta rr-consola-esc-cuenta-mal';
+      cuenta.textContent = 'Sin grados marcados no hay nada que montar.';
+      if (btn) btn.disabled = true;
+      if (resumen) resumen.textContent = '';
+      return;
+    }
+    if (r._aulas > 60) {
+      cuenta.className = 'rr-consola-esc-cuenta rr-consola-esc-cuenta-mal';
+      cuenta.textContent = `Son ${r._aulas} salones y el tope son 60. Quita grados o secciones.`;
+      if (btn) btn.disabled = true;
+      if (resumen) resumen.textContent = '';
+      return;
+    }
+
+    cuenta.className = 'rr-consola-esc-cuenta';
+    cuenta.innerHTML = `
+      <strong>${total.toLocaleString('es')} cuentas</strong>
+      <span>${r._aulas} salones (${r._secs.join(', ')}) ·
+      ${r._alumnos.toLocaleString('es')} estudiantes ·
+      ${r._profes} maestros · 1 dirección</span>`;
+    if (btn) btn.disabled = false;
+    if (resumen) {
+      resumen.textContent = total > 600
+        ? `${total.toLocaleString('es')} cuentas — tarda un rato`
+        : `${total.toLocaleString('es')} cuentas`;
+    }
+  }
+
+  async function montarEscuela() {
+    const r = receta();
+    const btn = caja.querySelector('#rrEscCrear');
+    const salida = caja.querySelector('#rrConsolaSalidaEsc');
+    const original = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<strong>Montando la escuela…</strong><small>No cierres esta ventana</small>';
+    salida.innerHTML = '';
+
+    try {
+      const data = await peticion('/api/dev/escuela', {
+        method: 'POST',
+        body: {
+          name: r.name,
+          directorName: r.directorName,
+          secciones: r.secciones,
+          porClase: r.porClase,
+          malla: r.malla,
+          especiales: r.especiales
+        }
+      });
+
+      salida.innerHTML = `
+        <div class="rr-consola-ok">
+          <strong>${escapar(data.school.name)}</strong>
+          <small>${data.students.toLocaleString('es')} estudiantes ·
+            ${data.teachers} maestros · ${data.classes} clases ·
+            dirección: ${escapar(data.director.fullName)}</small>
+          <ul>
+            <li>Entrar a cualquiera de estas cuentas: búscala arriba y dale a «Entrar».</li>
+            <li>Código de estudiantes <em>${escapar(data.school.studentCode)}</em> ·
+                de profesorado <em>${escapar(data.school.teacherCode)}</em></li>
+            <li>La contraseña de todas es <em>${escapar(data.clave)}</em></li>
+            ${data.especiales.map(e => `
+              <li>${escapar(e.materia)}: ${escapar(e.teacherName)}
+                  <em>${e.clases.length} ${e.clases.length === 1 ? 'clase' : 'clases'}</em></li>`).join('')}
+          </ul>
+        </div>`;
+
+      cargarEscuelas();
+      cargarCuentas();
+    } catch (err) {
+      avisar(err.message);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = original;
+      recalcular();
+    }
+  }
+
+  async function cargarEscuelas() {
+    try {
+      const data = await peticion('/api/dev/escuelas');
+      escuelas = data.escuelas || [];
+      // La malla y las materias llegan del servidor, que es quien manda: así
+      // no hay dos listas de grados que se puedan desincronizar.
+      if (!malla.length) {
+        malla = (data.malla || []).map(t => ({ ...t, puesto: true }));
+        especiales = (data.especiales || []).map(m => ({ materia: m, puesto: true }));
+        pintarPanel();
+        return;
+      }
+      pintarEscuelas();
+    } catch (err) {
+      const lista = caja && caja.querySelector('#rrEscLista');
+      if (lista) lista.innerHTML = `<div class="rr-consola-vacio">${escapar(err.message)}</div>`;
+    }
+  }
+
+  function pintarEscuelas() {
+    if (!caja) return;
+    const lista = caja.querySelector('#rrEscLista');
+    if (!lista) return;
+
+    if (!escuelas.length) {
+      lista.innerHTML = '<div class="rr-consola-vacio">Todavía no hay ninguna escuela.</div>';
+      return;
+    }
+
+    lista.innerHTML = escuelas.map(e => `
+      <div class="rr-consola-esc-fila" data-escuela="${e.id}">
+        <span class="rr-consola-esc-quien">
+          <strong>${escapar(e.name)}</strong>
+          <small>${e.students.toLocaleString('es')} estudiantes · ${e.teachers} maestros ·
+            ${e.classes} clases${e.directorName ? ' · ' + escapar(e.directorName) : ''}</small>
+        </span>
+        <button type="button" class="rr-consola-esc-borrar" data-borrar="${e.id}">Borrar</button>
+      </div>`).join('');
+
+    lista.querySelectorAll('[data-borrar]').forEach(btn => {
+      btn.addEventListener('click', () => borrarEscuela(Number(btn.dataset.borrar), btn));
+    });
+  }
+
+  // Borrar una escuela se lleva por delante a toda su gente, así que se pide
+  // confirmación en el propio botón: el primer clic pregunta y el segundo
+  // borra. Sin confirm() del navegador, que bloquea la página entera.
+  async function borrarEscuela(id, btn) {
+    const escuela = escuelas.find(e => e.id === id);
+    if (!escuela) return;
+
+    if (btn.dataset.seguro !== 'si') {
+      btn.dataset.seguro = 'si';
+      btn.classList.add('esta-seguro');
+      btn.textContent = `¿Borrar ${escuela.students + escuela.teachers + escuela.staff} cuentas?`;
+      // Si se arrepiente y no vuelve a tocar, el botón se calma solo.
+      setTimeout(() => {
+        if (!btn.isConnected || btn.dataset.seguro !== 'si') return;
+        btn.dataset.seguro = '';
+        btn.classList.remove('esta-seguro');
+        btn.textContent = 'Borrar';
+      }, 4000);
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Borrando…';
+    try {
+      const data = await peticion(`/api/dev/escuela/${id}`, { method: 'DELETE' });
+      if (typeof rrToast === 'function') {
+        rrToast(`${data.school.name}: ${data.users} cuentas y ${data.classes} clases fuera.`, 'success');
+      }
+      cargarEscuelas();
+      cargarCuentas();
+    } catch (err) {
+      btn.disabled = false;
+      btn.dataset.seguro = '';
+      btn.classList.remove('esta-seguro');
+      btn.textContent = 'Borrar';
+      avisar(err.message);
     }
   }
 

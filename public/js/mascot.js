@@ -385,10 +385,18 @@ function rrMountGalerias() {
 
 // Pone a hablar a todos los Robin de la pantalla que sepan hacerlo. La usan
 // los minijuegos cuando se pide una pista y el chat cuando Robin contesta.
+//
+// Además del dibujo, el brinco: contestar es algo que Robin HACE, y hasta
+// ahora la única señal de que había contestado era que aparecía texto. Cambiar
+// de cara no se nota cuando estás leyendo la respuesta y no mirándolo a él; el
+// movimiento sí se ve por el rabillo del ojo. Es el mismo brinco del clic, y
+// por eso se pide 'bien' sin que haya nada que celebrar: no es una nota, es
+// acusar recibo.
 function rrRobinHabla(scope) {
   const raiz = scope || document;
   raiz.querySelectorAll('[data-rr-galeria]').forEach(el => {
     if (typeof el.rrHablar === 'function') el.rrHablar();
+    rrMascotMueve(el.querySelector('img'), 'bien');
   });
 }
 

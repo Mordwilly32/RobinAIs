@@ -14,8 +14,26 @@
 // Sin llave Robin no se rompe: contesta con su modo local, que no se conecta
 // a ningún lado. La llave es lo que lo hace contestar con Claude.
 
+// QUITADA POR AHORA. La tarjeta entera no se dibuja y se esconde el hueco que
+// le guarda cada panel, así que en Configuración no queda ni un espacio raro.
+//
+// Es un return y no un archivo borrado a propósito: lo de abajo sigue entero y
+// funcionando, y para que vuelva basta con quitar estas cuatro líneas y poner
+// LLAVE_POR_CUENTA = true en routes/ai.js. Los cinco paneles que la montan
+// (admin, teacher, student, personal, parent) no se tocaron: siguen llamando
+// aquí, y aquí se decide que no hay nada que enseñar.
+//
+// La llave del servidor (ANTHROPIC_API_KEY) no tiene nada que ver con esto y
+// sigue igual: Robin contesta con Claude si el servidor la tiene puesta.
+const RR_LLAVE_POR_CUENTA = false;
+
 function rrMountAiSettings(container) {
   if (!container) return null;
+  if (!RR_LLAVE_POR_CUENTA) {
+    container.hidden = true;
+    container.innerHTML = '';
+    return null;
+  }
   let estado = null;
 
   container.innerHTML = rrLoadingHtml('Mirando cómo tienes conectado a Robin');

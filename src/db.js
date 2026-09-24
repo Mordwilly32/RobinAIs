@@ -470,6 +470,50 @@ function renameSchool(schoolId, name) {
   return school;
 }
 
+// Borrar una escuela ENTERA: la escuela, su gente, sus clases y todo lo que
+// colgaba de ellas. Lo usa el panel de escuelas de la consola, que es también
+// quien las fabrica: lo que se crea con un botón se tiene que poder deshacer
+// con otro, o la base se llena de escuelas de prueba que ya no se pueden
+// quitar sin entrar a mano.
+//
+// No borra a mano cada cosa: se apoya en deleteClass() y deleteUser(), que ya
+// saben qué arrastra cada una (actividades, entregas, tareas, conversaciones,
+// partidas...). Si mañana una cuenta guarda algo nuevo, deleteUser() se entera
+// y esto también, sin tocarlo.
+//
+// Todo dentro de enLote() para que las mil y pico bajas de una escuela grande
+// escriban el archivo UNA vez y no una por cuenta.
+function deleteSchool(schoolId) {
+  const id = Number(schoolId);
+  const school = getSchoolById(id);
+  if (!school) return null;
+
+  return enLote(() => {
+    const clases = cache.classes.filter(c => Number(c.schoolId) === id);
+    clases.forEach(c => deleteClass(c.id));
+
+    const gente = cache.users.filter(u => Number(u.schoolId) === id);
+    const idsGente = new Set(gente.map(u => u.id));
+    gente.forEach(u => deleteUser(u.id));
+
+    // Una madre o un padre puede no ser de la escuela y seguir teniendo
+    // apuntados a sus hijos, que sí lo eran: sin esto quedarían señalando a
+    // cuentas que ya no existen y su panel se vería con huecos.
+    cache.users.forEach(u => {
+      if (Array.isArray(u.childIds)) u.childIds = u.childIds.filter(cid => !idsGente.has(cid));
+    });
+
+    cache.announcements = cache.announcements.filter(a => Number(a.schoolId) !== id);
+    cache.codes = cache.codes.filter(c => Number(c.schoolId) !== id);
+    cache.attendance = cache.attendance.filter(a => Number(a.schoolId) !== id);
+    cache.gameSettings = cache.gameSettings.filter(g => !(g.scope === 'school' && Number(g.scopeId) === id));
+    cache.schools = cache.schools.filter(sc => sc.id !== id);
+
+    save();
+    return { school, classes: clases.length, users: gente.length };
+  });
+}
+
 function getSchoolMembers(schoolId) {
   return cache.users.filter(u => Number(u.schoolId) === Number(schoolId));
 }
@@ -1874,7 +1918,7 @@ module.exports = {
   getAllUsers, getUserById, getUserByEmail, getUserByStudentCode,
   createUser, updateUser, deleteUser, verifyPassword, publicUser,
   // escuelas
-  createSchool, getSchools, getSchoolById, getSchoolByDirector,
+  createSchool, getSchools, getSchoolById, getSchoolByDirector, deleteSchool,
   resolveJoinCode, regenerateSchoolCode, renameSchool, getSchoolMembers, schoolStats,
   // margen de Robin por escuela
   SCHOOL_LIMITS, SCHOOL_LIMIT_GROUPS, SCHOOL_LIMIT_MIN, SCHOOL_LIMIT_MAX,

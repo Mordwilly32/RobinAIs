@@ -1071,6 +1071,24 @@ table.rr-table tbody tr:hover td { background: rgba(226, 58, 27, .04); }
   padding: 0 0 14px; border-bottom: 1px solid var(--rr-line);
   background: none;
 }
+/* Robin, al lado de su nombre. Lo mete rrCreateChat() en chat.js y es una
+   galeria, asi que de aqui solo sale el tamano: el movimiento y los cambios de
+   dibujo ya los trae puestos (ver mascot.js).
+
+   align-self porque la cabecera alinea por baseline —le va bien al texto— y un
+   dibujo de cuerpo entero colgado de la linea base se sale por arriba.
+
+   El alto es mayor que el ancho porque Robin es un pajarito de pie: en un
+   cuadrado se queda del tamano de una moneda en medio de un hueco vacio. */
+.rr-chat-bird {
+  flex: 0 0 auto; align-self: center; line-height: 0;
+  width: 34px; height: 44px;
+}
+.rr-chat-bird img {
+  width: 100%; height: 100%;
+  object-fit: contain; object-position: bottom;
+}
+
 .rr-chat-head strong { display: block; font-size: 15px; }
 .rr-chat-head span { font-size: 12.5px; color: var(--rr-text-muted); }
 .rr-chat-mode {

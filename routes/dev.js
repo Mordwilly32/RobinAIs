@@ -437,4 +437,318 @@ function rand(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+// ---------------------------------------------------------------------------
+// El panel de escuelas
+// ---------------------------------------------------------------------------
+// Lo de arriba fabrica clases sueltas al azar, que es lo que sirve para que
+// una pantalla no se vea vacía. Esto es otra cosa: monta una escuela ENTERA y
+// con forma —parvularia, básica y bachillerato, cada grado con sus secciones,
+// treinta por aula, un maestro por salón y los de materias especiales— y la
+// deja borrar de un botón.
+//
+// Por qué con forma y no al azar: una escuela de mentira con nueve clases de
+// materias sueltas sirve para una captura de pantalla, pero no para ver si la
+// aplicación aguanta una escuela de verdad. Mil trescientas cuentas encuentran
+// cosas que treinta no encuentran.
+//
+// La malla es la salvadoreña, que es de donde es el proyecto (el código de
+// teléfono por defecto es el 503). Viene como valor por omisión, no como ley:
+// el panel manda la suya y aquí se usa la que llegue.
+
+const MALLA = [
+  { level: 'Parvularia',   grades: ['Parvularia 4', 'Parvularia 5', 'Parvularia 6'] },
+  { level: 'Primaria',     grades: ['1.º grado', '2.º grado', '3.º grado', '4.º grado', '5.º grado', '6.º grado'] },
+  { level: 'Secundaria',   grades: ['7.º grado', '8.º grado', '9.º grado'] },
+  { level: 'Bachillerato', grades: ['1.º año', '2.º año'] }
+];
+
+// Los que no tienen salón propio: entran a dar lo suyo a todos los grados.
+const ESPECIALES = [
+  { materia: 'Educación Artística', subject: 'Arte' },
+  { materia: 'Computación',         subject: 'Informática' },
+  { materia: 'Educación Física',    subject: 'Educación Física' },
+  { materia: 'Inglés',              subject: 'Inglés' },
+  { materia: 'Música',              subject: 'Música' }
+];
+
+// Topes. No son burocracia: cada cuenta es un objeto en memoria que además se
+// sube a Supabase, y un cero de más en una casilla deja el servidor pensando
+// un buen rato. Con estos, el techo son 2.400 estudiantes.
+const TOPE_AULAS = 60;
+const TOPE_POR_AULA = 40;
+
+// La edad que le toca a cada grado, para que la fecha de nacimiento no sea de
+// adorno: de ella salen la edad, la dificultad de los minijuegos y si a esa
+// cuenta le toca la pantalla de los peques (ver isLittleKid en src/db.js).
+const EDAD_POR_GRADO = {
+  'Parvularia 4': 4, 'Parvularia 5': 5, 'Parvularia 6': 6,
+  '1.º grado': 7, '2.º grado': 8, '3.º grado': 9, '4.º grado': 10, '5.º grado': 11, '6.º grado': 12,
+  '7.º grado': 13, '8.º grado': 14, '9.º grado': 15,
+  '1.º año': 16, '2.º año': 17, '3.º año': 18
+};
+
+function nacidoConEdad(edad) {
+  const hoy = new Date();
+  const anio = hoy.getFullYear() - (Number(edad) || 10);
+  const mes = rand(1, 12);
+  const dia = rand(1, 28);
+  return `${anio}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+}
+
+function nombreAlAzar() {
+  return `${alAzar(NOMBRES)} ${alAzar(APELLIDOS)}`;
+}
+
+// De «Centro Escolar Las Flores» a «centro-escolar-las-flores», para los correos.
+function apodo(texto) {
+  return String(texto || 'escuela')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')   // fuera los acentos
+    .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+    .slice(0, 24) || 'escuela';
+}
+
+// Cuántas aulas saldrían de una malla, sin fabricar nada. El panel lo usa para
+// decir el número ANTES de apretar: mil trescientas cuentas no se crean por
+// sorpresa.
+function cuentaAulas(malla, secciones) {
+  return malla.reduce((n, tramo) => n + tramo.grades.length, 0) * secciones.length;
+}
+
+function leerMalla(body) {
+  const malla = Array.isArray(body.malla) && body.malla.length ? body.malla : MALLA;
+  return malla
+    .map(tramo => ({
+      level: String(tramo.level || '').trim(),
+      grades: (Array.isArray(tramo.grades) ? tramo.grades : [])
+        .map(g => String(g || '').trim()).filter(Boolean)
+    }))
+    .filter(tramo => tramo.level && tramo.grades.length);
+}
+
+function leerSecciones(body) {
+  const dadas = Array.isArray(body.secciones) ? body.secciones : ['A', 'B', 'C'];
+  const limpias = dadas.map(x => String(x || '').trim().toUpperCase()).filter(Boolean);
+  return limpias.length ? [...new Set(limpias)] : ['A'];
+}
+
+// ---- Listar lo que hay -----------------------------------------------------
+
+router.get('/escuelas', (req, res) => {
+  const clases = db.getClasses();
+  const escuelas = db.getSchools().map(s => {
+    const gente = db.getSchoolMembers(s.id);
+    return {
+      id: s.id,
+      name: s.name,
+      directorName: s.directorName || null,
+      studentCode: s.studentCode,
+      teacherCode: s.teacherCode,
+      createdAt: s.createdAt,
+      students: gente.filter(u => u.role === 'student').length,
+      teachers: gente.filter(u => u.role === 'teacher').length,
+      staff: gente.filter(u => ['admin', 'subdirector', 'secretary'].includes(u.role)).length,
+      classes: clases.filter(c => Number(c.schoolId) === s.id).length
+    };
+  });
+  res.json({ escuelas, malla: MALLA, especiales: ESPECIALES.map(e => e.materia) });
+});
+
+// ---- Montar una escuela entera ---------------------------------------------
+
+router.post('/escuela', (req, res) => {
+  const body = req.body || {};
+  const name = String(body.name || '').trim() || 'Centro Escolar de Demostración';
+  const malla = leerMalla(body);
+  const secciones = leerSecciones(body);
+  const porClase = Math.min(TOPE_POR_AULA, Math.max(0, Math.round(Number(body.porClase) || 30)));
+
+  if (!malla.length) {
+    return res.status(400).json({ error: 'Esa malla no tiene ningún grado.' });
+  }
+
+  const aulas = cuentaAulas(malla, secciones);
+  if (aulas > TOPE_AULAS) {
+    return res.status(400).json({
+      error: `Eso son ${aulas} aulas y el tope son ${TOPE_AULAS}. Quita grados o secciones.`
+    });
+  }
+
+  // Cientos de altas seguidas: en un lote se escribe el archivo UNA vez al
+  // final en lugar de una vez por cuenta.
+  return db.enLote(() => montarEscuela(res, { name, body, malla, secciones, porClase }));
+});
+
+function montarEscuela(res, { name, body, malla, secciones, porClase }) {
+  const slug = apodo(name);
+  // Una sola vez el hash de la contraseña y se reparte: bcrypt con mil
+  // trescientas cuentas, una por una, es lo que convierte esto en varios
+  // minutos de espera.
+  const clave = db.hashPassword('Demo123!');
+
+  // La dirección primero: la escuela se crea apuntando a ella.
+  const directorName = String(body.directorName || '').trim() || nombreAlAzar();
+  const director = db.createUser({
+    fullName: directorName,
+    email: `direccion.${slug}.${idUnico()}@roborobin.demo`,
+    passwordHash: clave,
+    role: 'admin',
+    birthDate: nacidoConEdad(44),
+    country: 'SV'
+  });
+
+  const school = db.createSchool({
+    name,
+    directorId: director.id,
+    directorName: director.fullName
+  });
+  db.updateUser(director.id, { schoolId: school.id });
+
+  const aulas = [];
+  const profesores = [];
+  let totalAlumnos = 0;
+
+  for (const tramo of malla) {
+    for (const grado of tramo.grades) {
+      for (const seccion of secciones) {
+        // Un maestro por salón: en parvularia y básica es literal —la misma
+        // persona da casi todo—, y es también lo que pidió el panel.
+        const profe = db.createUser({
+          fullName: nombreAlAzar(),
+          email: `profe.${slug}.${idUnico()}@roborobin.demo`,
+          passwordHash: clave,
+          role: 'teacher',
+          schoolId: school.id,
+          birthDate: nacidoConEdad(rand(26, 55)),
+          country: 'SV'
+        });
+        profesores.push(profe);
+
+        const aula = db.createClass({
+          teacherId: profe.id,
+          teacherName: profe.fullName,
+          schoolId: school.id,
+          name: `${grado} «${seccion}»`,
+          description: `Salón de ${grado} sección ${seccion}.`,
+          visibility: 'public',
+          level: tramo.level
+        });
+
+        const edad = EDAD_POR_GRADO[grado];
+        for (let i = 0; i < porClase; i++) {
+          const alumno = db.createUser({
+            fullName: nombreAlAzar(),
+            email: null,
+            passwordHash: clave,
+            role: 'student',
+            level: tramo.level,
+            grade: grado,
+            schoolId: school.id,
+            birthDate: nacidoConEdad(edad != null ? edad : 10),
+            country: 'SV'
+          });
+          db.addStudentToClass(aula.id, alumno.id);
+        }
+        totalAlumnos += porClase;
+
+        db.createActivity({
+          classId: aula.id,
+          title: alAzar(TAREAS),
+          description: 'Asignación de demostración.',
+          dueDate: enDias(-2)
+        });
+        db.createActivity({
+          classId: aula.id,
+          title: alAzar(TAREAS),
+          description: 'Asignación de demostración.',
+          dueDate: enDias(5)
+        });
+
+        aulas.push({
+          id: aula.id,
+          name: aula.name,
+          level: aula.level,
+          seccion,
+          joinCode: aula.joinCode,
+          teacherName: profe.fullName,
+          students: porClase
+        });
+      }
+    }
+  }
+
+  // ---- Los de materias especiales ----
+  //
+  // No tienen salón: entran a dar lo suyo. Para que su panel no salga vacío se
+  // les deja una clase por nivel, y dentro los estudiantes de un salón de ese
+  // nivel — que es como se ve de verdad su horario: los mismos chicos que ya
+  // tienen su maestro de salón, un rato a la semana con otra persona.
+  const pedidas = Array.isArray(body.especiales)
+    ? ESPECIALES.filter(e => body.especiales.includes(e.materia))
+    : ESPECIALES;
+
+  const especiales = [];
+  for (const esp of pedidas) {
+    const profe = db.createUser({
+      fullName: nombreAlAzar(),
+      email: `profe.${slug}.${idUnico()}@roborobin.demo`,
+      passwordHash: clave,
+      role: 'teacher',
+      schoolId: school.id,
+      birthDate: nacidoConEdad(rand(26, 55)),
+      country: 'SV'
+    });
+    profesores.push(profe);
+
+    const suyas = [];
+    for (const tramo of malla) {
+      const deEseNivel = aulas.filter(a => a.level === tramo.level);
+      if (!deEseNivel.length) continue;
+      const modelo = alAzar(deEseNivel);
+      const original = db.getClassById(modelo.id);
+
+      const clase = db.createClass({
+        teacherId: profe.id,
+        teacherName: profe.fullName,
+        schoolId: school.id,
+        name: `${esp.materia} · ${tramo.level}`,
+        description: `${esp.materia} para ${modelo.name}.`,
+        visibility: 'public',
+        level: tramo.level
+      });
+      (original && original.studentIds ? original.studentIds : []).forEach(sid => {
+        db.addStudentToClass(clase.id, sid);
+      });
+      suyas.push(clase.name);
+    }
+
+    especiales.push({ materia: esp.materia, teacherName: profe.fullName, clases: suyas });
+  }
+
+  res.json({
+    school: { id: school.id, name: school.name, studentCode: school.studentCode, teacherCode: school.teacherCode },
+    director: { id: director.id, fullName: director.fullName, email: director.email },
+    students: totalAlumnos,
+    teachers: profesores.length,
+    classes: aulas.length + especiales.reduce((n, e) => n + e.clases.length, 0),
+    aulas,
+    especiales,
+    clave: 'Demo123!'
+  });
+}
+
+// ---- Borrarla entera -------------------------------------------------------
+
+router.delete('/escuela/:id', (req, res) => {
+  const borrado = db.deleteSchool(req.params.id);
+  if (!borrado) return res.status(404).json({ error: 'Esa escuela ya no existe.' });
+
+  res.json({
+    ok: true,
+    school: { id: borrado.school.id, name: borrado.school.name },
+    users: borrado.users,
+    classes: borrado.classes
+  });
+});
+
 module.exports = router;
+

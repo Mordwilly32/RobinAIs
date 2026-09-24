@@ -955,6 +955,20 @@ router.get('/usage', requireLogin, (req, res) => {
 // Sin llave, Robin sigue funcionando: contesta con su modo local, que no se
 // conecta a ningún lado. La llave es lo que lo hace contestar con Claude.
 
+// ---------------------------------------------------------------------------
+// La llave de la API, por cuenta: QUITADA POR AHORA.
+//
+// Cada quien podía pegar su propia llave de Anthropic en Configuración. Está
+// apagada a propósito y de momento: para volver a encenderla se pone esto en
+// true y se quita el return de rrMountAiSettings() en public/js/ai-settings.js.
+// No se borró nada más —ni las rutas, ni la pantalla, ni db.setAiSettings()—
+// justamente para que volver sea eso y no reescribirlo.
+//
+// Lo que NO cambia: la llave del servidor (ANTHROPIC_API_KEY). Robin sigue
+// contestando con Claude si el servidor tiene la suya puesta, y si no, con su
+// modo local. Para quien escribe en el chat no cambia nada.
+const LLAVE_POR_CUENTA = false;
+
 router.get('/settings', requireLogin, (req, res) => {
   const me = db.getUserById(req.session.userId);
   const config = loadConfig();
@@ -972,7 +986,8 @@ router.get('/settings', requireLogin, (req, res) => {
     effectiveModel: conexion.model,
     models: MODELOS,
     lastTest: suya.lastTest || null,
-    connected: conexion.origen !== 'ninguna'
+    connected: conexion.origen !== 'ninguna',
+    llavePorCuenta: LLAVE_POR_CUENTA
   });
 });
 
@@ -980,6 +995,14 @@ router.put('/settings', requireLogin, (req, res) => {
   const me = db.getUserById(req.session.userId);
   const body = req.body || {};
   const cambios = {};
+
+  // La llave por cuenta está quitada por ahora (ver LLAVE_POR_CUENTA arriba).
+  // El modelo sí se puede seguir eligiendo: eso no es un secreto de nadie.
+  if (body.key !== undefined && !LLAVE_POR_CUENTA) {
+    return res.status(403).json({
+      error: 'Ahora mismo la llave de la API no se pone por cuenta. La pone quien administra el servidor.'
+    });
+  }
 
   if (body.key !== undefined) {
     const key = String(body.key || '').trim();
