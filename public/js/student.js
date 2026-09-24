@@ -368,6 +368,8 @@ async function loadStudentMembers(classId) {
 
 // ---- Notificaciones --------------------------------------------------------
 
+// El mensajero solo va en las que no has leído: es quien trae algo, y una
+// bandeja entera de pajaritos iguales dejaría de querer decir nada.
 async function loadNotifications() {
   const { notifications } = await rrApi('/api/notifications');
   rrSetBadge('announcements', notifications.filter(n => !n.read).length);
@@ -375,6 +377,7 @@ async function loadNotifications() {
   document.getElementById('notificationsList').innerHTML = notifications.length
     ? notifications.map(note => `
         <div class="card rr-notification ${note.read ? '' : 'unread'}">
+          ${note.read ? '' : rrRobin('mailman', 'rr-note-bird')}
           <strong>${rrEscapeHtml(note.title || 'Notificación')}</strong>
           <p>${rrEscapeHtml(note.message)}</p>
           <small>${rrFormatDate(note.createdAt)}</small>

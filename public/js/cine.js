@@ -41,11 +41,21 @@
   // el guion no se mide con un reloj, se mide paso a paso.
   const DURA = 77000;
 
+  // El cartel de arriba dice dos cosas —esto es una demostración, y se sale
+  // por aquí— y las dos se leen de un vistazo. Pasados cinco segundos ya solo
+  // tapa la página que se está enseñando, así que se aparta solo. Vuelve en
+  // cuanto el ratón se acerca al borde de arriba, que es adonde va la mano de
+  // quien quiere salir.
+  const ESPERA_HUD = 5000; // lo que aguanta puesto sin que nadie lo pida
+  const ZONA_HUD = 150;    // la franja de arriba que lo hace volver, en píxeles
+
   let corriendo = false;
   let vuelta = 0;          // sube en cada parada: mata el guion que iba a medias
   let hud = null;
   let barra = null;
   let telon = null;
+  let relojHud = null;     // el que lo esconde
+  let relojQuieto = null;  // el que le quita la animación de entrada
 
   // ---- El atajo ------------------------------------------------------------
   //
@@ -180,11 +190,64 @@
     hud.querySelector('button').addEventListener('click', parar);
     document.body.appendChild(hud);
 
+    // Pasada la entrada se le quita la animación: con animation-fill-mode
+    // puesto, el cartel se queda congelado en la opacidad y la posición que
+    // dejó la animación, y eso gana siempre a la transición con la que se
+    // esconde y vuelve. A partir de aquí el cartel es solo CSS que transita.
+    relojQuieto = setTimeout(() => {
+      relojQuieto = null;
+      if (hud) hud.classList.add('rb-cine-quieto');
+    }, 900);
+
+    esconderHudLuego();
+
     barra = document.createElement('div');
     barra.className = 'rb-cine-barra';
     barra.innerHTML = '<i></i>';
     document.body.appendChild(barra);
   }
+
+  // ---- El cartel se quita de en medio --------------------------------------
+  //
+  // La barra de abajo no se esconde nunca: son tres píxeles que no tapan nada
+  // y son lo único que dice, a mitad de una vuelta, cuánto falta para que la
+  // demostración vuelva a empezar.
+
+  function mostrarHud() {
+    if (!hud) return;
+    clearTimeout(relojHud);
+    relojHud = null;
+    hud.classList.remove('rb-cine-escondido');
+  }
+
+  // Se arma una sola vez: si cada movimiento del ratón reiniciara la cuenta,
+  // bastaría con dejar el cursor temblando en una esquina para que el cartel
+  // no se fuera nunca.
+  function esconderHudLuego() {
+    if (!hud || relojHud) return;
+    relojHud = setTimeout(() => {
+      relojHud = null;
+      if (hud) hud.classList.add('rb-cine-escondido');
+    }, ESPERA_HUD);
+  }
+
+  // Cerca del borde de arriba, el cartel vuelve; lejos, se va otra vez. La
+  // franja es generosa a propósito: nadie tiene que acertarle al cartel, basta
+  // con subir el ratón.
+  document.addEventListener('pointermove', (e) => {
+    if (!corriendo || !hud) return;
+    if (e.clientY <= ZONA_HUD) mostrarHud();
+    else esconderHudLuego();
+  });
+
+  // En una pantalla táctil no hay ratón que acercar, y sin el cartel no queda
+  // botón de salir ni tecla Esc que pulsar. Un toque en cualquier sitio lo
+  // devuelve.
+  document.addEventListener('pointerdown', (e) => {
+    if (!corriendo || !hud || e.pointerType === 'mouse') return;
+    mostrarHud();
+    esconderHudLuego();
+  });
 
   // Cuánto falta para volver a empezar. Se mueve sola con una transición, así
   // que no hace falta tocarla en cada paso.
@@ -220,6 +283,8 @@
 
     window.RB_CINE_MANDO = false;
     document.body.classList.remove('rb-cine');
+    clearTimeout(relojHud); relojHud = null;
+    clearTimeout(relojQuieto); relojQuieto = null;
     if (hud) { hud.remove(); hud = null; }
     if (barra) { barra.remove(); barra = null; }
     if (telon) { telon.remove(); telon = null; }

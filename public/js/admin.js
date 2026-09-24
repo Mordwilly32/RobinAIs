@@ -794,7 +794,7 @@ function wireChips() {
           level: document.getElementById('aLevel').value
         }
       });
-      rrToast('Aviso publicado.', 'success');
+      rrAviso('Aviso publicado. Ya está en el tablón de todos.');
       annModal.classList.remove('open');
       e.target.reset();
       loadAnnouncements();

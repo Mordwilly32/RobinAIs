@@ -55,8 +55,11 @@ function rrCreateChat({ body, form, input, send, hello, mode, onAction, onChat, 
     const el = document.createElement('div');
     el.className = `rr-bubble ${who}${extra && extra.tutor ? ' tutor' : ''}`;
     // Sin retrato en cada línea: quién habla se ve por el lado y el color, y
-    // repetir la cara de Robin veinte veces en una conversación la gasta.
-    el.innerHTML = '<div class="txt"></div>';
+    // repetir la cara de Robin veinte veces en una conversación la gasta. La
+    // excepción es cuando no pudo contestar: ahí sí sale, con la cara larga,
+    // porque una burbuja gris más no se distingue de una respuesta cualquiera.
+    el.innerHTML = (extra && extra.fallo ? rrRobin('sad', 'rr-bubble-bird') : '') +
+      '<div class="txt"></div>';
     // Los saltos de línea importan: Robin contesta con listas de pasos.
     el.querySelector('.txt').textContent = text;
     body.appendChild(el);
@@ -72,7 +75,12 @@ function rrCreateChat({ body, form, input, send, hello, mode, onAction, onChat, 
     const el = document.createElement('div');
     el.className = 'rr-typing-row';
     el.dataset.typing = 'true';
-    el.innerHTML = rrLoadingHtml('Robin lo está pensando', { size: 'inline' });
+    // Con el pajarito al lado del aro. En una conversación larga el saludo de
+    // arriba ya se fue y Robin desaparecía de la pantalla justo cuando más se
+    // está hablando con él; esto lo devuelve una vez por respuesta, chiquito y
+    // sin quitarle sitio al texto.
+    el.innerHTML = rrRobin('talking', 'rr-typing-bird') +
+      rrLoadingHtml('Robin lo está pensando', { size: 'inline' });
     body.appendChild(el);
     scrollDown();
     return el;
@@ -115,6 +123,9 @@ function rrCreateChat({ body, form, input, send, hello, mode, onAction, onChat, 
       });
       typing.remove();
       addBubble(data.reply, 'bot', { tutor: data.mode === 'tutor' });
+      // Si queda algún Robin de los que reaccionan —el del saludo, el de la
+      // esquina de los juegos—, que se ponga a hablar: contestó él.
+      if (typeof rrRobinHabla === 'function') rrRobinHabla();
 
       chatId = data.chatId || chatId;
       if (data.chat && typeof rrTouchChat === 'function') rrTouchChat(data.chat);
@@ -134,7 +145,7 @@ function rrCreateChat({ body, form, input, send, hello, mode, onAction, onChat, 
       typing.remove();
       // El 429 del límite diario llega con su propia explicación.
       if (err.payload && err.payload.hint) addLimitNotice(err.payload);
-      else addBubble(`No pude responder ahora mismo: ${err.message}`, 'bot');
+      else addBubble(`No pude responder ahora mismo: ${err.message}`, 'bot', { fallo: true });
     } finally {
       busy = false;
       if (send) send.disabled = false;

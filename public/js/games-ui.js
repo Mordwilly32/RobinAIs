@@ -429,11 +429,77 @@ function rrMountGames(container, { onUsage, standalone = false } = {}) {
     if (globo) globo.hidden = true;
   }
 
+  // ---- Robin reacciona -----------------------------------------------------
+  //
+  // El globo ya decía «bien hecho» o «esta no era», pero el dibujo se quedaba
+  // igual: Robin seguía parpadeando tan tranquilo mientras el texto de al lado
+  // decía que habías fallado. Ahora la cara cambia con el resultado, que es lo
+  // primero que se mira.
+  //
+  //   acierto  la pose de contento, un brinco y confeti saliendo de él
+  //   fallo    la pose de triste, y el dibujo se sacude — la misma sacudida
+  //            (rr-shake) que ya daba el botón equivocado, para que sea
+  //            evidente que las dos cosas dicen lo mismo
+  //
+  // Es prestado, no permanente: a los pocos segundos vuelve a ser el Robin de
+  // siempre, el que alterna entre estar tranquilo y estar hablando. Si se
+  // quedara con la cara larga hasta el siguiente reto, el reproche duraría más
+  // que el error.
+
+  const RR_REACCION_MS = 3000;
+  let reaccionVolver = null;
+
+  function robinDeLaEsquina() {
+    return document.querySelector('#rrBuddy .rr-buddy-bird');
+  }
+
+  // Devuelve a Robin a su estado normal: el de tranquilo, que vuelve a
+  // reaccionar al clic. Se llama sola al rato, y también al pedir otro reto.
+  function robinVuelveAlNido() {
+    clearTimeout(reaccionVolver);
+    reaccionVolver = null;
+    const nido = robinDeLaEsquina();
+    if (nido && typeof rrSetPose === 'function') rrSetPose(nido, '');
+  }
+
+  function robinReacciona(pose, { sacudir = false, festejar = false } = {}) {
+    const nido = robinDeLaEsquina();
+    if (!nido || typeof rrSetPose !== 'function') return;
+
+    clearTimeout(reaccionVolver);
+    rrSetPose(nido, pose);
+
+    const img = nido.querySelector('img');
+    if (img) {
+      if (sacudir) {
+        // Se quita y se vuelve a poner con un reflow en medio: si no, dos
+        // fallos seguidos solo sacuden la primera vez.
+        img.classList.remove('rr-robin-falla');
+        void img.offsetWidth;
+        img.classList.add('rr-robin-falla');
+        // Al terminar la sacudida se quita la clase, y así Robin vuelve al
+        // suspiro de la pose de triste en vez de quedarse tieso.
+        img.addEventListener('animationend', function fin(e) {
+          if (e.animationName !== 'rr-shake') return;
+          img.classList.remove('rr-robin-falla');
+          img.removeEventListener('animationend', fin);
+        });
+      }
+      // El confeti sale del propio Robin y no del botón: es él quien celebra.
+      if (festejar && typeof rrConfetti === 'function') rrConfetti(img);
+    }
+
+    reaccionVolver = setTimeout(robinVuelveAlNido, RR_REACCION_MS);
+  }
+
   async function siguienteReto() {
     const stage = document.getElementById('rrStage');
     if (!stage) return;
     stage.innerHTML = '<div class="rr-loader"><div class="spinner"></div></div>';
     callar();
+    // Empezar un reto con la cara del reto anterior sería arrastrar el
+    // resultado pasado a una pregunta que todavía no se ha leído.
+    robinVuelveAlNido();
 
     try {
       const data = await rrApi(`/api/games/${jugando.id}/round`, { method: 'POST' });
@@ -644,6 +710,7 @@ function rrMountGames(container, { onUsage, standalone = false } = {}) {
       if (data.correct) {
         el.classList.add('right');
         rrConfetti(el);
+        robinReacciona('happy', { festejar: true });
         decirHtml(`
           <p><strong>${rrEscapeHtml(data.message)}</strong></p>
           <button class="btn btn-sm btn-primary" id="rrNext">Siguiente reto →</button>`, 'ok');
@@ -654,6 +721,7 @@ function rrMountGames(container, { onUsage, standalone = false } = {}) {
         // el mismo reto hasta acertar se convierte en probar opciones, no en
         // resolverlo; y el que se equivoca ya sabe que se equivocó.
         el.classList.add('wrong');
+        robinReacciona('sad', { sacudir: true });
         // El mensaje del servidor ("vuelve a mirarlo con calma") invita a
         // reintentar, y aquí no se va a poder: se dice otra cosa, o el aviso
         // se contradice con el botón que hay debajo.
@@ -665,6 +733,7 @@ function rrMountGames(container, { onUsage, standalone = false } = {}) {
         if (next) next.addEventListener('click', siguienteReto);
       } else {
         el.classList.add('wrong');
+        robinReacciona('sad', { sacudir: true });
         setTimeout(() => el.classList.remove('wrong'), 500);
         // Hasta secundaria el reto sigue abierto: se vuelve a habilitar todo
         // menos lo que ya se probó, y no se pierde el turno por equivocarse.

@@ -2,20 +2,28 @@
 // ---------------------------------------------------------------------------
 // Robin, la mascota.
 //
-// Robin de siempre es el dibujo original a color en /images/robin.png: es el
-// logo, el héroe y la cara del chat. No se redibuja ni se sustituye nunca.
+// Robin de siempre es el dibujo a color de /images/robin.png: es el logo, el
+// héroe y la cara del chat. No se redibuja ni se sustituye nunca.
 //
-// Alrededor de él vive el resto del elenco: los bocetos a lápiz de
-// /images/robin/*.png, recortados a línea sobre fondo transparente. Cada uno
-// tiene su momento y no se usa fuera de él:
+// Alrededor de él vive el resto del elenco, en /images/robin/*.png: el mismo
+// pajarito a color, dibujado en la situación que toca. Cada pose tiene su
+// momento y no se usa fuera de él:
 //
-//   ghost    no hay nada que dar — listas vacías, sin avisos, sin resultados
+//   idle     lo neutral — esperando, cargando, sin nada que celebrar ni lamentar
 //   mailman  algo llegó o está por llegar — avisos, notificaciones, invitaciones
 //   talking  Robin está explicando — chat, burbujas, pistas
 //   happy    salió bien — tarea terminada, cuenta creada, todo al día
 //   sad      salió mal — errores y formularios que no pasaron
-//   idle     esperando — cargando, sin escribir todavía
+//   ghost    no hay nada que dar — listas vacías, sin avisos, sin resultados
 //   error    la pantalla se rompió — solo la página 404/500
+//
+// Esa tabla no es decorativa: rrPosePara() la usa para elegir sola, y de ahí
+// salen los avisos flotantes, las esperas y los estados vacíos. Si una pantalla
+// pone una pose a mano, que sea porque dice algo que la tabla no sabe.
+//
+// Los originales a tamaño completo están en images/ y no se sirven: lo que ve
+// el navegador lo saca scripts/robin-para-web.py, que los recorta y los baja a
+// tamaño de pantalla.
 //
 // La vida se la da el CSS: respira, flota, se inclina al pasar el mouse y
 // brinca con chispas al hacer clic. El tamaño lo controla SIEMPRE el CSS; aquí
@@ -29,6 +37,10 @@ const RR_MASCOT_SRC = '/images/robin.png';
 const RR_POSES = {
   idle:    { src: '/images/robin/idle.png',    alt: 'Robin esperando tranquilo' },
   talking: { src: '/images/robin/talking.png', alt: 'Robin explicando algo' },
+  // Mientras no exista images/robinhappy.png, este archivo es una copia del
+  // Robin de la marca: hace el papel sin desentonar. En cuanto el dibujo esté,
+  // se deja en images/ y se corre scripts/robin-para-web.py; no hay que tocar
+  // nada de aquí.
   happy:   { src: '/images/robin/happy.png',   alt: 'Robin contento' },
   sad:     { src: '/images/robin/sad.png',     alt: 'Robin triste' },
   ghost:   { src: '/images/robin/ghost.png',   alt: 'Robin disfrazado de fantasma: por aquí no hay nada' },
@@ -36,8 +48,25 @@ const RR_POSES = {
   error:   { src: '/images/robin/error.png',   alt: 'Robin estrellado contra la pantalla' }
 };
 
+// El tono de un mensaje, traducido a pose. Es la tabla de arriba escrita una
+// sola vez para que no haya que repetirla en cada pantalla: quien tiene un
+// 'success' o un 'error' entre manos no debería tener que acordarse de cuál
+// de los siete dibujos le toca.
+const RR_POSE_POR_TONO = {
+  success: 'happy',    // salió bien
+  error:   'sad',      // salió mal
+  aviso:   'mailman',  // llegó algo
+  info:    'talking',  // Robin está contando algo
+  espera:  'idle',     // todavía no pasa nada
+  vacio:   'ghost'     // no hay nada que mostrar
+};
+
+function rrPosePara(tono) {
+  return RR_POSE_POR_TONO[tono] || 'talking';
+}
+
 // Devuelve el <img> de Robin. Sin pose es el original a color; con pose, el
-// boceto que corresponda.
+// dibujo de la pose que corresponda.
 function rrMascotSVG({ bob = false, small = false, pose = '', id = '' } = {}) {
   const art = RR_POSES[pose];
   const classes = ['rr-mascot'];
@@ -107,7 +136,7 @@ function rrSetPose(target, pose) {
   if (!el) return;
 
   // Si es una galería rotatoria, la pose manda: se para el reloj y se deja el
-  // boceto fijo. Con pose vacía vuelve a rotar desde cero.
+  // dibujo fijo. Con pose vacía vuelve a rotar desde cero.
   if (el.hasAttribute('data-rr-galeria')) {
     if (el.rrGaleriaParar) el.rrGaleriaParar();
     el.dataset.rrGaleria = '';

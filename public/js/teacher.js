@@ -335,7 +335,7 @@ async function toggleSubmissions(activityId, btn) {
               feedback: document.getElementById(`f-${id}`).value
             }
           });
-          rrToast('Nota guardada. Ya le llegó el aviso.', 'success');
+          rrAviso('Nota guardada. Ya le llegó el aviso.');
         } catch (err) {
           rrToast(err.message, 'error');
         } finally {
@@ -784,7 +784,7 @@ function nuevaConversacion() {
           points: Number(document.getElementById('actPoints').value) || 10
         }
       });
-      rrToast('Tarea publicada. Ya les llegó el aviso.', 'success');
+      rrAviso('Tarea publicada. Ya les llegó el aviso.');
       actBackdrop.classList.remove('open');
       loadActivities(claseActiva);
     } catch (err) {
@@ -860,7 +860,7 @@ function nuevaConversacion() {
           level: document.getElementById('aLevel').value
         }
       });
-      rrToast('Aviso publicado.', 'success');
+      rrAviso('Aviso publicado. Ya les llegó.');
       annBackdrop.classList.remove('open');
       e.target.reset();
       loadAnnouncements();

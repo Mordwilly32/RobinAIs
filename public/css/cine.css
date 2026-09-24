@@ -50,6 +50,22 @@ body.rb-cine { overscroll-behavior: none; }
 }
 .rb-cine-hud button:hover { background: var(--rb-red); }
 
+/* A los cinco segundos el cartel se aparta solo: ya dijo lo que tenía que
+   decir y lo que se enseña es la página, no él. Vuelve en cuanto el ratón se
+   acerca al borde de arriba (ver cine.js).
+
+   La animación de entrada se apaga en cuanto termina —.rb-cine-quieto, que lo
+   pone cine.js— porque deja el cartel congelado en sus valores finales y eso
+   le gana a cualquier transición: sin esto, el cartel se iría de golpe. */
+.rb-cine-hud.rb-cine-quieto {
+  animation: none;
+  transition: opacity .4s var(--rb-ease), transform .4s var(--rb-ease);
+}
+.rb-cine-hud.rb-cine-escondido {
+  opacity: 0; transform: translate(-50%, -18px);
+  pointer-events: none;
+}
+
 /* La barra de abajo dice por dónde va el recorrido: sin ella, una pantalla
    que se mueve sola no deja saber si va a acabar pronto o nunca. */
 .rb-cine-barra {

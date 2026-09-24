@@ -603,7 +603,7 @@ body.rb-page {
 }
 .rb-error-inner { max-width: 560px; }
 .rb-error .rr-mascot { width: 150px; height: 150px; margin: 0 auto 10px; }
-/* El boceto del choque tiene mucho detalle (la pantalla rota, las chispas, el
+/* El dibujo del choque tiene mucho detalle (la pantalla rota, las chispas, el
    404 en el aire): necesita tamano para que se entienda. */
 .rb-error .rr-pose {
   width: auto; height: auto;

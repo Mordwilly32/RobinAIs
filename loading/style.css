@@ -159,9 +159,38 @@
 }
 
 
-/* Dos colocaciones más que usa public/js/loading.js. Tampoco animan nada:
-   .rr-wait-box centra el aro dentro de una tarjeta que se está llenando, y
-   .rr-wait-sub es la segunda línea del velo, debajo de #loadingText. */
+/* Tres colocaciones más que usa public/js/loading.js. Tampoco animan nada:
+   .rr-wait-box centra el aro dentro de una tarjeta que se está llenando,
+   .rr-wait-sub es la segunda línea del velo, debajo de #loadingText, y
+   .rr-wait-robin es el sitio del pajarito, encima del aro. El movimiento de
+   Robin no está aquí: lo trae su pose desde public/css/style.css. */
+
+
+.rr-wait-robin {
+
+    width:
+        auto;
+
+    height:
+        auto;
+
+    max-height:
+        132px;
+
+    margin-bottom:
+        4px;
+}
+
+
+@media (max-height: 560px) {
+
+    .rr-wait-robin {
+
+        max-height:
+            88px;
+    }
+}
+
 
 .rr-wait-box {
 

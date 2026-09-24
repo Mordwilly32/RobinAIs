@@ -19,7 +19,8 @@
 //   rrLoadingIn(elemento, 'Buscando')   lo mismo, ya puesto, con mando para
 //                                       cambiarle el texto.
 //   rrLoading('Probando tu clave')      el velo de pantalla completa, tal como
-//                                       está en tu archivo.
+//                                       está en tu archivo, con Robin esperando
+//                                       encima del aro.
 //
 // El texto NO es opcional a propósito: una espera sin rótulo es la que se
 // siente eterna.
@@ -91,7 +92,14 @@ function rrLoading(text = 'Un momento…', { sub = '' } = {}) {
 
   const veil = document.createElement('div');
   veil.className = 'loading';
+  // Robin esperando, encima del aro. Es la pose neutra a propósito: el velo
+  // tapa la pantalla entera y todavía no se sabe si esto va a salir bien o
+  // mal, así que el pajarito no celebra ni se lamenta — solo acompaña.
+  // Si mascot.js no está cargado (el velo también lo usan páginas sueltas),
+  // se queda el aro solo y ya.
+  const robin = typeof rrRobin === 'function' ? rrRobin('idle', 'rr-wait-robin') : '';
   veil.innerHTML = `
+    ${robin}
     <div class="spinner"></div>
     <div id="loadingText">${rrEscapeHtml(text)}</div>
     <div class="rr-wait-sub"${sub ? '' : ' hidden'}>${rrEscapeHtml(sub)}</div>`;

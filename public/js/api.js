@@ -94,6 +94,14 @@ async function rrApi(path, { method = 'GET', body } = {}) {
 
 // ---- Avisos flotantes ------------------------------------------------------
 
+// El tipo del aviso ('success', 'error', 'aviso', 'info') decide tres cosas a
+// la vez: el color del borde, la pose de Robin y cuánto se queda en pantalla.
+//
+// La pose sale de rrPosePara() y no de un if aquí: la tabla de qué dibujo va
+// con qué tono vive en mascot.js, junto a los dibujos, y este es uno de los
+// muchos sitios que la consultan. Antes en todos los avisos salía el mismo
+// Robin de la marca, dijeran lo que dijeran; ahora el de terminar algo brinca
+// contento y el del error viene con la cara larga, que es la mitad del mensaje.
 function rrToast(message, type = 'info') {
   let stack = document.querySelector('.rr-toast-stack');
   if (!stack) {
@@ -104,17 +112,26 @@ function rrToast(message, type = 'info') {
 
   const el = document.createElement('div');
   el.className = `rr-toast ${type}`;
-  // Aquí va Robin a color y no un boceto: a 30 px el trazo a lápiz se pierde.
-  el.innerHTML = '<img class="rr-mini-robin" src="/images/robin.png" alt="" /><span></span>';
+  el.innerHTML = `${rrRobin(rrPosePara(type), 'rr-mini-robin')}<span></span>`;
   el.querySelector('span').textContent = message;
   stack.appendChild(el);
+
+  // Un error se lee dos veces y un "guardado" se lee de reojo: el malo se
+  // queda más rato.
+  const duracion = type === 'error' ? 5200 : 3400;
 
   setTimeout(() => {
     el.style.transition = 'opacity .3s ease, transform .3s ease';
     el.style.opacity = '0';
     el.style.transform = 'translateX(40px)';
     setTimeout(() => el.remove(), 320);
-  }, 3400);
+  }, duracion);
+}
+
+// Atajo para lo que llega de fuera: una invitación, un aviso de la escuela, un
+// mensaje nuevo. Es un rrToast con el mensajero puesto.
+function rrAviso(message) {
+  rrToast(message, 'aviso');
 }
 
 // ---- Sesión ----------------------------------------------------------------
