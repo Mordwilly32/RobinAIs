@@ -178,8 +178,13 @@ p { line-height: 1.65; margin: 0 0 1em; }
   65% { transform: translateY(-2px) rotate(3deg) scale(1.07); }
 }
 
-/* Al hacer clic: brinco de alegría (mascot.js pone la clase).
-   Doble clase para ganarle al :hover, que tiene la misma especificidad. */
+/* Cómo acusa recibo Robin. Las dos clases las pone rrMascotMueve() en
+   mascot.js, y las disparan tanto el clic como los avisos flotantes: el mismo
+   movimiento para "me tocaste" y para "salió bien" no es pereza, es que son la
+   misma alegría.
+
+   Doble clase en las dos para ganarle al :hover, que tiene la misma
+   especificidad y va antes. */
 .rr-mascot.rr-mascot-cheer { animation: rr-cheer .72s var(--rr-spring); }
 @keyframes rr-cheer {
   0% { transform: translateY(0) scale(1) rotate(0deg); }
@@ -187,6 +192,20 @@ p { line-height: 1.65; margin: 0 0 1em; }
   55% { transform: translateY(-4px) scale(.97, 1.04) rotate(6deg); }
   80% { transform: translateY(-8px) scale(1.02) rotate(-2deg); }
   100% { transform: translateY(0) scale(1) rotate(0deg); }
+}
+
+/* El fallo usa rr-shake, la MISMA sacudida que ya daba el botón equivocado y
+   el error de un formulario: que el pajarito y el botón se muevan igual es lo
+   que dice, sin texto, que están hablando de lo mismo. */
+.rr-mascot.rr-robin-falla { animation: rr-shake .5s var(--rr-ease) 2; }
+
+/* Un brinco que nadie pidió es justo lo que este ajuste viene a evitar. Con el
+   clic se podía discutir —lo provoca quien lo toca—, pero desde que estos dos
+   movimientos salen solos en cada "guardado" y cada "no se pudo", se quedan
+   quietos: el dibujo y el color del aviso ya dicen cómo salió. */
+@media (prefers-reduced-motion: reduce) {
+  .rr-mascot.rr-mascot-cheer,
+  .rr-mascot.rr-robin-falla { animation: none; }
 }
 
 /* Chispas del clic */
@@ -1027,8 +1046,11 @@ table.rr-table tbody tr:hover td { background: rgba(226, 58, 27, .04); }
   flex: 0 0 34px;
   object-fit: contain; object-position: bottom;
 }
-/* Sin animacion propia aqui: cada pose ya trae la suya —el contento brinca, el
-   triste suspira— y una regla generica se las comia a todas. */
+/* Aqui no se le pone una animacion continua al pajarito: cada pose ya trae la
+   suya —el contento brinca, el triste suspira— y una regla generica se las
+   comia a todas. Lo que si lleva, cuando el aviso es de exito o de error, es
+   un movimiento de UNA vez encima de esa: se lo pone rrToast() con
+   rrMascotMueve(), y por eso son dos clases y no una. */
 @keyframes rr-toast-in { from { opacity: 0; transform: translateX(40px) scale(.95); } to { opacity: 1; transform: none; } }
 
 /* =============================================================================
@@ -2272,10 +2294,9 @@ body.rr-arcade-open { overflow: hidden; }
    animación (.rr-pose-happy brinca, .rr-pose-sad suspira) y con una sola clase
    empatarían en especificidad. Con dos, mandan estas, que son las del momento.
 
-   El fallo usa rr-shake, la MISMA sacudida que ya daba el botón equivocado y el
-   error de un formulario: que el pajarito y el botón se muevan igual es lo que
-   dice, sin texto, que están hablando de lo mismo. */
-.rr-mascot.rr-robin-falla { animation: rr-shake .5s var(--rr-ease) 2; }
+   La del fallo (.rr-robin-falla) ya no está aquí: se usa en toda la app desde
+   que los avisos flotantes también sacuden a Robin, así que vive arriba, con
+   el brinco, en la sección de la mascota. */
 
 /* El acierto: el brinco de la pose de contento, pero más alto y con un giro,
    porque es el único momento del juego que vale la pena celebrar. Va junto al
@@ -2291,7 +2312,6 @@ body.rr-arcade-open { overflow: hidden; }
 /* Con el movimiento reducido del sistema no se sacude ni brinca: se queda el
    cambio de dibujo, que es lo que de verdad lleva la información. */
 @media (prefers-reduced-motion: reduce) {
-  .rr-mascot.rr-robin-falla { animation: none; }
   .rr-buddy-bird .rr-mascot.rr-pose-happy { animation: none; }
 }
 

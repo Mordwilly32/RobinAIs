@@ -116,6 +116,21 @@ function rrToast(message, type = 'info') {
   el.querySelector('span').textContent = message;
   stack.appendChild(el);
 
+  // Salió bien o salió mal: Robin se mueve, no solo cambia de dibujo. El
+  // brinco y la sacudida son los mismos que ya daban el clic y el botón
+  // equivocado, y se los pone mascot.js.
+  //
+  // Se mueven los dos Robin que hay en juego: el chiquito del aviso, que es
+  // quien trae la noticia, y el grande de la pantalla si lo hay. El aviso
+  // aparece en una esquina y es fácil que salga fuera de donde está mirando la
+  // vista; el pajarito grande, al moverse a la vez, es lo que hace que el
+  // aviso se note sin tener que ponerlo en el medio de todo.
+  const tono = type === 'success' ? 'bien' : type === 'error' ? 'mal' : '';
+  if (tono && typeof rrMascotMueve === 'function') {
+    rrMascotMueve(el.querySelector('img'), tono);
+    if (typeof rrRobinReacciona === 'function') rrRobinReacciona(tono);
+  }
+
   // Un error se lee dos veces y un "guardado" se lee de reojo: el malo se
   // queda más rato.
   const duracion = type === 'error' ? 5200 : 3400;

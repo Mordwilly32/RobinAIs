@@ -12,7 +12,7 @@
 //   idle     lo neutral — esperando, cargando, sin nada que celebrar ni lamentar
 //   mailman  algo llegó o está por llegar — avisos, notificaciones, invitaciones
 //   talking  Robin está explicando — chat, burbujas, pistas
-//   happy    salió bien — tarea terminada, cuenta creada, todo al día
+//   happy    salió bien — tarea terminada, cuenta creada, y el clic de saludo
 //   sad      salió mal — errores y formularios que no pasaron
 //   ghost    no hay nada que dar — listas vacías, sin avisos, sin resultados
 //   error    la pantalla se rompió — solo la página 404/500
@@ -37,10 +37,6 @@ const RR_MASCOT_SRC = '/images/robin.png';
 const RR_POSES = {
   idle:    { src: '/images/robin/idle.png',    alt: 'Robin esperando tranquilo' },
   talking: { src: '/images/robin/talking.png', alt: 'Robin explicando algo' },
-  // Mientras no exista images/robinhappy.png, este archivo es una copia del
-  // Robin de la marca: hace el papel sin desentonar. En cuanto el dibujo esté,
-  // se deja en images/ y se corre scripts/robin-para-web.py; no hay que tocar
-  // nada de aquí.
   happy:   { src: '/images/robin/happy.png',   alt: 'Robin contento' },
   sad:     { src: '/images/robin/sad.png',     alt: 'Robin triste' },
   ghost:   { src: '/images/robin/ghost.png',   alt: 'Robin disfrazado de fantasma: por aquí no hay nada' },
@@ -157,8 +153,49 @@ function rrSetPose(target, pose) {
   rrMountMascots();
 }
 
-// Al hacer clic (o tocar), Robin brinca y suelta unas chispas. La clase se
-// quita al terminar la animación para poder repetirla las veces que sea.
+// El movimiento con el que Robin acusa recibo de algo: el brinco de alegría
+// cuando sale bien, la sacudida cuando sale mal. Son las dos animaciones que
+// ya existían sueltas —el brinco lo daba el clic, la sacudida la daban el
+// botón equivocado y los formularios que no pasan— puestas en un solo sitio
+// para que el clic y los avisos flotantes se muevan igual.
+//
+// La clase se quita al terminar: si se quedara puesta, Robin no volvería a la
+// animación de su pose (el contento sigue brincando solito, el triste sigue
+// suspirando) y, sobre todo, no se podría repetir el movimiento.
+const RR_MOVIMIENTO = {
+  bien: { clase: 'rr-mascot-cheer', anim: 'rr-cheer' },
+  mal:  { clase: 'rr-robin-falla',  anim: 'rr-shake' }
+};
+
+// Cuánto tarda el más largo de los dos movimientos (la sacudida son dos
+// vueltas de medio segundo), más un respiro. Es la red de abajo, no el reloj
+// normal: lo normal es que 'animationend' llegue antes.
+const RR_MOVIMIENTO_MS = 1200;
+
+function rrMascotMueve(img, tono = 'bien') {
+  const mov = RR_MOVIMIENTO[tono];
+  if (!img || !mov) return;
+
+  // Se quitan las DOS, no solo la que toca: un acierto justo después de un
+  // fallo dejaba a Robin con las dos clases puestas a la vez, y entonces
+  // mandaba la que estuviera más abajo en el CSS y no la del momento.
+  img.classList.remove(RR_MOVIMIENTO.bien.clase, RR_MOVIMIENTO.mal.clase);
+  // Forzar el reflow: sin esto, dos aciertos (o dos errores) seguidos solo se
+  // mueven la primera vez, porque para el navegador la clase nunca llegó a irse.
+  void img.offsetWidth;
+  img.classList.add(mov.clase);
+
+  // La clase se quita sola al terminar (el 'animationend' de
+  // rrWireMascotLife), pero ese aviso no llega siempre: con el movimiento
+  // reducido del sistema la animación es 'none', no empieza, y por lo tanto
+  // tampoco termina. Sin este reloj la clase se quedaba puesta para siempre.
+  clearTimeout(img.rrMovimientoReloj);
+  img.rrMovimientoReloj = setTimeout(() => {
+    img.classList.remove(mov.clase);
+  }, RR_MOVIMIENTO_MS);
+}
+
+// Al hacer clic (o tocar), Robin brinca y suelta unas chispas.
 function rrWireMascotLife() {
   document.querySelectorAll('img.rr-mascot').forEach(img => {
     if (img.dataset.rrWired === 'true') return;
@@ -166,14 +203,13 @@ function rrWireMascotLife() {
     img.style.cursor = 'pointer';
 
     img.addEventListener('click', () => {
-      img.classList.remove('rr-mascot-cheer');
-      void img.offsetWidth; // fuerza el reflow para poder repetir la animación
-      img.classList.add('rr-mascot-cheer');
+      rrMascotMueve(img, 'bien');
       rrMascotSparkles(img);
     });
 
     img.addEventListener('animationend', e => {
       if (e.animationName === 'rr-cheer') img.classList.remove('rr-mascot-cheer');
+      if (e.animationName === 'rr-shake') img.classList.remove('rr-robin-falla');
     });
   });
 }
@@ -226,24 +262,36 @@ document.addEventListener('DOMContentLoaded', rrMountMascots);
 // ---------------------------------------------------------------------------
 // Robin que escucha y Robin que habla
 // ---------------------------------------------------------------------------
-// Un elemento con [data-rr-galeria] tiene DOS dibujos y nada más: el de estar
-// tranquilo (idle) y el de estar explicando algo (talking). Empieza tranquilo
-// y, al hacerle clic, se pone a hablar; al rato se vuelve a calmar solo.
+// Un elemento con [data-rr-galeria] tiene TRES dibujos: el de estar tranquilo
+// (idle), el de estar explicando algo (talking) y el de estar contento
+// (happy). Empieza tranquilo y al rato vuelve solo a la calma, venga de donde
+// venga el cambio.
+//
+// Quién pide cada pose importa, porque no son lo mismo:
+//
+//   clic       -> happy    alguien saludó al pajarito, y el pajarito se alegra
+//   rrHablar() -> talking  Robin está contestando algo: una pista, el chat
+//
+// El clic daba talking y estaba mal contado: Robin abría la boca sin tener
+// nada que decir, y cuando de verdad contestaba una pista ponía la misma cara
+// que si lo hubieran saludado. Hablar es lo que hace cuando tiene palabras;
+// alegrarse es lo que hace cuando lo tocan.
 //
 // Antes esto rotaba entre diez dibujos cada pocos segundos y Robin cambiaba de
 // cara sin que nadie lo tocara: parecía un carrusel, no una reacción. Ahora el
-// único motivo para que cambie es que alguien le haga clic, que es lo que
-// hace que se sienta vivo en vez de inquieto.
+// único motivo para que cambie es que alguien lo toque o que tenga algo que
+// decir, que es lo que hace que se sienta vivo en vez de inquieto.
 //
-// Si el archivo de una pose no existe, se usa el de la otra y ya: la página
-// nunca se ve rota por eso.
+// Si el archivo de una pose no existe, se usa el de otra y ya: la página nunca
+// se ve rota por eso.
 
 const RR_DUO = {
   idle: '/images/robin/idle.png',
-  talking: '/images/robin/talking.png'
+  talking: '/images/robin/talking.png',
+  happy: '/images/robin/happy.png'
 };
 
-// Cuánto se queda hablando antes de volver a la calma.
+// Cuánto se queda alegre o hablando antes de volver a la calma.
 const RR_HABLA_MS = 3800;
 
 // Qué poses cargaron de verdad. Se resuelve una sola vez por página.
@@ -259,10 +307,13 @@ function rrDuoCargar() {
     img.src = src;
   });
 
-  rrDuoListo = Promise.all([probar(RR_DUO.idle), probar(RR_DUO.talking)])
-    .then(([idle, talking]) => ({
-      idle: idle || talking,
-      talking: talking || idle
+  rrDuoListo = Promise.all([probar(RR_DUO.idle), probar(RR_DUO.talking), probar(RR_DUO.happy)])
+    .then(([idle, talking, happy]) => ({
+      idle: idle || talking || happy,
+      talking: talking || idle || happy,
+      // Si el contento faltara, mejor que el clic deje a Robin hablando que
+      // dejarlo sin ninguna reacción: algo tiene que pasar cuando lo tocan.
+      happy: happy || talking || idle
     }));
 
   return rrDuoListo;
@@ -300,17 +351,29 @@ function rrMontarGaleria(el) {
 
     poner(poses.idle);
 
-    // Lo único que lo hace cambiar: que alguien lo toque.
-    const hablar = () => {
-      poner(poses.talking);
+    // Las dos son el mismo gesto con distinta cara: se pone la pose y se
+    // programa la vuelta a la calma, pisando la vuelta que hubiera pendiente
+    // (si no, un segundo clic heredaría el reloj del primero y Robin se
+    // calmaría antes de tiempo).
+    const reaccionar = pose => {
+      poner(pose);
       clearTimeout(volver);
       volver = setTimeout(() => poner(poses.idle), RR_HABLA_MS);
     };
 
-    img.addEventListener('click', hablar);
-    // Para que otras pantallas puedan hacerlo hablar sin simular un clic:
-    // por ejemplo, cuando Robin contesta una pista en un minijuego.
+    const hablar = () => reaccionar(poses.talking);
+    const alegrarse = () => reaccionar(poses.happy);
+
+    // Al tocarlo se alegra. El brinco y las chispas ya se los pone
+    // rrWireMascotLife(), que le tiene puesto su propio clic a esta misma
+    // imagen: aquí solo se cambia el dibujo.
+    img.addEventListener('click', alegrarse);
+
+    // Para que otras pantallas puedan hacerlo reaccionar sin simular un clic:
+    // rrHablar() cuando Robin contesta una pista en un minijuego, rrFestejar()
+    // cuando algo salió bien.
     el.rrHablar = hablar;
+    el.rrFestejar = alegrarse;
     el.rrGaleriaParar = () => clearTimeout(volver);
   });
 }
@@ -326,6 +389,25 @@ function rrRobinHabla(scope) {
   const raiz = scope || document;
   raiz.querySelectorAll('[data-rr-galeria]').forEach(el => {
     if (typeof el.rrHablar === 'function') el.rrHablar();
+  });
+}
+
+// Algo salió bien o salió mal, y Robin se entera: el de la pantalla se mueve
+// igual que cuando le hacen clic. Lo llama rrToast() en api.js, así que vale
+// para toda la app sin que cada pantalla tenga que acordarse.
+//
+// El acierto cambia la cara además de moverse —es la misma alegría del clic, y
+// la pose existe—; el fallo solo se sacude. No es un descuido: la galería
+// carga tres dibujos (idle, talking, happy) y ninguno es el triste. Traerlo
+// solo para esto sería una cuarta descarga en la portada, y el Robin grande de
+// una pantalla es decoración: quien ya está leyendo "no se pudo guardar" no
+// necesita que además le pongan cara larga. La cara de disgusto sí sale, pero
+// en el aviso flotante, que es donde se está contando la mala noticia.
+function rrRobinReacciona(tono, scope) {
+  const raiz = scope || document;
+  raiz.querySelectorAll('[data-rr-galeria]').forEach(el => {
+    if (tono === 'bien' && typeof el.rrFestejar === 'function') el.rrFestejar();
+    rrMascotMueve(el.querySelector('img'), tono);
   });
 }
 
