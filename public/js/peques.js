@@ -65,7 +65,13 @@ function burbuja(texto) {
     <div class="rr-kids-bubble">${rrEscapeHtml(texto)}</div>`;
 }
 
+// Volver al inicio. En modo enfocado (/-/robinAI, /-/minijuegos) no hay inicio
+// al que volver: la pantalla es una sola cosa y el botón sería la única puerta
+// de salida que queda. Ver public/js/enfoque.js.
+const soloUnaCosa = () => typeof rrEnfocado === 'function' && Boolean(rrEnfocado());
+
 function volverBtn() {
+  if (soloUnaCosa()) return '';
   return '<button class="btn btn-soft" id="kidBack" style="margin-top:26px">← Volver</button>';
 }
 
@@ -382,10 +388,24 @@ async function preguntar(mensaje) {
     ? `<img class="rr-avatar" src="${rrEscapeHtml(kid.profilePic)}" alt="" />`
     : '<span class="rr-avatar rr-avatar-placeholder">🐣</span>';
 
-  document.getElementById('kidLogout').addEventListener('click', async () => {
+  const salir = document.getElementById('kidLogout');
+  salir.addEventListener('click', async () => {
     try { await rrApi('/api/logout', { method: 'POST' }); } catch {}
     window.location.href = '/';
   });
+
+  // En modo enfocado se entra directo a lo que pide la dirección y no se sale:
+  // ni cerrando sesión, que en una tablet del aula es el botón que un peque
+  // encuentra primero.
+  const enfoque = soloUnaCosa() ? rrEnfocado() : null;
+  if (enfoque) {
+    rrMontarEnfoque();
+    salir.remove();
+    if (enfoque.seccion === 'games') return pantallaJuegos();
+    if (puedeChatear) return pantallaHablar();
+    // Parvularia no habla con Robin: se le abren los juegos, que es lo suyo.
+    return pantallaJuegos();
+  }
 
   inicio();
 })();

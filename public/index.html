@@ -376,6 +376,129 @@
   </div>
 </section>
 
+<!-- ===================== Vota por Orbital Kronnos ===================== -->
+<!-- Entre los planes y la llamada final a propósito: es el último sitio donde
+     alguien sigue leyendo con ganas, justo antes de que se le pida abrir
+     cuenta. Aquí no se pide dinero, se pide un voto, que es gratis y dura
+     medio minuto.
+
+     En dos columnas y no centrado: centrado dejaba media banda vacía a los
+     lados y el botón perdido en medio de tanto negro. A la izquierda el
+     porqué, a la derecha la papeleta con el botón — que es lo único que hay
+     que pulsar y ahora se ve como lo que es. -->
+<section class="rb-section rb-vota" id="vota">
+  <div class="rb-wrap">
+    <div class="rb-vota-band" data-anim="zoom">
+      <div class="rb-vota-dicho">
+        <span class="rb-tag rb-tag-onink" data-anim="up"><i class="dot"></i> Feria de proyectos</span>
+        <h2 data-anim="up" data-delay="60">Vota por <span class="rb-red">Orbital Kronnos</span></h2>
+        <p data-anim="up" data-delay="120">
+          roboRobin lo hicimos nosotros, desde cero, para esta exposición. No cuesta nada y no se cobra nada:
+          lo único que nos llevamos es lo que la gente vote.
+        </p>
+        <ul class="rb-vota-puntos" data-anim="up" data-delay="180">
+          <li><i>✓</i> Hecho por estudiantes, sin plantillas ni encargos</li>
+          <li><i>✓</i> Gratis de verdad: no hay nada que pagar en ningún lado</li>
+          <li><i>✓</i> Si algo de lo que viste te pareció que valía la pena, el voto es lo que lo dice</li>
+        </ul>
+      </div>
+
+      <aside class="rb-papeleta" data-anim="right" data-delay="140">
+        <!-- Dibujado y no un emoji: 🗳️ se ve como un cuadrado gris en la mitad
+             de los Windows, y era lo primero que se miraba de la caja.
+             Una casilla marcada y no una urna: a 28 px la urna se convertía en
+             un borrón, y la casilla dice lo mismo con dos trazos. -->
+        <span class="rb-papeleta-ic" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+               stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="5" />
+            <path d="M8 12.4l2.8 2.8L16.4 9" />
+          </svg>
+        </span>
+        <strong>Tu voto</strong>
+        <p>Un formulario corto. Ni correo ni cuenta ni nada que instalar.</p>
+        <a class="rb-btn rb-btn-primary rb-btn-block rb-btn-lg"
+           href="https://forms.cloud.microsoft/pages/responsepage.aspx?id=OzFQzFxHikCr_l2EwMjsBoRULQVQ0c1Ju9-cZOgEL8pUNTVIN1BZNjFVTUw3UFJDWjVIRFJLN0xBMi4u&origin=QRCode&qrcodeorigin=presentation&route=shorturl"
+           target="_blank" rel="noopener">
+          Votar por Orbital Kronnos ↗
+        </a>
+        <small>Se abre en otra pestaña · menos de un minuto</small>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== Gracias a ===================== -->
+<!-- Antes esto eran tres secciones seguidas: dos tarjetitas con los logos y,
+     debajo, una historia entera para cada uno. Era el mismo agradecimiento
+     contado tres veces y trescientos píxeles de scroll para llegar al final.
+
+     Ahora es una sola: el título, y debajo los dos repartidos en una franja
+     partida en diagonal. Fusalmo con su foto a la izquierda, NetherHost en
+     negro a la derecha, y entre los dos un desvanecido en vez de un borde
+     seco — se tocan sin que ninguno corte al otro. Ver .rb-duo en
+     landing.css. -->
+<section class="rb-section rb-gracias" id="gracias">
+  <div class="rb-wrap">
+    <div class="rb-section-head">
+      <span class="rb-tag" data-anim="up">No lo hicimos solos</span>
+      <h2 data-anim="up" data-delay="60">Gracias a</h2>
+      <p data-anim="up" data-delay="120">
+        Dos que nos echaron la mano cuando esto era solo una idea en un cuaderno. Sin ellos, roboRobin
+        no estaría en una pantalla hoy.
+      </p>
+    </div>
+  </div>
+
+  <div class="rb-duo" id="aliados">
+    <!-- La foto y el negro viven aquí abajo, detrás del texto, porque el corte
+         diagonal es cosa del fondo: así el texto se maqueta en dos columnas
+         normales y no hay que recortar ni una letra. -->
+    <div class="rb-duo-fondo" aria-hidden="true"></div>
+    <div class="rb-duo-corte" aria-hidden="true"></div>
+
+    <div class="rb-wrap rb-duo-rejilla">
+      <article class="rb-duo-lado rb-duo-fusalmo" data-anim="left">
+        <img class="rb-duo-logo" src="/images/aliados/fusalmologo.png" alt="Fusalmo — Centros Juveniles Salesianos" loading="lazy" />
+        <h3>Aquí empezó todo</h3>
+        <p>
+          En los Centros Juveniles Salesianos aprendimos a armar cosas: robótica, programación, realidad
+          virtual y una mesa llena de cables un sábado por la mañana. Nos dejaron equivocarnos ahí durante
+          meses, que es lo que de verdad hace falta para aprender algo.
+        </p>
+        <p>
+          roboRobin salió de ese taller. La idea de que un asistente te explique sin darte la respuesta
+          hecha la aprendimos ahí, viendo cómo enseñan: te dan la herramienta y te dejan hacerlo tú.
+        </p>
+        <p class="rb-duo-lema">Comparte · Sueña · Transforma</p>
+      </article>
+
+      <article class="rb-duo-lado rb-duo-nether" data-anim="right" data-delay="120">
+        <img class="rb-duo-logo rb-duo-llama" src="/images/aliados/netherhostlogo.png" alt="NetherHost" loading="lazy" />
+        <h3>Gracias, NetherHost</h3>
+        <p>
+          Les agradecemos por <strong>patrocinar el hosting</strong> de roboRobin. El servidor donde esta
+          página vive es suyo, y ahí sigue: un proyecto escolar que solo corre en la computadora de uno no
+          lo ve nadie, y gracias a ellos roboRobin se abre desde cualquier teléfono del salón.
+        </p>
+
+        <div class="rb-cupon">
+          <div class="rb-cupon-off">40<span>%</span></div>
+          <div class="rb-cupon-txt">
+            <strong>de descuento en la compra de un servidor</strong>
+            <p>Usa el código <code class="rb-cupon-codigo">ROBIN</code> al comprar cualquier plan.
+               El descuento lo ponen ellos, no nosotros.</p>
+          </div>
+        </div>
+
+        <a class="rb-btn rb-btn-onred" href="https://netherhost.cc" target="_blank" rel="noopener">
+          Ir a netherhost.cc ↗
+        </a>
+      </article>
+    </div>
+  </div>
+</section>
+
 <!-- ===================== Llamada final ===================== -->
 <section class="rb-cta">
   <div class="rb-wrap">

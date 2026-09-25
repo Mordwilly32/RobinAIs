@@ -85,6 +85,27 @@ let rrActiveChatId = null;
 
 function rrRenderShell(user, activeId) {
   rrShellUser = user;
+
+  // Modo enfocado (/-/robinAI, /-/minijuegos): no hay barra que dibujar. La
+  // pantalla es una sola cosa y el menú es justo la puerta que no queremos
+  // abrir. Ver public/js/enfoque.js.
+  //
+  // Se sale por aquí y no se dibuja media barra escondida con CSS: lo que no
+  // está en la página no se puede pulsar ni encontrar con el tabulador, y esa
+  // es toda la diferencia entre esconder una puerta y no ponerla.
+  if (typeof rrEnfocado === 'function' && rrEnfocado()) {
+    rrMontarEnfoque();
+    rrMountMascots();
+    // Un panel que no tiene esa sección (los minijuegos en la cuenta de un
+    // profesor, por ejemplo) ya dijo por qué; no hay nada que encender.
+    if (rrEnfoqueImposible()) return;
+    // La sección se enciende al final del turno, no ahora: la página que nos
+    // llamó todavía no ha enganchado su manejador de 'rr:section', y los
+    // minijuegos se montan justo ahí.
+    setTimeout(() => rrShowSection(rrEnfocado().seccion), 0);
+    return;
+  }
+
   const permisos = user.permissions || [];
   const items = (RR_NAV_BY_ROLE[user.role] || []).filter(item => {
     // En universidad no hay minijuegos, así que tampoco su entrada en el
@@ -376,6 +397,12 @@ async function rrClearAllChats() {
 // Cambia la sección visible. Las páginas también pueden llamarla directamente
 // (por ejemplo, un botón "ver todos los avisos" dentro del resumen).
 function rrShowSection(target) {
+  // En modo enfocado solo existe una sección. Cualquier otra petición se
+  // ignora, venga de donde venga: un botón que se quedó por ahí, un
+  // rrShowSection suelto dentro de una página, o el propio panel intentando
+  // volver al chat al cerrar los minijuegos.
+  if (typeof rrSeccionPermitida === 'function' && !rrSeccionPermitida(target)) return;
+
   document.querySelectorAll('.rr-section').forEach(s => { s.style.display = 'none'; });
   const section = document.getElementById('section-' + target);
   if (section) {

@@ -13,6 +13,8 @@
 //   /entrar            entrar
 //   /registro          crear cuenta o inscribir escuela
 //   /dashboard/:id     el panel de esa cuenta
+//   /-/robinAI         solo el chat con Robin, sin salida
+//   /-/minijuegos      solo los minijuegos, sin salida
 //   /guia              la guía
 //   /terminos          términos, privacidad y aviso
 //
@@ -90,6 +92,53 @@ router.get('/dashboard', (req, res) => {
   if (!req.session.userId) return res.redirect('/entrar');
   res.redirect('/dashboard/' + req.session.userId);
 });
+
+// ---- Las pantallas de una sola cosa ----------------------------------------
+//
+//   /-/robinAI       solo el chat con Robin
+//   /-/minijuegos    solo los minijuegos
+//
+// Es el mismo panel de siempre, servido igual, pero abierto en «modo
+// enfocado»: sin menú lateral, sin las otras secciones y sin ninguna manera de
+// salirse a otra pantalla desde dentro. Ver public/js/enfoque.js.
+//
+// Para qué: una exposición, una tablet en el aula, o cualquier sitio donde se
+// deja el aparato delante de alguien para que use UNA cosa. Con el panel
+// entero abierto, en dos clics se acaba en la configuración de la cuenta.
+//
+// Por qué el prefijo /-/ y no /robinAI a secas: deja claro de un vistazo que
+// esto no es una pantalla más del sitio sino un modo, y aparta estas dos
+// direcciones de cualquier ruta futura que se llame igual. Las versiones sin
+// prefijo funcionan igual y mandan aquí, porque son las que alguien teclea.
+//
+// Quién manda sigue siendo la sesión: sin ella, a entrar. El modo enfocado no
+// da acceso a nada que la cuenta no tuviera ya.
+
+const ENFOCADAS = {
+  'robinai': 'robinAI',
+  'minijuegos': 'minijuegos'
+};
+
+router.get('/-/:modo', (req, res, next) => {
+  const canonico = ENFOCADAS[String(req.params.modo).toLowerCase()];
+  if (!canonico) return next();
+
+  if (!req.session.userId) return res.redirect('/entrar');
+  const yo = db.getUserById(req.session.userId);
+  if (!yo) return req.session.destroy(() => res.redirect('/entrar'));
+
+  // Escrito con otras mayúsculas, se manda a la dirección buena: una sola
+  // dirección por pantalla, que es lo que se puede guardar en favoritos y lo
+  // que mira el JavaScript para saber en qué modo está.
+  if (req.params.modo !== canonico) return res.redirect(301, '/-/' + canonico);
+
+  enviar(res, panelDe(yo));
+});
+
+// Sin el prefijo. Son las que se teclean de memoria.
+for (const canonico of Object.values(ENFOCADAS)) {
+  router.get('/' + canonico, (req, res) => res.redirect('/-/' + canonico));
+}
 
 // ---- Las direcciones de antes ----------------------------------------------
 

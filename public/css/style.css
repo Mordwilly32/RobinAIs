@@ -906,6 +906,58 @@ input:focus, select:focus, textarea:focus {
   border-radius: var(--rr-r-xs); padding: 9px 13px; font-size: 16px; cursor: pointer; margin-bottom: 10px;
 }
 
+/* =============================================================================
+   Modo enfocado — /-/robinAI y /-/minijuegos
+   =============================================================================
+   Una sola pantalla y ninguna puerta. La barra lateral ni siquiera se dibuja
+   (ver rrRenderShell en sidebar.js), así que aquí abajo no hay nada que
+   esconder: solo queda recolocar lo que daba por hecho que la barra estaba.
+
+   Lo que cambia:
+     · el panel ocupa el ancho entero, sin el hueco de la barra
+     · el botón de menú no existe — no hay menú que abrir
+     · la cabecera es una línea, no un saludo con subtítulo largo
+     · el chat se lleva el alto de la pantalla, que es la única cosa que hay
+   ============================================================================= */
+
+body.rr-enfocado .rr-app { display: block; }
+body.rr-enfocado .rr-main { padding: 22px 28px 28px; }
+body.rr-enfocado .rr-menu-btn { display: none !important; }
+
+/* El saludo del panel sobra: aquí no se entra a un panel, se entra a una
+   cosa. Y además no es nuestro — personal.js lo reescribe en cuanto carga la
+   sesión, así que ni se intenta: se esconde y se pone el nuestro encima. */
+body.rr-enfocado .rr-topbar { display: none; }
+
+.rr-enfoque-top {
+  display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
+  padding-bottom: 14px; margin-bottom: 16px;
+  border-bottom: 1px solid var(--rr-line);
+}
+.rr-enfoque-top strong { font-size: 19px; color: var(--rr-ink); letter-spacing: -.01em; }
+.rr-enfoque-top small { font-size: 13.5px; color: var(--rr-text-muted); }
+
+/* Con una sola sección en pantalla, el chat se estira hasta abajo en vez de
+   dejar un pasillo blanco debajo del compositor. */
+body.rr-enfoque-robinai .rr-section-full,
+body.rr-enfoque-robinai .rr-section-full .rr-chat {
+  height: calc(100vh - 128px); max-height: none;
+}
+
+/* En los minijuegos, la ventana de jugar tapa la pantalla entera igual que
+   siempre; lo único que sobra es el hueco donde iba el botón de salir, que
+   ahora es un icono mudo para que el título siga centrado. */
+.rr-arcade-x-mudo {
+  display: inline-flex; align-items: center; justify-content: center;
+  opacity: .45; pointer-events: none; user-select: none;
+}
+
+@media (max-width: 720px) {
+  body.rr-enfocado .rr-main { padding: 16px 16px 20px; }
+  body.rr-enfoque-robinai .rr-section-full,
+  body.rr-enfoque-robinai .rr-section-full .rr-chat { height: calc(100vh - 106px); }
+}
+
 .rr-avatar { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; flex: 0 0 34px; }
 .rr-avatar-placeholder { display: inline-flex; align-items: center; justify-content: center; background: var(--rr-red-soft); color: var(--rr-red-dark); }
 
@@ -1632,14 +1684,38 @@ table.rr-table tbody tr:hover td { background: rgba(226, 58, 27, .04); }
 .rr-limit-note strong { display: block; font-size: 14.5px; margin-bottom: 5px; }
 .rr-limit-note p { font-size: 13.5px; margin: 0 0 10px; line-height: 1.55; color: var(--rr-text-muted); }
 
-/* Robin en modo tutor: la burbuja se marca, para que se note que no es que no
-   sepa la respuesta, es que no la va a dar. */
-.rr-bubble.tutor .txt { border-left: 3px solid var(--rr-blue); padding-left: 16px; }
-.rr-bubble.tutor .txt::after {
-  content: "Robin guía, no resuelve";
+/* Cuando Robin contesta por una regla y no por la conversación, la burbuja se
+   marca y dice cuál. Se marcan para que no se lean como un «no sé»: hay una
+   diferencia grande entre no saber la respuesta y no ir a darla, y quien está
+   del otro lado tiene derecho a saber en cuál de las dos está.
+
+   Tres reglas, tres marcas (las pone chat.js con el `mode` que manda el
+   servidor; ver routes/ai.js):
+
+     .tutor      no da el resultado de un ejercicio
+     .guardia    esto no es de estudio, cambiamos de tema
+     .respeto    había una grosería y se tapó
+*/
+.rr-bubble.tutor .txt,
+.rr-bubble.guardia .txt,
+.rr-bubble.respeto .txt { border-left: 3px solid var(--rr-blue); padding-left: 16px; }
+
+.rr-bubble.tutor .txt::after,
+.rr-bubble.guardia .txt::after,
+.rr-bubble.respeto .txt::after {
   display: block; margin-top: 9px; font-size: 10.5px; font-weight: 800;
   letter-spacing: .06em; text-transform: uppercase; color: #1D6373; opacity: .75;
 }
+.rr-bubble.tutor .txt::after { content: "Robin guía, no resuelve"; }
+.rr-bubble.guardia .txt::after { content: "Robin solo habla de estudio"; }
+.rr-bubble.respeto .txt::after { content: "Aquí se habla bien"; }
+
+/* Las dos últimas van en dorado y no en azul: el azul de arriba es el de
+   «estoy enseñando», y estas dos no enseñan nada, avisan. */
+.rr-bubble.guardia .txt,
+.rr-bubble.respeto .txt { border-left-color: var(--rr-gold); }
+.rr-bubble.guardia .txt::after,
+.rr-bubble.respeto .txt::after { color: #8A6A12; }
 
 /* =============================================================================
    Asignaciones y entregas
@@ -2612,22 +2688,32 @@ body.rr-arcade-open { overflow: hidden; }
 .rr-arcade-chat.folded .rr-ac-body,
 .rr-arcade-chat.folded .rr-ac-form { display: none; }
 
-/* Al lado de Robin. Ahí el fondo es un degradado, así que la caja se apoya en
-   blanco puro para despegarse de él. */
+/* Al lado de Robin, y ARRIBA de él. Ahí el fondo es un degradado, así que la
+   caja se apoya en blanco puro para despegarse.
+
+   Antes iba debajo del pájaro, y para caber le quitaba alto: Robin se
+   encogía a poco más de la mitad justo cuando alguien se había atascado y
+   había ido a buscarlo. Ahora va arriba del todo —que además es donde se
+   está escribiendo, así que se lee antes— y el pájaro no se toca. */
 .rr-arcade-chat.beside {
-  width: 100%; flex: 0 1 auto; max-height: 46%;
-  margin-top: 0; box-shadow: var(--rr-sh-sm);
+  width: 100%; flex: 0 0 auto; max-height: 300px;
+  margin-top: 0; margin-bottom: 16px; box-shadow: var(--rr-sh-sm);
 }
 
-/* Con la caja en su columna, Robin deja de llevarse todo el alto disponible.
-   Sin esto el pájaro no encogía —su caja tiene flex:1— y la caja de preguntar
-   le quedaba montada encima, medio pájaro asomando por debajo. */
-.rr-buddy.with-chat .rr-buddy-bird { flex: 1 1 auto; max-height: 44%; }
-.rr-buddy.with-chat .rr-buddy-bubble { max-height: 30%; }
+/* Con la caja en su columna, la columna deja pasar el scroll en vez de
+   apretar a nadie, y el pájaro conserva un mínimo por debajo del cual no baja.
+   Que Robin se lleve el hueco que sobre sigue siendo su `flex: 1` de siempre:
+   aquí no se le pone ningún tope. */
+.rr-buddy.with-chat { overflow-y: auto; justify-content: flex-start; }
+.rr-buddy.with-chat .rr-buddy-bird { flex: 1 1 auto; min-height: 220px; }
 
 @media (max-width: 900px) {
   .rr-arcade-chat { max-height: 260px; margin-bottom: 16px; }
   .rr-arcade-chat.beside { max-height: 260px; }
+  /* En pantalla angosta la columna de Robin es una tira horizontal (ver el
+     @media de arriba): ahí el mínimo del pájaro no aplica. */
+  .rr-buddy.with-chat { overflow: visible; }
+  .rr-buddy.with-chat .rr-buddy-bird { min-height: 0; }
 }
 
 /* =============================================================================
@@ -2828,3 +2914,63 @@ body.rr-arcade-open { overflow: hidden; }
   .level-icon { font-size: 22px; }
   .level-name { font-size: 12.5px; }
 }
+
+/* =============================================================================
+   La lupa
+   =============================================================================
+   Un solo número, --rr-lupa, que agranda el texto de Robin y el de los
+   minijuegos. Lo pone la consola de demostración (Ctrl + Alt + Shift + R) y se
+   guarda en este navegador; ver la sección «La lupa» en public/js/consola.js.
+
+   Para qué: enseñar el proyecto desde el fondo de un salón. A 15,5 px la
+   respuesta de Robin no se lee ni desde la tercera fila, y subirle el zoom al
+   navegador entero desmonta la maqueta —la barra lateral se come media
+   pantalla y los botones se salen de su fila.
+
+   Por eso agranda SOLO lo que hay que leer de lejos y deja quieto todo lo
+   demás: el menú, las tarjetas, las cabeceras. Lo que crece es lo que dice
+   Robin, lo que se le escribe, el enunciado del reto y sus opciones.
+
+   Cada regla repite su tamaño de partida multiplicado por la variable. Es
+   repetición, sí, pero la alternativa —meter la lupa dentro de cada regla de
+   arriba— dejaría el número suelto por media hoja y sin manera de ver de un
+   vistazo qué agranda y qué no. Con la lupa en 1 (lo normal) esto no cambia
+   absolutamente nada.
+   ============================================================================= */
+
+:root { --rr-lupa: 1; }
+
+/* ---- Lo que dice Robin, y lo que se le escribe --------------------------- */
+.rr-bubble .txt { font-size: calc(15.5px * var(--rr-lupa)); }
+.rr-chat-hello h3 { font-size: calc(26px * var(--rr-lupa)); }
+.rr-chat-hello p { font-size: calc(14.5px * var(--rr-lupa)); }
+.rr-composer textarea { font-size: calc(15.5px * var(--rr-lupa)); }
+
+/* La etiqueta de la regla («Robin guía, no resuelve») crece con su burbuja:
+   suelta a 10,5 px al lado de un texto grande parecía una errata. */
+.rr-bubble.tutor .txt::after,
+.rr-bubble.guardia .txt::after,
+.rr-bubble.respeto .txt::after { font-size: calc(10.5px * var(--rr-lupa)); }
+
+/* ---- Los minijuegos ------------------------------------------------------ */
+.rr-round-prompt { font-size: calc(20px * var(--rr-lupa)); }
+.rr-round-code { font-size: calc(14.5px * var(--rr-lupa)); }
+.rr-option { font-size: calc(15px * var(--rr-lupa)); }
+.rr-build-slot, .rr-build-piece { font-size: calc(17px * var(--rr-lupa)); }
+.rr-round-input input { font-size: calc(17px * var(--rr-lupa)); }
+
+/* Robin en su esquina del reto, y la caja de preguntarle. */
+.rr-buddy-bubble p { font-size: calc(15px * var(--rr-lupa)); }
+.rr-ac-msg { font-size: calc(13.5px * var(--rr-lupa)); }
+.rr-ac-empty { font-size: calc(13px * var(--rr-lupa)); }
+.rr-ac-form input { font-size: calc(13.5px * var(--rr-lupa)); }
+
+/* ---- Los peques ---------------------------------------------------------- */
+/* Aquí el tamaño de partida ya es elástico, así que la lupa multiplica el
+   clamp entero en vez de un número fijo. */
+.rr-kids-bubble { font-size: calc(clamp(19px, 2.6vw, 25px) * var(--rr-lupa)); }
+
+/* Con la lupa muy subida, las piezas de armar y los botones de opción tienen
+   que crecer de alto también: si no, la letra se sale de su caja. Se hace con
+   el mismo número, para que no haya dos ajustes que cuadrar a mano. */
+.rr-build-slot, .rr-build-piece { height: calc(46px * var(--rr-lupa)); min-width: calc(54px * var(--rr-lupa)); }

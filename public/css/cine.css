@@ -22,6 +22,81 @@ body.rb-cine .rb-help-tip { opacity: 0; pointer-events: none; transition: opacit
    por donde se sale. */
 body.rb-cine { overscroll-behavior: none; }
 
+/* ---- Que todo quepa en la pantalla --------------------------------------- */
+/*
+   Dos cosas, y las dos solo mientras dura la demostración:
+
+   1. Las secciones respiran menos. La portada está pensada para leerse con el
+      dedo en la rueda, y sus 96 px de aire arriba y abajo son justo lo que
+      sobra cuando lo que hace falta es que la sección entera se vea de una
+      vez. Recortarlos es gratis y muchas veces ya basta para que quepa.
+
+   2. Lo que aun así no cabe, se encoge. Lo mide y lo decide plantar() en
+      cine.js; aquí solo está el zoom. Se aplica al .rb-wrap de dentro y no a
+      la sección, para que el fondo —el negro de «¿Cómo funciona?», la foto de
+      Fusalmo— siga llenando la pantalla de borde a borde.
+
+   La transición es la misma que dura el viaje de la cámara: así encoger y
+   llegar pasan a la vez y se ve como un solo movimiento, no como un salto
+   antes de moverse.
+*/
+
+body.rb-cine .rb-section { padding: 54px 0; }
+body.rb-cine .rb-section-head { margin-bottom: 36px; }
+body.rb-cine .rb-vota { padding: 26px 0 40px; }
+body.rb-cine .rb-gracias { padding: 54px 0 0; }
+body.rb-cine .rb-gracias .rb-section-head { margin-bottom: 30px; }
+
+/* La franja de agradecimientos: se aprieta por arriba pero NO por abajo. El
+   botón de NetherHost es lo último de su columna y con 52 px caía dentro del
+   desvanecido del borde, que también es blanco: el botón se quedaba sin
+   contorno. Con 80 px por debajo se apoya en negro y el desvanecido solo
+   suaviza el corte, que es su único trabajo. */
+body.rb-cine .rb-duo-rejilla { padding-top: 56px; padding-bottom: 80px; }
+
+/* ---- Los precios, apretados para que no haga falta encogerlos ------------ */
+/*
+   Los tres planes más la banda de escuelas más la nota legal miden 1 060 px:
+   en una ventana de 890 eso obligaba a plantar() a encogerlo todo al 83 %, y
+   al 83 % la letra de las viñetas se queda en 12 px — desde la tercera fila
+   del salón, ilegible. Encoger es el último recurso, no el primero.
+
+   Así que primero se le quita el aire que sobra: los planes en una portada
+   están pensados para leerse con calma y con el dedo en la rueda, y ese
+   respiro es justo lo que no hace falta cuando lo que se quiere es ver los
+   tres de una vez desde lejos. Quitando relleno y márgenes la sección baja a
+   caber casi entera, y el zoom que queda por aplicar es de los que no se
+   notan.
+
+   Lo que NO se toca: la nota de que los precios son ficticios. Es lo único de
+   toda la portada que hay que poder leer aunque estorbe.
+*/
+body.rb-cine .rb-prices .rb-section-head { margin-bottom: 20px; }
+body.rb-cine .rb-prices .rb-section-head h2 { margin: 10px 0 10px; }
+body.rb-cine .rb-cycle-switch { padding: 4px; gap: 2px; margin-top: 16px; }
+body.rb-cine .rb-cycle-switch button { padding: 9px 16px; font-size: 13.5px; }
+
+body.rb-cine .rb-price { padding: 30px 26px; }
+body.rb-cine .rb-price .amount { font-size: 40px; margin: 8px 0 4px; }
+body.rb-cine .rb-price .for { margin-bottom: 18px; }
+body.rb-cine .rb-price ul { margin-bottom: 20px; }
+body.rb-cine .rb-price li { margin-bottom: 9px; }
+body.rb-cine .rb-price .rb-price-cycle { margin-bottom: 14px; }
+
+body.rb-cine .rb-price-schools { padding: 20px 28px; margin-top: 20px; }
+body.rb-cine .rb-price-schools p { line-height: 1.5; max-width: 74ch; }
+body.rb-cine .rb-price-note { margin-top: 16px; }
+/* Por arriba no se aprieta tanto como el resto: ahí es donde se asoma el
+   Robin de la banda, y si el relleno baja de lo que el pájaro sobresale, se
+   sale de su sección y le entra a la franja de agradecimientos. */
+body.rb-cine .rb-cta { padding: 50px 0 40px; }
+
+.rb-cine-encuadre {
+  transform: scale(var(--rb-cine-zoom, 1));
+  transform-origin: top center;
+  transition: transform .9s var(--rb-ease);
+}
+
 /* ---- El cartel de arriba ------------------------------------------------- */
 
 .rb-cine-hud {

@@ -30,6 +30,51 @@
   let cuentas = [];
   let filtro = '';
 
+  // ---- La lupa -------------------------------------------------------------
+  //
+  // Sube el tamaño del texto de Robin y el de los minijuegos, y nada más. Para
+  // enseñar el proyecto desde el fondo de un salón: a 15,5 px la respuesta de
+  // Robin no se lee ni desde la tercera fila.
+  //
+  // Por qué no vale el zoom del navegador: Ctrl + «+» agranda TODO, y entonces
+  // la barra lateral se come media pantalla, los botones se salen de su fila y
+  // lo que se enseña deja de parecerse a la aplicación. La lupa agranda solo lo
+  // que hay que leer de lejos y deja la maqueta donde estaba. Ver la sección
+  // «La lupa» al final de public/css/style.css.
+  //
+  // Vive en este navegador y en ningún otro sitio: es cómo se está mirando la
+  // pantalla, no un dato de nadie. Por eso localStorage y no la cuenta — el
+  // aparato del salón se deja puesto en 160 % toda la mañana, entre a quien
+  // entre.
+
+  const LUPA_LLAVE = 'roborobin.lupa';
+  const LUPA_MIN = 100;
+  const LUPA_MAX = 220;
+  const LUPA_PASO = 10;
+
+  function leerLupa() {
+    try {
+      const guardado = Number(localStorage.getItem(LUPA_LLAVE));
+      if (!guardado) return 100;
+      return Math.min(LUPA_MAX, Math.max(LUPA_MIN, Math.round(guardado)));
+    } catch {
+      // Ventana privada, o el navegador con el almacenamiento apagado. La lupa
+      // es una comodidad: si no se puede guardar, se trabaja sin ella.
+      return 100;
+    }
+  }
+
+  function aplicarLupa(pct) {
+    const valor = Math.min(LUPA_MAX, Math.max(LUPA_MIN, Math.round(pct)));
+    document.documentElement.style.setProperty('--rr-lupa', (valor / 100).toFixed(2));
+    try { localStorage.setItem(LUPA_LLAVE, String(valor)); } catch { /* sin guardar */ }
+    return valor;
+  }
+
+  // Al cargar la página, antes que nada: si el aparato quedó con la lupa
+  // puesta, se nota desde el primer dibujo y no después de un parpadeo.
+  aplicarLupa(leerLupa());
+
   // Cuantas filas se dibujan como mucho en la lista de cuentas. Una escuela
   // entera son mas de mil, y dibujarlas todas deja la ventana pensando cada
   // vez que se refresca. Lo que se busca aqui es UNA cuenta, y para eso esta
@@ -169,6 +214,24 @@
         </header>
 
         <div class="rr-consola-body">
+          <section class="rr-consola-bloque rr-consola-bloque-ancho rr-consola-bloque-lupa">
+            <h4>La lupa</h4>
+            <p>Sube el tamaño de lo que dice Robin y del enunciado de los minijuegos,
+               para que se lea desde el fondo del salón. No toca el menú ni el resto
+               del panel, así que la pantalla sigue viéndose como es. Se queda puesta
+               en este navegador.</p>
+            <div class="rr-lupa">
+              <button type="button" class="rr-lupa-btn" data-lupa="-1" aria-label="Más pequeño">&minus;</button>
+              <div class="rr-lupa-medida">
+                <strong id="rrLupaPct">100 %</strong>
+                <span class="rr-lupa-barra"><i id="rrLupaBarra"></i></span>
+              </div>
+              <button type="button" class="rr-lupa-btn" data-lupa="1" aria-label="Más grande">+</button>
+              <button type="button" class="rr-consola-btn rr-lupa-normal" data-lupa="0">Normal</button>
+            </div>
+            <p class="rr-lupa-muestra" id="rrLupaMuestra">Así se va a ver lo que conteste Robin.</p>
+          </section>
+
           <section class="rr-consola-bloque">
             <h4>Entrar a una cuenta</h4>
             <p>Un clic y se abre la sesión de esa persona. Sin contraseña.</p>
@@ -200,6 +263,17 @@
             <div class="rr-consola-salida" id="rrConsolaSalida"></div>
           </section>
 
+          <section class="rr-consola-bloque rr-consola-bloque-ancho rr-consola-bloque-llave">
+            <h4>La llave de Robin</h4>
+            <p>Con una llave de Anthropic, Robin contesta con Claude. Sin ella sigue
+               funcionando, pero en su modo local: entiende tus tareas y poco más.
+               Se guarda en <code>config.json</code>, en esta computadora, y no sube
+               a ningún lado.</p>
+            <div id="rrConsolaLlave">
+              <div class="rr-consola-vacio">Cargando…</div>
+            </div>
+          </section>
+
           <section class="rr-consola-bloque rr-consola-bloque-ancho">
             <h4>Montar una escuela entera</h4>
             <p>Con forma de escuela de verdad: parvularia, básica y bachillerato,
@@ -220,6 +294,17 @@
     buscar.addEventListener('input', () => { filtro = buscar.value.trim().toLowerCase(); pintarLista(); });
     setTimeout(() => buscar.focus(), 40);
 
+    // La lupa. Un solo manejador para los tres botones: -1 baja un paso, +1 sube
+    // uno y 0 vuelve al tamaño de siempre.
+    caja.querySelectorAll('[data-lupa]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const paso = Number(btn.dataset.lupa);
+        const ahora = leerLupa();
+        pintarLupa(aplicarLupa(paso === 0 ? 100 : ahora + paso * LUPA_PASO));
+      });
+    });
+    pintarLupa(leerLupa());
+
     caja.querySelector('#rrConsolaCrear').addEventListener('click', () => crearDemo());
     caja.querySelector('#rrConsolaEscuela').addEventListener('click', () => crearDemo({
       classes: 9,
@@ -227,7 +312,33 @@
     }));
 
     cargarCuentas();
+    cargarLlave();
     cargarEscuelas();
+  }
+
+  // La cifra, la barrita y la frase de muestra.
+  //
+  // La muestra importa más de lo que parece: el texto que la lupa agranda está
+  // detrás de la consola, tapado por ella justo mientras se ajusta. Sin una
+  // frase de ejemplo aquí dentro habría que cerrar y abrir para ver si quedó
+  // bien, y eso con gente esperando no se hace.
+  function pintarLupa(pct) {
+    if (!caja) return;
+    const cifra = caja.querySelector('#rrLupaPct');
+    const barra = caja.querySelector('#rrLupaBarra');
+    const muestra = caja.querySelector('#rrLupaMuestra');
+    if (cifra) cifra.textContent = pct + ' %';
+    if (barra) barra.style.width = ((pct - LUPA_MIN) / (LUPA_MAX - LUPA_MIN) * 100) + '%';
+    // La muestra se escribe con el mismo tamaño de partida que una respuesta de
+    // Robin (15,5 px, ver .rr-bubble .txt) multiplicado por la lupa.
+    if (muestra) muestra.style.fontSize = (15.5 * pct / 100).toFixed(1) + 'px';
+
+    caja.querySelectorAll('[data-lupa]').forEach(btn => {
+      const paso = Number(btn.dataset.lupa);
+      btn.disabled = (paso === -1 && pct <= LUPA_MIN) ||
+                     (paso === 1 && pct >= LUPA_MAX) ||
+                     (paso === 0 && pct === 100);
+    });
   }
 
   // ---- Las cuentas ---------------------------------------------------------
@@ -357,6 +468,192 @@
       btn.disabled = false;
       btn.innerHTML = original;
     }
+  }
+
+  // ---- La llave de Robin ---------------------------------------------------
+  //
+  // Pegar aquí la llave de Anthropic y Robin empieza a contestar con Claude
+  // sin reiniciar el servidor. Está en la consola y no en Configuración a
+  // propósito: es de quien administra el servidor, no de cada cuenta.
+  //
+  // La llave no vuelve nunca entera del servidor: solo su pista. Por eso el
+  // campo aparece siempre vacío — lo que se lea ahí es lo que se acaba de
+  // escribir, nunca lo que ya estaba guardado.
+
+  let llave = null;
+
+  async function cargarLlave() {
+    try {
+      llave = await peticion('/api/dev/llave');
+      pintarLlave();
+    } catch (err) {
+      const hueco = caja && caja.querySelector('#rrConsolaLlave');
+      if (hueco) hueco.innerHTML = `<div class="rr-consola-vacio">${escapar(err.message)}</div>`;
+    }
+  }
+
+  function pintarLlave() {
+    if (!caja || !llave) return;
+    const hueco = caja.querySelector('#rrConsolaLlave');
+    if (!hueco) return;
+
+    const puesta = llave.puesta;
+    const delEntorno = llave.origen === 'entorno';
+
+    hueco.innerHTML = `
+      <div class="rr-consola-llave-estado ${puesta ? 'esta-puesta' : ''}">
+        <strong>${puesta ? 'Robin contesta con Claude' : 'Robin está en su modo local'}</strong>
+        <small>${puesta
+          ? `${escapar(llave.pista)} · ${delEntorno
+              ? 'viene de la variable de entorno ANTHROPIC_API_KEY'
+              : 'guardada en config.json'} · modelo ${escapar(llave.modelo)}`
+          : 'No hay ninguna llave puesta. Pega una y Robin conversa de verdad.'}</small>
+      </div>
+
+      ${llave.local ? '' : `
+        <div class="rr-consola-error">Esta consola no se está viendo desde la computadora
+        del servidor. La llave solo se pone desde localhost.</div>`}
+
+      <div class="rr-consola-llave-grid">
+        <label class="rr-consola-esc-campo">
+          <span>Llave de la API <em>(sale de console.anthropic.com)</em></span>
+          <input type="password" id="rrLlaveCampo" placeholder="sk-ant-api03-…"
+                 autocomplete="off" spellcheck="false" ${llave.local ? '' : 'disabled'} />
+        </label>
+        <label class="rr-consola-esc-campo">
+          <span>Con qué modelo contesta</span>
+          <select id="rrLlaveModelo" ${llave.local ? '' : 'disabled'}>
+            ${(llave.modelos || []).map(m => `
+              <option value="${escapar(m.id)}" ${m.id === llave.modelo ? 'selected' : ''}>${escapar(m.name)}</option>`).join('')}
+          </select>
+        </label>
+      </div>
+
+      <div class="rr-consola-llave-botones">
+        <button type="button" class="rr-consola-btn" id="rrLlaveGuardar" ${llave.local ? '' : 'disabled'}>Guardar</button>
+        <button type="button" class="rr-consola-btn rr-consola-btn-suave" id="rrLlaveProbar">Probar la conexión</button>
+        ${puesta && !delEntorno
+          ? '<button type="button" class="rr-consola-esc-borrar" id="rrLlaveQuitar">Quitar la llave</button>'
+          : ''}
+      </div>
+
+      <div class="rr-consola-salida" id="rrLlaveSalida"></div>`;
+
+    const guardar = hueco.querySelector('#rrLlaveGuardar');
+    if (guardar) guardar.addEventListener('click', guardarLlave);
+    hueco.querySelector('#rrLlaveProbar').addEventListener('click', probarLlave);
+    const quitar = hueco.querySelector('#rrLlaveQuitar');
+    if (quitar) quitar.addEventListener('click', () => quitarLlave(quitar));
+
+    // Enter en el campo guarda: es lo que hace cualquiera después de pegar.
+    const campo = hueco.querySelector('#rrLlaveCampo');
+    if (campo) campo.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); guardarLlave(); }
+    });
+  }
+
+  async function guardarLlave() {
+    const campo = caja.querySelector('#rrLlaveCampo');
+    const modelo = caja.querySelector('#rrLlaveModelo');
+    const btn = caja.querySelector('#rrLlaveGuardar');
+    const escrita = campo.value.trim();
+
+    // Sin llave escrita y sin cambio de modelo no hay nada que guardar: se
+    // dice, en vez de mandar una petición vacía que conteste un 400.
+    if (!escrita && modelo.value === llave.modelo) {
+      return avisarLlave('Pega una llave, o elige otro modelo.', 'error');
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Guardando…';
+    try {
+      const cuerpo = { model: modelo.value };
+      if (escrita) cuerpo.key = escrita;
+      llave = await peticion('/api/dev/llave', { method: 'PUT', body: cuerpo });
+      campo.value = '';
+      pintarLlave();
+      avisarLlave(llave.mensaje || 'Guardada.', 'ok');
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = 'Guardar';
+      avisarLlave(err.message, 'error');
+    }
+  }
+
+  // Una petición de verdad a Anthropic. Si hay algo escrito en el campo se
+  // prueba ESO, sin guardarlo: así se comprueba una llave antes de dejarla
+  // puesta.
+  async function probarLlave() {
+    const campo = caja.querySelector('#rrLlaveCampo');
+    const btn = caja.querySelector('#rrLlaveProbar');
+    const escrita = campo ? campo.value.trim() : '';
+
+    if (!escrita && !llave.puesta) {
+      return avisarLlave('Todavía no hay ninguna llave que probar.', 'error');
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Probando…';
+    try {
+      const r = await peticion('/api/dev/llave/probar', {
+        method: 'POST',
+        body: escrita ? { key: escrita } : {}
+      });
+      if (r.ok) {
+        avisarLlave(`Contestó en ${r.ms} ms con ${r.model}${r.sinGuardar
+          ? ' — y esa llave todavía no está guardada.'
+          : '.'}`, 'ok');
+      } else {
+        avisarLlave(r.error, 'error');
+      }
+    } catch (err) {
+      avisarLlave(err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Probar la conexión';
+    }
+  }
+
+  // Quitar pregunta una vez en el propio botón, igual que borrar una escuela:
+  // sin llave Robin deja de conversar, y eso no se hace de un resbalón.
+  async function quitarLlave(btn) {
+    if (btn.dataset.seguro !== 'si') {
+      btn.dataset.seguro = 'si';
+      btn.classList.add('esta-seguro');
+      btn.textContent = '¿Seguro? Robin vuelve a su modo local';
+      setTimeout(() => {
+        if (!btn.isConnected || btn.dataset.seguro !== 'si') return;
+        btn.dataset.seguro = '';
+        btn.classList.remove('esta-seguro');
+        btn.textContent = 'Quitar la llave';
+      }, 4000);
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Quitando…';
+    try {
+      llave = await peticion('/api/dev/llave', { method: 'DELETE' });
+      pintarLlave();
+      avisarLlave(llave.mensaje || 'Llave quitada.', 'ok');
+    } catch (err) {
+      btn.disabled = false;
+      btn.dataset.seguro = '';
+      btn.classList.remove('esta-seguro');
+      btn.textContent = 'Quitar la llave';
+      avisarLlave(err.message, 'error');
+    }
+  }
+
+  // Este bloque tiene su propia salida y no usa la de fabricar datos: las dos
+  // cosas se usan seguidas, y un mensaje que aparece en la otra punta de la
+  // ventana no se ve.
+  function avisarLlave(mensaje, tipo) {
+    const salida = caja && caja.querySelector('#rrLlaveSalida');
+    if (!salida) return avisar(mensaje);
+    salida.innerHTML = tipo === 'ok'
+      ? `<div class="rr-consola-ok"><strong>${escapar(mensaje)}</strong></div>`
+      : `<div class="rr-consola-error">${escapar(mensaje)}</div>`;
   }
 
   // ---- El panel de escuelas ------------------------------------------------

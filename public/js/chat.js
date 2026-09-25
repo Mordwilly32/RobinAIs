@@ -74,7 +74,12 @@ function rrCreateChat({ body, form, input, send, hello, mode, onAction, onChat, 
     const saludo = body.querySelector('.rr-chat-hello');
     if (saludo) saludo.remove();
     const el = document.createElement('div');
-    el.className = `rr-bubble ${who}${extra && extra.tutor ? ' tutor' : ''}`;
+    // Las respuestas que salen de una regla y no de una conversación se marcan:
+    // «tutor» cuando no da el resultado, «guardia» cuando cambia de tema y
+    // «respeto» cuando taparon una grosería. Se ven distintas a propósito —
+    // quien las recibe tiene que entender que no es que Robin no supiera.
+    const marca = ['tutor', 'guardia', 'respeto'].find(m => extra && extra[m]);
+    el.className = `rr-bubble ${who}${marca ? ' ' + marca : ''}`;
     // Sin retrato en cada línea: quién habla se ve por el lado y el color, y
     // repetir la cara de Robin veinte veces en una conversación la gasta. La
     // excepción es cuando no pudo contestar: ahí sí sale, con la cara larga,
@@ -130,7 +135,7 @@ function rrCreateChat({ body, form, input, send, hello, mode, onAction, onChat, 
     busy = true;
     if (send) send.disabled = true;
 
-    addBubble(message, 'user');
+    const mia = addBubble(message, 'user');
     const typing = showTyping();
 
     try {
@@ -143,7 +148,19 @@ function rrCreateChat({ body, form, input, send, hello, mode, onAction, onChat, 
         }, opciones.extra || {})
       });
       typing.remove();
-      addBubble(data.reply, 'bot', { tutor: data.mode === 'tutor' });
+
+      // Si el servidor tapó una grosería, la pregunta vuelve con los
+      // asteriscos puestos y se corrige la burbuja que ya está en pantalla.
+      // Taparla solo en el historial y dejarla escrita arriba no es taparla.
+      if (data.question && data.question !== message && mia) {
+        mia.querySelector('.txt').textContent = data.question;
+      }
+
+      addBubble(data.reply, 'bot', {
+        tutor: data.mode === 'tutor',
+        guardia: data.mode === 'guardia',
+        respeto: data.mode === 'respeto'
+      });
       // Si queda algún Robin de los que reaccionan —el del saludo, el de la
       // esquina de los juegos—, que se ponga a hablar: contestó él.
       if (typeof rrRobinHabla === 'function') rrRobinHabla();
@@ -158,7 +175,10 @@ function rrCreateChat({ body, form, input, send, hello, mode, onAction, onChat, 
       // Con qué está conectado se ve en Configuración, que es donde se cambia.
       if (mode) {
         const live = data.mode === 'live';
-        mode.textContent = live ? 'con Claude' : data.mode === 'tutor' ? 'modo tutor' : 'modo Robin';
+        mode.textContent = live ? 'con Claude'
+          : data.mode === 'tutor' ? 'modo tutor'
+          : (data.mode === 'guardia' || data.mode === 'respeto') ? 'solo estudio'
+          : 'modo Robin';
         mode.classList.toggle('live', live);
       }
       if (data.action && onAction) onAction(data.action);
@@ -178,7 +198,11 @@ function rrCreateChat({ body, form, input, send, hello, mode, onAction, onChat, 
   function load(id, messages) {
     chatId = id;
     body.innerHTML = '';
-    (messages || []).forEach(m => addBubble(m.text, m.role === 'user' ? 'user' : 'bot', { tutor: m.mode === 'tutor' }));
+    (messages || []).forEach(m => addBubble(m.text, m.role === 'user' ? 'user' : 'bot', {
+      tutor: m.mode === 'tutor',
+      guardia: m.mode === 'guardia',
+      respeto: m.mode === 'respeto'
+    }));
     scrollDown();
   }
 

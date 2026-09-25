@@ -6,9 +6,11 @@
 //
 // Y la portada se recorre a sí misma: el logo baja, el héroe se arma, los
 // cuatro pasos salen uno detrás de otro como un camino, las materias hacen pop
-// una por una, la conversación con Robin se cuenta despacio, y al final se
-// queda en «¿Listo para aprender con Robin?». Un minuto después vuelve arriba
-// y empieza otra vez, sin parar, hasta que alguien pulse Esc.
+// una por una, la conversación con Robin se cuenta despacio, pasa por los
+// planes, pide el voto, da las gracias a Fusalmo y a NetherHost —los dos en la
+// misma franja, partida en diagonal— y al final se queda en «¿Listo para
+// aprender con Robin?». Un par de minutos después vuelve arriba y empieza otra
+// vez, sin parar, hasta que alguien pulse Esc.
 //
 // Para qué sirve: una exposición con la pantalla puesta de fondo, una
 // grabación, o enseñar la portada entera sin ir tocando la rueda del ratón.
@@ -24,6 +26,11 @@
 // todas, llevar la página a cada sitio, y volver a encenderlas en el orden y
 // al ritmo que se quiere. Si mañana cambia una animación de la portada, la
 // demostración la enseña ya cambiada.
+//
+// Lo único que sí es de aquí es el encuadre: cada parada se enseña ENTERA,
+// encogiendo la sección si no cabe en la ventana (ver plantar()). Mirando de
+// cerca da igual que un título se quede fuera de cuadro —se baja la rueda y
+// ya— pero esto se mira desde el fondo de un salón, y ahí no hay rueda.
 // ---------------------------------------------------------------------------
 
 (function () {
@@ -39,7 +46,7 @@
 
   // Lo que dura una vuelta entera, más o menos. Solo lo usa la barra de abajo:
   // el guion no se mide con un reloj, se mide paso a paso.
-  const DURA = 77000;
+  const DURA = 100000;
 
   // El cartel de arriba dice dos cosas —esto es una demostración, y se sale
   // por aquí— y las dos se leen de un vistazo. Pasados cinco segundos ya solo
@@ -128,32 +135,72 @@
     return el.getBoundingClientRect().top + window.scrollY - aire;
   }
 
-  // Deja algo centrado en la pantalla. Es la posición por defecto de la
-  // cámara: casi todo lo que enseña la demostración se mira de una pieza —la
-  // conversación, los tres planes, la banda roja del final— y dejarlo pegado
-  // arriba con media pantalla vacía debajo se ve como un scroll que se quedó
-  // a medias, no como una cámara que se paró donde quería.
+  // ---- Que todo quepa en la pantalla ---------------------------------------
   //
-  // Con dos selectores centra el bloque entero que va del primero al segundo:
-  // así los cuatro pasos y la cinta de materias, que son dos cosas pero se
-  // cuentan juntas, caben centradas sin tener que elegir una.
-  function centro(sel, hasta) {
-    const el = document.querySelector(sel);
-    if (!el) return window.scrollY;
+  // Una sección que mide más que la ventana se enseñaba a trozos: la cámara se
+  // plantaba en el medio y el título quedaba arriba fuera de cuadro, o el
+  // botón abajo. Mirando de cerca no se nota —se baja la rueda y ya— pero esto
+  // se mira desde el fondo de un salón y ahí no hay rueda que bajar.
+  //
+  // Lo que se hace es lo mismo que haría alguien con un proyector: si la
+  // lámina no cabe, se aleja. La sección se encoge lo justo para caber entera
+  // y se planta centrada. Nada se reescribe ni se recorta — es un zoom, así
+  // que lo que se ve es exactamente la portada de siempre, más pequeña.
+  //
+  // Se encoge el .rb-wrap de dentro y NO la sección: así el fondo (el negro de
+  // «¿Cómo funciona?», la foto de Fusalmo) sigue llenando la pantalla de borde
+  // a borde, que es lo que le da el aire. Y hay un suelo —nada baja del 55 %—
+  // porque una sección encogida hasta lo ilegible no es mejor que una cortada.
 
-    const r = el.getBoundingClientRect();
-    let arriba = r.top;
+  const AIRE = 44;          // el respiro de arriba y de abajo, en píxeles
+  const ZOOM_MINIMO = 0.55;
+
+  function cajaDe(seccion) {
+    return seccion.querySelector(':scope > .rb-wrap') || seccion.querySelector('.rb-wrap') || seccion;
+  }
+
+  function soltarEncuadre(caja) {
+    caja.classList.remove('rb-cine-encuadre');
+    caja.style.removeProperty('--rb-cine-zoom');
+  }
+
+  // Planta la cámara delante de una sección, encogiéndola si hace falta.
+  // Sustituye al irA(centro(...)) de antes en todas las paradas donde lo que
+  // se enseña es un bloque entero.
+  async function plantar(sel, ms, hasta) {
+    const seccion = document.querySelector(sel);
+    if (!seccion) return true;
+    const caja = cajaDe(seccion);
+
+    // Medir SIEMPRE en tamaño natural. Si quedara el zoom de la vuelta
+    // anterior puesto, cada vuelta lo encogería otro poco y a la quinta la
+    // portada sería un sello.
+    soltarEncuadre(caja);
+    void caja.offsetHeight;
+
+    const r = caja.getBoundingClientRect();
+    const arriba = r.top + window.scrollY;
     let alto = r.height;
 
+    // Con dos selectores se encuadra el bloque que va del primero al segundo.
     if (hasta) {
       const fin = document.querySelector(hasta);
-      if (fin) {
-        const rf = fin.getBoundingClientRect();
-        alto = Math.max(alto, rf.bottom - arriba);
-      }
+      if (fin) alto = Math.max(alto, fin.getBoundingClientRect().bottom + window.scrollY - arriba);
     }
 
-    return arriba + window.scrollY - Math.max(0, (window.innerHeight - alto) / 2);
+    const cabe = window.innerHeight - AIRE * 2;
+    const zoom = alto > cabe ? Math.max(ZOOM_MINIMO, cabe / alto) : 1;
+    if (zoom < 1) {
+      caja.style.setProperty('--rb-cine-zoom', zoom.toFixed(4));
+      caja.classList.add('rb-cine-encuadre');
+    }
+
+    // El zoom sale del borde de arriba (transform-origin: top center), así que
+    // lo que se ve ocupa alto * zoom a partir de ahí. Eso es lo que hay que
+    // centrar, no el alto de antes de encoger.
+    const visible = alto * zoom;
+    await irA(arriba - Math.max(AIRE, (window.innerHeight - visible) / 2), ms);
+    return true;
   }
 
   // ---- Apagar y encender la portada ---------------------------------------
@@ -289,6 +336,10 @@
     if (barra) { barra.remove(); barra = null; }
     if (telon) { telon.remove(); telon = null; }
 
+    // Las secciones que se habían encogido para caber vuelven a su tamaño: la
+    // portada se queda exactamente como la deja el scroll normal.
+    document.querySelectorAll('.rb-cine-encuadre').forEach(soltarEncuadre);
+
     // La cinta de materias y la conversación vuelven a su ritmo.
     const cinta = document.querySelector('.rb-marquee');
     if (cinta) cinta.classList.remove('rb-cine-pop');
@@ -366,14 +417,43 @@
     if (!(await conversacion(n))) return;
 
     // ---- 6. Los precios ----------------------------------------------------
+    // Los tres planes más la banda de escuelas más la nota legal no caben en
+    // una pantalla de portátil: plantar() los encoge hasta que sí.
     encender('.rb-prices .rb-section-head [data-anim]', 180);
-    await irA(centro('.rb-price-grid'), 2400);
+    await plantar('.rb-prices', 2400);
     encender('.rb-prices [data-anim]', 180);
     if (!(await esperar(4200, n))) return;
 
-    // ---- 8. El final, y ahí se queda --------------------------------------
+    // ---- 7. El voto --------------------------------------------------------
+    // Va justo después de los precios y antes del cierre, igual que en la
+    // portada. Es lo único de toda la demostración que pide algo, y se le
+    // dejan cinco segundos largos: hay un nombre que leer y recordar.
+    await plantar('#vota', 2000);
+    encender('#vota [data-anim]', 170);
+    if (!(await esperar(5400, n))) return;
+
+    // ---- 8. Gracias a, con los dos aliados ---------------------------------
+    //
+    // Una sola parada de cámara para las dos cosas —el título y la franja
+    // partida— porque juntas caben en una pantalla, y moverse entre ellas
+    // sería un viaje de cuarenta píxeles que solo se nota como un tirón.
+    //
+    // Lo que sí va en dos tiempos es el encendido: primero el «Gracias a»,
+    // que es la frase que dice de qué va esto, y un par de segundos después
+    // los dos lados. Así se lee en el orden en que está escrito, aunque la
+    // cámara ya no se mueva.
+    await plantar('#gracias', 2200, '#aliados');
+    encender('#gracias .rb-section-head [data-anim]', 170);
+    if (!(await esperar(2600, n))) return;
+
+    // Son dos historias a la vez, una a cada lado del corte, y el código del
+    // descuento es lo que alguien va a querer apuntar: se le da tiempo.
+    encender('#aliados [data-anim]', 220);
+    if (!(await esperar(8600, n))) return;
+
+    // ---- 10. El final, y ahí se queda --------------------------------------
     const banda = document.querySelector('.rb-cta-band');
-    await irA(centro('.rb-cta-band'), 2400);
+    await plantar('.rb-cta', 2400);
     if (banda) { banda.classList.add('in', 'rb-cine-mira'); }
     if (!(await esperar(6500, n))) return;
     if (banda) banda.classList.remove('rb-cine-mira');
@@ -435,7 +515,7 @@
   // aquí. Centrar solo los pasos dejaba el «¿Cómo funciona?» fuera de cuadro,
   // que es la frase que explica lo que se está viendo.
   async function camino(n) {
-    await irA(centro('.rb-how .rb-section-head', '.rb-marquee'), 2200);
+    await plantar('.rb-how', 2200);
     if (!(await esperar(500, n))) return false;
 
     encender('.rb-how .rb-section-head [data-anim]', 140);
@@ -543,7 +623,10 @@
         if (!(await esperar(600, n))) return false;
       }
 
-      await irA(centro('.rb-panel.on .rb-chat'), viaje);
+      // Se encuadra la sección entera —título, pestañas y conversación— y no
+      // solo el chat: la pestaña que está puesta es la mitad de lo que se está
+      // contando, y fuera de cuadro no se entiende de qué va la charla.
+      await plantar('#escuelas', viaje);
       // El título y las pestañas se encienden al llegar, no antes: si no, la
       // cámara aterriza sobre una sección que ya terminó de entrar.
       encender('#escuelas [data-anim]', 160);

@@ -49,6 +49,12 @@ function rrMountGames(container, { onUsage, standalone = false } = {}) {
   // Vive colgada del <body>, no del panel: así no hereda el ancho, el relleno
   // ni el scroll de la página que hay debajo.
 
+  // En /-/minijuegos la ventana de jugar no se cierra: es la pantalla entera y
+  // detrás no hay nada a lo que volver. Sin el botón de salir y sin el Escape
+  // que lo hacía, que es lo mismo por teclado. Ver public/js/enfoque.js.
+  const sinSalida = typeof rrEnfocado === 'function' &&
+                    rrEnfocado() && rrEnfocado().seccion === 'games';
+
   function abrirVentana() {
     if (arcade) return arcade;
 
@@ -56,7 +62,8 @@ function rrMountGames(container, { onUsage, standalone = false } = {}) {
     arcade.className = 'rr-arcade';
     arcade.innerHTML = `
       <header class="rr-arcade-top">
-        <button class="rr-arcade-x" type="button" data-salir>← Salir</button>
+        ${sinSalida ? '<span class="rr-arcade-x rr-arcade-x-mudo">🎮</span>'
+                    : '<button class="rr-arcade-x" type="button" data-salir>← Salir</button>'}
         <div class="rr-arcade-title" id="rrArcadeTitle"></div>
         <div class="rr-arcade-streak" id="rrStreak"></div>
       </header>
@@ -81,13 +88,14 @@ function rrMountGames(container, { onUsage, standalone = false } = {}) {
 
   function alPulsarEscape(e) {
     if (e.key !== 'Escape' || !arcade) return;
-    // Dentro de un reto, Escape vuelve a la galería; en la galería, cierra.
+    // Dentro de un reto, Escape vuelve a la galería; en la galería, cierra —
+    // salvo en la pantalla de solo minijuegos, donde no hay nada que cerrar.
     if (jugando) { jugando = null; reto = null; renderGalleryArcade(); }
-    else cerrarVentana();
+    else if (!sinSalida) cerrarVentana();
   }
 
   function cerrarVentana() {
-    if (!arcade) return;
+    if (!arcade || sinSalida) return;
     document.removeEventListener('keydown', alPulsarEscape);
     window.removeEventListener('resize', colocarChatDelReto);
     arcade.remove();
@@ -273,8 +281,15 @@ function rrMountGames(container, { onUsage, standalone = false } = {}) {
   // en cuenta quien lo usa:
   //
   //   si el reto deja sitio    debajo de él, donde están las preguntas
-  //   si no lo deja (armar     al lado, debajo de Robin, que ahí siempre
-  //   un programa, por ej.)    queda hueco bajo el pájaro
+  //   si no lo deja (armar     al lado, ARRIBA de Robin
+  //   un programa, por ej.)
+  //
+  // Arriba y no debajo, que es donde estaba antes. Puesta debajo, la caja
+  // tenía que quitarle alto al pájaro para caber, y Robin se encogía a poco
+  // más de la mitad justo en el momento en que alguien se había atascado y
+  // había ido a buscarlo. No hacía ninguna falta: arriba del todo la caja cabe
+  // igual, se lee antes —es donde se está escribiendo— y Robin se queda del
+  // tamaño de siempre.
   //
   // Se decide midiendo después de pintar cada reto, no por el nombre del
   // juego: el mismo juego tiene retos cortos y retos largos.
@@ -345,11 +360,13 @@ function rrMountGames(container, { onUsage, standalone = false } = {}) {
     const destino = alLado ? buddy : play;
 
     chatReto.classList.toggle('beside', alLado);
-    // Con la caja al lado, Robin deja de llevarse todo el alto: si no, la
-    // empuja fuera de su columna y se le monta encima.
+    // La columna de Robin sabe que tiene una caja encima: lo único que cambia
+    // es que empieza a permitir scroll si el conjunto no cupiera. El pájaro no
+    // se toca — ver la nota de arriba.
     buddy.classList.toggle('with-chat', alLado);
 
-    if (alLado) destino.appendChild(chatReto);
+    // Arriba del todo de su columna, antes que el pájaro.
+    if (alLado) destino.insertBefore(chatReto, destino.firstChild);
     else if (acciones) play.insertBefore(chatReto, acciones);
     else play.appendChild(chatReto);
   }

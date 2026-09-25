@@ -48,14 +48,22 @@
      entera en alto. Antes era overflow: hidden porque las dos columnas de
      arriba siempre cabian. */
   overflow-y: auto; min-height: 0;
+  /* Y las filas miden lo que mide su contenido. Sin esto, align-content vale
+     stretch y reparte el alto de la ventana a partes iguales entre las tres:
+     la de arriba se queda corta, la lista de cuentas se sale por abajo y se
+     pinta encima del bloque siguiente. */
+  align-content: start;
 }
 @media (max-width: 760px) { .rr-consola-body { grid-template-columns: 1fr; } }
 
 .rr-consola-bloque {
   padding: 18px 20px; display: flex; flex-direction: column;
   /* min-width: 0 para que las columnas respeten su 1.25fr / 1fr: sin esto,
-     un correo largo sin espacios estira su columna y aplasta la otra. */
-  min-height: 0; min-width: 0;
+     un correo largo sin espacios estira su columna y aplasta la otra.
+     El alto no se toca: cada bloque mide lo que mide su contenido y el cuerpo,
+     que rueda, se encarga del resto. Con min-height: 0 el grid les quitaba
+     altura y lo de dentro se dibujaba encima del bloque siguiente. */
+  min-width: 0;
 }
 .rr-consola-bloque + .rr-consola-bloque { border-left: 1px solid #2C3038; }
 @media (max-width: 760px) {
@@ -72,7 +80,11 @@
 }
 .rr-consola-buscar:focus { outline: none; border-color: #4C90F0; }
 
-.rr-consola-lista { flex: 1; min-height: 120px; overflow-y: auto; margin: 0 -6px; padding: 0 6px; }
+/* La lista se queda con lo que le deje el bloque y rueda por dentro. Su alto
+   mínimo no se pide aquí sino en el bloque (ver más abajo): como la lista es
+   un contenedor que rueda, no cuenta para lo que mide el bloque, y pedirlo
+   aquí solo conseguía que se saliera por abajo. */
+.rr-consola-lista { flex: 1; min-height: 0; overflow-y: auto; margin: 0 -6px; padding: 0 6px; }
 .rr-consola-vacio { padding: 26px 10px; text-align: center; font-size: 13px; color: #6E7684; line-height: 1.6; }
 
 .rr-consola-cuenta {
@@ -279,3 +291,113 @@
 .rr-consola-esc-borrar:hover { background: #3A2229; color: #F3C2C9; }
 .rr-consola-esc-borrar.esta-seguro { background: #B3303F; border-color: #B3303F; color: #fff; }
 .rr-consola-esc-borrar:disabled { background: #2C3038; border-color: #2C3038; color: #7E8693; cursor: default; }
+
+/* =============================================================================
+   La llave de Robin
+   =============================================================================
+   Va a lo ancho, como el panel de escuelas: una llave de API pegada en media
+   columna se corta y no se ve entera ni cuando se escribe. */
+
+.rr-consola-llave-estado {
+  padding: 10px 12px; margin-bottom: 12px;
+  background: #0F1115; border: 1px solid #2C3038; border-radius: 9px;
+}
+.rr-consola-llave-estado strong { display: block; font-size: 13.5px; color: #9AA3B2; }
+.rr-consola-llave-estado small { display: block; font-size: 12px; color: #6E7684; margin-top: 3px; }
+/* Con llave puesta se ve de un vistazo, sin leer: es el estado que importa. */
+.rr-consola-llave-estado.esta-puesta { border-color: #2F5C3F; background: #101A14; }
+.rr-consola-llave-estado.esta-puesta strong { color: #9FDFB4; }
+.rr-consola-llave-estado.esta-puesta small { color: #7E9A88; }
+
+.rr-consola-llave-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; }
+@media (max-width: 700px) { .rr-consola-llave-grid { grid-template-columns: 1fr; } }
+
+/* El <select> del modelo, con la misma pinta que los campos de al lado: sin
+   esto se cuela el desplegable gris del sistema en una ventana oscura. */
+.rr-consola-llave-grid select {
+  width: 100%; box-sizing: border-box;
+  background: #0F1115; color: #E7E9EE;
+  border: 1px solid #2C3038; border-radius: 8px;
+  padding: 9px 11px; font-size: 13.5px; font-family: inherit;
+}
+.rr-consola-llave-grid select:focus { outline: none; border-color: #4C90F0; }
+.rr-consola-llave-grid input:disabled,
+.rr-consola-llave-grid select:disabled { opacity: .5; cursor: not-allowed; }
+
+/* La llave se escribe con espacio de sobra: una de Anthropic pasa de cien
+   caracteres y verla a trozos no ayuda a saber si se pegó entera. */
+.rr-consola-llave-grid input[type="password"] { letter-spacing: .04em; }
+
+.rr-consola-llave-botones { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+/* Probar no cambia nada; guardar sí. Por eso el de probar va apagado: los dos
+   botones iguales invitan a apretar el que no era. */
+.rr-consola-btn-suave { background: #2C3038; color: #C9D1DC; }
+.rr-consola-btn-suave:hover { background: #3A404B; }
+
+/* El bloque de cuentas pide su sitio: cabecera, buscador y unos 150px de
+   lista. Lo pide él porque la lista, al rodar por dentro, no cuenta para lo
+   que mide el bloque; sin esto la fila del grid sale corta y la lista se
+   dibuja por fuera, encima del bloque siguiente. */
+.rr-consola-body > .rr-consola-bloque:first-child { min-height: 334px; }
+
+/* Los botones de aquí van en fila y del ancho de su texto. .rr-consola-btn es
+   width: 100% porque en las otras columnas va uno solo y ocupa el ancho. */
+.rr-consola-llave-botones .rr-consola-btn { width: auto; }
+
+/* =============================================================================
+   La lupa
+   =============================================================================
+   Sube el tamaño de lo que dice Robin y del enunciado de los minijuegos. Lo de
+   verdad pasa en style.css, con la variable --rr-lupa; aquí están el −, el + y
+   la cifra de en medio.
+
+   Va arriba del todo de la consola a propósito: es lo que se toca con la sala
+   ya llena, y buscarlo debajo de la lista de cuentas —que es lo largo— sería
+   justo al revés de como se usa.
+   ============================================================================= */
+
+.rr-consola-bloque-lupa { border-top: none; }
+
+.rr-lupa { display: flex; align-items: center; gap: 12px; }
+
+.rr-lupa-btn {
+  flex: 0 0 auto; width: 40px; height: 40px;
+  /* Centrado con grid y no con el line-height: el signo menos se apoya en la
+     linea base y con line-height se quedaba pegado al suelo del boton. */
+  display: grid; place-items: center;
+  font-size: 22px; font-family: inherit; line-height: 1;
+  background: #0F1115; color: #E7E9EE;
+  border: 1px solid #2C3038; border-radius: 10px; cursor: pointer;
+  transition: background .13s, border-color .13s;
+}
+.rr-lupa-btn:hover:not(:disabled) { background: #232730; border-color: #4C90F0; }
+.rr-lupa-btn:disabled { color: #4A5160; cursor: default; }
+
+.rr-lupa-medida { flex: 1; min-width: 0; }
+.rr-lupa-medida strong {
+  display: block; font-size: 17px; font-variant-numeric: tabular-nums;
+  color: #E7E9EE; margin-bottom: 6px;
+}
+.rr-lupa-barra {
+  display: block; height: 5px; border-radius: 3px;
+  background: #2C3038; overflow: hidden;
+}
+.rr-lupa-barra i {
+  display: block; height: 100%; width: 0;
+  background: #4C90F0; border-radius: 3px;
+  transition: width .18s ease;
+}
+
+.rr-lupa-normal { width: auto; flex: 0 0 auto; }
+
+/* La muestra. El texto que la lupa agranda queda detrás de la consola, tapado
+   por ella justo mientras se ajusta: sin esta frase habría que cerrar y volver
+   a abrir para ver si quedó bien, y eso con gente esperando no se hace. El
+   tamaño se lo pone consola.js, con el mismo número de partida que una
+   respuesta de Robin. */
+.rr-lupa-muestra {
+  margin: 16px 0 0; padding: 14px 16px;
+  background: #0F1115; border: 1px solid #2C3038; border-radius: 10px;
+  color: #C7CDD8; line-height: 1.6;
+}

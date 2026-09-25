@@ -47,7 +47,22 @@ const DB_FILE = path.join(DATA_DIR, 'db.json');
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || '').trim();
 const SUPABASE_KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
-const USA_SUPABASE = Boolean(SUPABASE_URL && SUPABASE_KEY);
+
+// El interruptor para trabajar sin red: con RR_SOLO_LOCAL=1 la base es
+// data/db.json pase lo que pase, aunque el .env tenga las dos variables de
+// Supabase puestas.
+//
+// Existe porque el caso de verdad es este: alguien baja el proyecto, lo
+// arranca con `npm start` y quiere que TODO se quede en su computadora —sin
+// tocar la base de la nube, que es la de verdad, y sin tener que vaciar el
+// .env y acordarse luego de volver a llenarlo.
+const SOLO_LOCAL = process.env.RR_SOLO_LOCAL === '1';
+
+const USA_SUPABASE = Boolean(SUPABASE_URL && SUPABASE_KEY) && !SOLO_LOCAL;
+
+if (SOLO_LOCAL && SUPABASE_URL && SUPABASE_KEY) {
+  console.log('[roboRobin] RR_SOLO_LOCAL=1: se guarda en data/db.json y no se toca Supabase.');
+}
 
 // Cada colección del caché y la tabla donde vive.
 const TABLAS = {

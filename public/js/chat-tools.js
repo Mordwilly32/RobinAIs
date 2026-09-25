@@ -156,6 +156,13 @@ function rrMountChatTools(chat, { form, input, body, user }) {
   // servidor, ver promptActividad en routes/ai.js). Aquí solo se dice.
   const conClave = ['teacher', 'admin', 'subdirector', 'secretary'].includes(user && user.role);
 
+  // A un estudiante no se le ofrece traducir: un documento traducido entero es
+  // la tarea de inglés hecha, y Robin no da respuestas. El servidor lo niega
+  // igual (ver /api/ai/tool en routes/ai.js) — esto solo evita enseñar un
+  // botón que va a decir que no.
+  const modos = Object.values(RR_TOOLS).filter(t =>
+    !(t.id === 'translate' && user && user.role === 'student'));
+
   // Montar dos veces sobre el mismo compositor dejaría dos selectores, dos
   // campos de archivo y dos manejadores de envío — y el mensaje saldría por
   // duplicado. Se limpia lo que hubiera antes de poner el nuevo.
@@ -170,7 +177,7 @@ function rrMountChatTools(chat, { form, input, body, user }) {
         <span class="ic">✨</span><span class="lab">Robin</span><span class="caret">▾</span>
       </button>
       <div class="rr-tool-menu" id="rrToolMenu" hidden>
-        ${Object.values(RR_TOOLS).map(t => `
+        ${modos.map(t => `
           <button type="button" class="rr-tool-opt ${t.id === 'chat' ? 'on' : ''}" data-tool="${t.id}">
             <span class="ic">${t.ic}</span>
             <span><strong>${t.label}</strong><small>${rrEscapeHtml(t.note)}</small></span>

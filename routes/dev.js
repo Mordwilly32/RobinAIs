@@ -33,6 +33,7 @@ const path = require('path');
 const express = require('express');
 const router = express.Router();
 const db = require('../src/db.js');
+const llave = require('../src/llave.js');
 const { ROLE_LABEL } = require('../src/permissions.js');
 
 function config() {
@@ -198,6 +199,106 @@ router.post('/login', (req, res) => {
 
   const publico = db.publicUser(user);
   res.json({ user: publico });
+});
+
+// ---- La llave de Robin -----------------------------------------------------
+//
+// Pegar la llave de Anthropic aquí y que Robin conteste con Claude al
+// instante: sin parar el servidor, sin abrir config.json a mano y sin tocar
+// el .env. Es lo que le faltaba a un roboRobin recién bajado y arrancado con
+// `npm start` — el atajo, la llave, probar, listo.
+//
+// Tres reglas, y ninguna es de adorno:
+//
+//   · Solo desde esta computadora. Aunque la consola esté abierta con la
+//     contraseña, la llave no se pone desde fuera: se exige que la petición
+//     venga de localhost. Una llave de API paga con la tarjeta de alguien.
+//   · No pasa por la base de datos. Se escribe en config.json, que está en el
+//     .gitignore, y nunca sube a Supabase. Ver src/llave.js.
+//   · No vuelve entera al navegador. De vuelta solo viaja una pista, del
+//     estilo «sk-ant-…4f2a», que sirve para reconocerla y para nada más.
+
+// Localhost de verdad: la petición entró por el bucle local de esta máquina.
+// Con IPv4 mapeada a IPv6 la dirección llega como ::ffff:127.0.0.1, por eso se
+// le quita el prefijo antes de mirarla.
+function esLocal(req) {
+  // En la versión sin servidor de GitHub Pages no hay socket ni red: la
+  // petición nace y muere dentro de la pestaña, y la llave que se escriba ahí
+  // no sale del navegador de quien la escribió. Ahí todo es local por
+  // definición. Es la misma variable que ya abre la consola en esa versión.
+  if (process.env.RR_CONSOLA_ABIERTA === '1') return true;
+
+  const ip = String(req.ip || (req.socket && req.socket.remoteAddress) || '');
+  const pelada = ip.replace(/^::ffff:/, '');
+  return pelada === '::1' || pelada === '127.0.0.1' || pelada.startsWith('127.');
+}
+
+const SOLO_LOCAL = {
+  error: 'La llave solo se pone desde la computadora donde corre el servidor (localhost).'
+};
+
+router.get('/llave', (req, res) => {
+  res.json({ ...llave.estado(), local: esLocal(req) });
+});
+
+router.put('/llave', (req, res) => {
+  if (!esLocal(req)) return res.status(403).json(SOLO_LOCAL);
+
+  const body = req.body || {};
+  const cambios = {};
+  if (body.key !== undefined) cambios.key = body.key;
+  if (body.model !== undefined) cambios.model = body.model;
+  if (!Object.keys(cambios).length) {
+    return res.status(400).json({ error: 'No mandaste nada que guardar.' });
+  }
+
+  let resultado;
+  try {
+    resultado = llave.guardar(cambios);
+  } catch (err) {
+    // El caso real: la carpeta es de solo lectura, o config.json lo tiene
+    // abierto otro programa. Decirlo tal cual ahorra media hora de misterio.
+    return res.status(500).json({ error: `No se pudo escribir config.json: ${err.message}` });
+  }
+  if (resultado.error) return res.status(400).json({ error: resultado.error });
+
+  res.json({
+    ...resultado.estado,
+    local: true,
+    mensaje: cambios.key === ''
+      ? 'Llave quitada. Robin vuelve a su modo local.'
+      : 'Guardada en config.json. Ya vale, sin reiniciar el servidor.'
+  });
+});
+
+router.delete('/llave', (req, res) => {
+  if (!esLocal(req)) return res.status(403).json(SOLO_LOCAL);
+
+  let resultado;
+  try {
+    resultado = llave.quitar();
+  } catch (err) {
+    return res.status(500).json({ error: `No se pudo escribir config.json: ${err.message}` });
+  }
+  if (resultado.error) return res.status(400).json({ error: resultado.error });
+
+  res.json({ ...resultado.estado, local: true, mensaje: 'Llave quitada. Robin vuelve a su modo local.' });
+});
+
+// Una petición de verdad a Anthropic, la más pequeña posible. Es lo único que
+// contesta de verdad «¿sirve esta llave?»; mirarle la forma al texto sería
+// adivinar. Se puede probar una llave sin haberla guardado todavía.
+router.post('/llave/probar', async (req, res) => {
+  const estado = llave.estado();
+  const escrita = String((req.body || {}).key || '').trim();
+
+  if (escrita && !esLocal(req)) return res.status(403).json(SOLO_LOCAL);
+
+  const config = llave.leerConfig();
+  const resultado = await llave.probar(escrita || config.anthropicApiKey, config.aiModel);
+  // Siempre 200: que la llave no sirva es una respuesta, no un fallo del
+  // servidor, y la pantalla la dibuja igual.
+  res.json({ ...resultado, sinGuardar: Boolean(escrita), pista: estado.pista });
 });
 
 // ---- Clases de mentira para que nada se vea vacío --------------------------

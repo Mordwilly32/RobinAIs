@@ -501,10 +501,269 @@ body.rb-page {
 .rb-price-note a { color: var(--rb-red); font-weight: 700; text-decoration: underline; }
 
 /* =============================================================================
+   Vota por Orbital Kronnos
+   =============================================================================
+   Banda oscura, y a propósito: viene después de los precios (blanco) y antes
+   de la llamada final (roja). Tres bandas seguidas del mismo color se leen
+   como una sola cosa larguísima; alternando, cada una se ve como lo que es.
+
+   En DOS columnas y no centrada. Centrada, la banda medía 1240 px de ancho
+   para una frase de sesenta caracteres: quedaba un pasillo vacío a cada lado
+   y el botón, chiquito, perdido en medio de todo ese negro. Ahora el ancho se
+   usa —el porqué a la izquierda, la papeleta a la derecha— y el botón ocupa
+   su columna entera, que es lo que hace que se vea como la única cosa que hay
+   que pulsar aquí.
+   ============================================================================= */
+
+.rb-vota { padding: 40px 0 34px; }
+.rb-vota-band {
+  position: relative; overflow: hidden;
+  display: grid; grid-template-columns: 1.35fr .85fr; align-items: center; gap: 48px;
+  background: var(--rb-ink-2); border-radius: 34px;
+  padding: 56px 52px; color: rgba(255, 255, 255, .8);
+  box-shadow: 0 30px 70px rgba(20, 20, 20, .22);
+}
+/* El resplandor rojo de detrás. Sin él la banda es un rectángulo negro; con
+   él parece que algo se está celebrando dentro, que es el tono que toca.
+   Corrido a la izquierda, detrás del titular, para no competir con el rojo
+   del botón. */
+.rb-vota-band::before {
+  content: ""; position: absolute; left: 6%; top: -60%;
+  width: 60vmin; height: 60vmin; margin-left: -30vmin;
+  border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(255, 46, 46, .34), transparent 68%);
+}
+.rb-vota-dicho, .rb-papeleta { position: relative; }
+
+.rb-vota-band h2 { color: #fff; font-size: clamp(30px, 3.8vw, 50px); margin: 18px 0 14px; }
+.rb-vota-band p { font-size: 17px; line-height: 1.7; margin: 0; }
+
+/* La pastilla de sección, sobre fondo oscuro. */
+.rb-tag-onink { background: rgba(255, 46, 46, .16); color: #FF7A6E; }
+
+.rb-vota-puntos { list-style: none; padding: 0; margin: 22px 0 0; }
+.rb-vota-puntos li {
+  display: flex; gap: 11px; align-items: flex-start;
+  font-size: 15px; line-height: 1.6; margin-bottom: 11px;
+  color: rgba(255, 255, 255, .72);
+}
+.rb-vota-puntos i {
+  flex: 0 0 auto; font-style: normal; font-weight: 800; color: var(--rb-red);
+}
+
+/* La papeleta: la caja de la derecha. Es una tarjeta dentro de la banda, un
+   punto más clara, para que el botón no flote sobre el negro sino que tenga
+   dónde apoyarse. */
+.rb-papeleta {
+  background: rgba(255, 255, 255, .06);
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 24px; padding: 30px 26px; text-align: center;
+}
+.rb-papeleta-ic {
+  display: flex; align-items: center; justify-content: center;
+  width: 58px; height: 58px; margin: 0 auto 16px;
+  border-radius: 18px; color: var(--rb-red);
+  background: rgba(255, 46, 46, .14);
+}
+.rb-papeleta-ic svg { width: 28px; height: 28px; }
+.rb-papeleta strong { display: block; color: #fff; font-size: 20px; letter-spacing: -.02em; }
+.rb-papeleta p { font-size: 14.5px; line-height: 1.6; margin: 9px 0 22px; color: rgba(255, 255, 255, .62); }
+.rb-papeleta small { display: block; margin-top: 14px; font-size: 12.5px; color: rgba(255, 255, 255, .45); }
+
+.rb-btn-lg { padding: 17px 32px; font-size: 16.5px; }
+.rb-btn-block { display: flex; width: 100%; }
+
+@media (max-width: 900px) {
+  .rb-vota-band { grid-template-columns: 1fr; gap: 32px; padding: 44px 28px; }
+  .rb-vota-band::before { left: 50%; }
+}
+@media (max-width: 620px) {
+  .rb-vota-band { padding: 36px 22px; border-radius: 26px; }
+}
+
+/* =============================================================================
+   Gracias a — la franja partida en diagonal
+   =============================================================================
+   Un solo título y, debajo, los dos aliados repartidos en una franja cortada
+   al bies: la foto de Fusalmo baja por la izquierda, el negro de NetherHost
+   sube por la derecha, y donde se cruzan no hay un borde sino un
+   desvanecido — se tocan sin que ninguno recorte al otro.
+
+   Antes esto eran TRES secciones seguidas (dos tarjetitas con los logos y una
+   historia entera para cada uno): el mismo agradecimiento contado tres veces
+   y tres pantallas de scroll para llegar al final.
+
+   Cómo está hecho, y por qué así:
+
+     · el fondo va en su propia capa, detrás de todo. El texto se maqueta en
+       dos columnas normales encima, así no hay ni una letra recortada ni
+       ninguna caja rara que mantener cuadrada.
+     · el corte NO es un clip-path sino una máscara con degradado. Un
+       clip-path da un filo duro y dentado; la máscara da el desvanecido que
+       hace falta, y de paso se dibuja igual sea cual sea el alto.
+     · encima, una línea fina con el MISMO ángulo, para que el corte se vea y
+       no parezca que la foto se acabó sin más.
+
+   El ángulo vive en --rb-corte y lo comparten la máscara y la línea: si se
+   cambia, las dos giran juntas. En pantalla angosta pasa a 180deg y el corte
+   se vuelve horizontal, que es lo único que tiene sentido en una columna.
+   ============================================================================= */
+
+.rb-gracias { padding: 64px 0 0; }
+.rb-gracias .rb-section-head { margin-bottom: 44px; }
+
+.rb-duo {
+  --rb-corte: 104deg;
+  position: relative; overflow: hidden;
+  background: var(--rb-ink-2);
+  color: rgba(255, 255, 255, .78);
+  /* Se aísla: sin esto, el desvanecido de abajo —que está dentro de la franja
+     pero por encima en el orden de pintado— se salía a tapar lo de la sección
+     siguiente, y lo primero que hay ahí es el Robin que se asoma por encima de
+     la banda roja. Le lavaba la cabeza al pájaro. Con un contexto de apilado
+     propio, la franja entera se pinta como un bloque en su sitio y lo que
+     viene después le pasa por encima, como debe ser. */
+  isolation: isolate;
+}
+
+/* La foto de Fusalmo, con su azul encima, disolviéndose en diagonal hacia el
+   negro de NetherHost. */
+.rb-duo-fondo {
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    linear-gradient(var(--rb-corte), rgba(11, 27, 58, .66), rgba(11, 27, 58, .46)),
+    url("/images/aliados/fusalmo.jpg") center / cover no-repeat;
+  -webkit-mask-image: linear-gradient(var(--rb-corte), #000 30%, transparent 58%);
+          mask-image: linear-gradient(var(--rb-corte), #000 30%, transparent 58%);
+}
+
+/* La línea del corte, a la mitad del desvanecido. Dos capas: un filo claro de
+   un píxel y, detrás, un halo ancho y tenue que lo despega del fondo. */
+.rb-duo-corte {
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    linear-gradient(var(--rb-corte),
+      transparent calc(44% - 1px), rgba(255, 255, 255, .34) 44%, transparent calc(44% + 1px)),
+    linear-gradient(var(--rb-corte),
+      transparent 36%, rgba(255, 255, 255, .07) 44%, transparent 52%);
+}
+
+/* Los bordes de arriba y de abajo, desvanecidos hacia el blanco de la pagina.
+   Sin esto la franja entra y sale de golpe, con dos rayas horizontales que
+   pelean con la diagonal de dentro — que es la unica linea que aqui tiene que
+   verse. */
+.rb-duo::before, .rb-duo::after {
+  content: ""; position: absolute; left: 0; right: 0; height: 44px;
+  pointer-events: none; z-index: 1;
+}
+/* Flojos a propósito. Antes eran 60 px de blanco a plomo y se comían el borde
+   de abajo del botón de NetherHost: el botón es blanco, el desvanecido también,
+   y donde se tocaban el botón se quedaba sin contorno. Ahora la mitad de la
+   rampa ya está casi transparente, así que suaviza el corte sin llegar a
+   apoyarse en nada de lo que hay dentro. */
+.rb-duo::before {
+  top: 0;
+  background: linear-gradient(180deg, var(--rb-white), rgba(255, 255, 255, .28) 55%, transparent);
+}
+.rb-duo::after {
+  bottom: 0;
+  background: linear-gradient(0deg, var(--rb-white), rgba(255, 255, 255, .28) 55%, transparent);
+}
+
+.rb-duo-rejilla {
+  position: relative; z-index: 2;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 56px;
+  align-items: start;
+}
+/* El relleno va aparte y con .rb-duo delante. Motivo: esta misma caja lleva
+   también la clase .rb-wrap, y en el tramo de 1440 px hay un
+   `.rb-wrap { padding: 0 48px }` — un atajo que de paso pone a CERO el relleno
+   de arriba y de abajo. Va después en la hoja y empata en especificidad, así
+   que ganaba él, y en cualquier pantalla grande la franja se quedaba sin aire:
+   el logo de Fusalmo aterrizaba pegado al borde de arriba y el botón de
+   NetherHost al de abajo, los dos metidos dentro del desvanecido.
+
+   Con dos clases delante (0,2,0 contra 0,1,0) esta gana pase lo que pase, sin
+   depender de dónde esté escrita. */
+.rb-duo .rb-duo-rejilla { padding-top: 84px; padding-bottom: 104px; }
+
+.rb-duo-lado h3 { color: #fff; font-size: clamp(23px, 2.4vw, 31px); margin: 22px 0 16px; }
+.rb-duo-lado p { font-size: 16px; line-height: 1.75; margin: 0 0 14px; }
+
+/* El logo, grande. Es la mitad del agradecimiento: a tamaño de icono no se
+   reconocía de lejos, y esto se mira de lejos. Los dos vienen dibujados sobre
+   fondo claro, así que se apoyan en una pastilla blanca para no recortarse
+   mal contra el azul y el negro. */
+.rb-duo-logo {
+  display: block;
+  height: 96px; width: auto; max-width: 100%; object-fit: contain;
+  background: rgba(255, 255, 255, .95); border-radius: 18px; padding: 14px 22px;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, .22);
+}
+/* La llama va sin pastilla: su PNG ya es transparente y sobre negro se ve
+   mejor sola. */
+.rb-duo-llama {
+  height: 104px; background: none; padding: 0; box-shadow: none;
+  filter: drop-shadow(0 12px 32px rgba(255, 46, 46, .5));
+}
+
+.rb-duo-lema {
+  font-size: 13px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase;
+  color: rgba(255, 255, 255, .58); margin-top: 22px;
+}
+
+/* El cupón. Es lo único que alguien va a querer copiar de aquí, así que se
+   separa de la prosa y se le da forma de cupón de verdad. */
+.rb-cupon {
+  display: flex; align-items: center; gap: 18px;
+  margin: 22px 0 24px;
+  background: rgba(255, 255, 255, .05);
+  border: 1px dashed rgba(255, 46, 46, .55);
+  border-radius: 20px; padding: 18px 22px;
+}
+.rb-cupon-off {
+  flex: 0 0 auto; font-size: 42px; font-weight: 800; line-height: 1;
+  color: var(--rb-red); letter-spacing: -.05em;
+}
+.rb-cupon-off span { font-size: 22px; }
+.rb-cupon-txt strong { display: block; color: #fff; font-size: 16px; margin-bottom: 6px; }
+.rb-cupon-txt p { font-size: 14px; line-height: 1.6; margin: 0; }
+.rb-cupon-codigo {
+  display: inline-block; font-family: var(--rr-mono);
+  font-size: 14.5px; font-weight: 700; letter-spacing: .12em;
+  background: var(--rb-red); color: #fff;
+  padding: 2px 10px; border-radius: 7px;
+}
+
+/* En una columna el bies no significa nada: el corte se vuelve horizontal y
+   cada aliado se lee entero antes de pasar al siguiente. */
+@media (max-width: 900px) {
+  .rb-duo { --rb-corte: 180deg; }
+  .rb-duo-fondo {
+    -webkit-mask-image: linear-gradient(180deg, #000 34%, transparent 56%);
+            mask-image: linear-gradient(180deg, #000 34%, transparent 56%);
+  }
+  .rb-duo-corte {
+    background:
+      linear-gradient(180deg, transparent calc(45% - 1px), rgba(255, 255, 255, .28) 45%, transparent calc(45% + 1px));
+  }
+  .rb-duo-rejilla { grid-template-columns: 1fr; gap: 54px; }
+  .rb-duo .rb-duo-rejilla { padding-top: 64px; padding-bottom: 80px; }
+  .rb-duo-logo { height: 76px; }
+  .rb-duo-llama { height: 84px; }
+}
+@media (max-width: 620px) {
+  .rb-cupon { flex-direction: column; text-align: center; gap: 12px; }
+}
+
+/* =============================================================================
    Llamada final
    ============================================================================= */
 
-.rb-cta { padding: 30px 0 110px; }
+/* El relleno de arriba tiene que dar de sí para el Robin que se asoma por
+   encima de la banda (ver .rb-cta-bird): con 30 px, el pájaro se salía de su
+   sección y le entraba por abajo a la franja de agradecimientos. */
+.rb-cta { padding: 54px 0 110px; }
 .rb-cta-band {
   position: relative;
   background: var(--rb-red); border-radius: 34px;
@@ -515,7 +774,10 @@ body.rb-page {
 .rb-cta-band p { color: rgba(255, 255, 255, .85); font-size: 17.5px; max-width: 560px; margin: 0 auto 34px; }
 .rb-cta-actions { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
 /* Robin asomándose por arriba de la banda */
-.rb-cta-bird { position: absolute; top: -58px; left: 50%; transform: translateX(-50%); }
+/* Robin asomándose por arriba de la banda. Asoma menos que antes (-58 px) y
+   su sección le reserva más aire por encima: así se queda dentro de lo suyo en
+   vez de chocar con la franja de agradecimientos, que termina justo ahí. */
+.rb-cta-bird { position: absolute; top: -42px; left: 50%; transform: translateX(-50%); }
 .rb-cta-bird .rr-mascot { width: 116px; height: 116px; filter: drop-shadow(0 10px 22px rgba(0, 0, 0, .18)); }
 
 /* =============================================================================
@@ -1145,3 +1407,21 @@ body.rb-page {
   .rb-scene { min-height: 240px; }
   .rb-scene .rr-mascot { width: min(170px, 30vw); height: min(170px, 30vw); }
 }
+
+/* =============================================================================
+   Los márgenes de las dos secciones nuevas, al final de todo
+   =============================================================================
+   Van aquí abajo, sueltas y fuera de su bloque, por una razón concreta: el
+   tramo de `@media (min-width: 1800px)` reescribe `.rb-section { padding:
+   150px 0 }`, va después en la hoja y empata en especificidad con
+   `.rb-vota` — así que ganaba él. En una pantalla de 1920 px eso dejaba la
+   sección del voto con 722 px de alto para una banda de 422: trescientos
+   píxeles de blanco alrededor de lo único que había que mirar.
+
+   La banda del voto y la franja de agradecimientos ya traen su propio aire
+   por dentro (56 px de relleno la una, 84 la otra), así que no necesitan que
+   la sección les ponga otro tanto por fuera.
+   ============================================================================= */
+
+.rb-vota { padding: 44px 0 40px; }
+.rb-gracias { padding: 72px 0 0; }
